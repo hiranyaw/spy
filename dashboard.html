@@ -299,10 +299,10 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
   </div>
 
   <!-- Signal history -->
-  <div class="sec">Signal History</div>
+  <div class="sec">Signal History (with Trendline Breaks)</div>
   <table>
-    <thead><tr><th>Time</th><th>Signal</th><th>Type</th><th>SPY</th><th>QQQ</th><th>Conf</th><th>Rev</th><th>ST Flip</th></tr></thead>
-    <tbody id="sig-hist"><tr><td colspan="8" style="color:#555;text-align:center">No signals yet</td></tr></tbody>
+    <thead><tr><th>Time</th><th>Signal</th><th>Type</th><th>SPY</th><th>QQQ</th><th>Conf</th><th>Rev</th><th>ST Flip</th><th>TL Break</th></tr></thead>
+    <tbody id="sig-hist"><tr><td colspan="9" style="color:#555;text-align:center">No signals yet</td></tr></tbody>
   </table>
 </div>
 
@@ -1367,11 +1367,12 @@ function updateLive(d){
     const sc=h.signal?.startsWith('STRONG-BUY')?'tsg':h.signal?.startsWith('STRONG-SELL')?'tsg':
              h.signal?.startsWith('BUY')?'tb':h.signal?.startsWith('SELL')?'ts':
              h.signal?.startsWith('REV-BUY')?'ty':h.signal?.startsWith('REV-SELL')?'tm':'th';
+    const tlBreak = h.tl_break ? (h.tl_break==='UP'?'<span style="color:#3fb950">▲ UP</span>':'<span style="color:#f85149">▼ DOWN</span>') : '--';
     return `<tr><td style="white-space:nowrap">${fmtLA(h.time)||'--'}</td><td class="${sc}">${h.signal||'--'}</td>
       <td style="color:${h.signal_type==='trend'?'#3fb950':h.signal_type==='reversal'?'#f0d000':'#555'}">${h.signal_type||'--'}</td>
       <td>${fmt(h.spy)}</td><td>${fmt(h.qqq)}</td><td>${h.conf_tv||'--'}</td>
-      <td>${h.rev_score!=null?h.rev_score+' '+h.rev_dir:'--'}</td><td>${h.st_flip||'--'}</td></tr>`;
-  }).join(''):'<tr><td colspan="8" style="color:#555;text-align:center">No signals yet</td></tr>';
+      <td>${h.rev_score!=null?h.rev_score+' '+h.rev_dir:'--'}</td><td>${h.st_flip||'--'}</td><td>${tlBreak}</td></tr>`;
+  }).join(''):'<tr><td colspan="9" style="color:#555;text-align:center">No signals yet</td></tr>';
 }
 
 function updatePaper(d){
