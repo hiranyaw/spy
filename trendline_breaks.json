@@ -1,0 +1,18 @@
+{
+  "breaks": [
+    {
+      "date": "2026-06-23",
+      "time": "07:07:12",
+      "symbol": "SPY",
+      "direction": "UP",
+      "price": "738.05"
+    },
+    {
+      "date": "2026-06-23",
+      "time": "07:09:30",
+      "symbol": "QQQ",
+      "direction": "DOWN",
+      "price": "721.73"
+    }
+  ]
+}

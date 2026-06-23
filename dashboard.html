@@ -1,0 +1,2115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hiranya — SPY Trader</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230d1117'/><rect width='64' height='64' rx='12' fill='%233fb950' opacity='0.15'/><text x='32' y='22' font-family='Segoe UI,sans-serif' font-size='11' font-weight='700' fill='%233fb950' text-anchor='middle' letter-spacing='0.5'>SPY</text><text x='32' y='44' font-family='Segoe UI,sans-serif' font-size='10' font-weight='500' fill='%238b949e' text-anchor='middle'>Hiranya</text><rect x='10' y='48' width='44' height='2' rx='1' fill='%233fb950' opacity='0.6'/></svg>">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;padding:14px}
+h1{font-size:1.25rem;color:#58a6ff;margin-bottom:2px}
+.sub{font-size:0.73rem;color:#8b949e;margin-bottom:12px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #30363d;margin-bottom:14px}
+.tab{padding:6px 16px;cursor:pointer;font-size:0.82rem;color:#8b949e;border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:none}
+.tab.on{background:#161b22;color:#e6edf3;border-color:#30363d;border-bottom-color:#0d1117}
+.tc{display:none}.tc.on{display:block}
+.sbar{display:flex;justify-content:space-between;align-items:center;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:7px 14px;font-size:0.74rem;color:#8b949e;margin-bottom:12px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+.dot.g{background:#3fb950;animation:pulse 1.5s infinite}.dot.gr{background:#555}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes status-pulse{0%,100%{box-shadow:0 0 0 0 rgba(248,81,73,0.4)}50%{box-shadow:0 0 0 6px rgba(248,81,73,0)}}
+
+/* Signal cards */
+.sig-card{border-radius:10px;padding:14px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px}
+.sig-card.BUY{background:linear-gradient(135deg,#0d4429,#196c2e);border:2px solid #3fb950}
+.sig-card.SELL{background:linear-gradient(135deg,#4d1818,#8b2020);border:2px solid #f85149}
+.sig-card.REV-BUY{background:linear-gradient(135deg,#2d2a00,#4a4500);border:2px solid #f0d000}
+.sig-card.REV-SELL{background:linear-gradient(135deg,#2a0033,#440055);border:2px solid #cc00ff}
+.sig-card.HOLD,.sig-card.WAIT{background:#161b22;border:2px solid #30363d}
+.sig-lbl{font-size:2rem;font-weight:900;letter-spacing:1px}
+.BUY .sig-lbl{color:#3fb950}.SELL .sig-lbl{color:#f85149}
+.REV-BUY .sig-lbl{color:#f0d000}.REV-SELL .sig-lbl{color:#cc00ff}
+.HOLD .sig-lbl,.WAIT .sig-lbl{color:#8b949e;font-size:1.4rem}
+.sig-sub{font-size:0.78rem;color:#8b949e;margin-top:3px}
+.sig-badge{display:inline-block;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:8px;margin-top:4px}
+.badge-trend{background:#1a4731;color:#3fb950;border:1px solid #3fb950}
+.badge-rev{background:#2d2a00;color:#f0d000;border:1px solid #f0d000}
+.badge-strong{background:#3d2600;color:#ff9500;border:1px solid #ff9500;animation:strong-pulse 1.2s infinite}
+@keyframes strong-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,149,0,.5)}60%{box-shadow:0 0 0 5px rgba(255,149,0,0)}}
+/* Strong signal card */
+.sig-card.STRONG-BUY{background:linear-gradient(135deg,#2d1a00,#4d3000);border:2.5px solid #ff9500;box-shadow:0 0 16px rgba(255,149,0,.25)}
+.sig-card.STRONG-SELL{background:linear-gradient(135deg,#2d0e00,#4d1800);border:2.5px solid #ff6a00;box-shadow:0 0 16px rgba(255,106,0,.25)}
+.STRONG-BUY .sig-lbl{color:#ff9500}.STRONG-SELL .sig-lbl{color:#ff6a00}
+.tsg{color:#ff9500;font-weight:700}
+
+/* 5-factor grid */
+.conf-box{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.conf-hdr{display:flex;justify-content:space-between;font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+.conf-score{font-weight:700;font-size:0.95rem}
+.conf-score.f5{color:#3fb950}.conf-score.f4{color:#f0883e}.conf-score.low{color:#f85149}
+.factors{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px}
+.factor{border-radius:7px;padding:9px 6px;text-align:center;border:1px solid}
+.factor.up{background:#0d3320;border-color:#3fb950}.factor.dn{background:#3d1515;border-color:#f85149}.factor.na{background:#161b22;border-color:#30363d}
+.fn{font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.fv{font-size:1.2rem;font-weight:700}
+.factor.up .fv{color:#3fb950}.factor.dn .fv{color:#f85149}.factor.na .fv{color:#555}
+.fs{font-size:0.63rem;color:#8b949e;margin-top:2px}
+.conf-banner{text-align:center;font-size:0.8rem;padding:7px;border-radius:6px;background:#0d1117;color:#555}
+
+/* Reversal box */
+.rev-box{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.rev-hdr{font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;display:flex;justify-content:space-between}
+.rev-score-lbl{font-weight:700}
+.rev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.rev-item{border-radius:7px;padding:8px 10px;border:1px solid #30363d;background:#0d1117}
+.rev-item.active-buy{background:#2d2a00;border-color:#f0d000}
+.rev-item.active-sell{background:#2a0033;border-color:#cc00ff}
+.ri-lbl{font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.4px}
+.ri-val{font-size:0.82rem;font-weight:600;margin-top:3px;color:#e6edf3}
+
+/* Metrics */
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px}
+.metric{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px}
+.ml{font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
+.mv{font-size:1.2rem;font-weight:700;margin-top:2px}
+.bl{color:#58a6ff}.gn{color:#3fb950}.rd{color:#f85149}.or{color:#f0883e}.gr{color:#8b949e}.yw{color:#f0d000}
+
+/* Levels */
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px}
+.lv{background:#161b22;border:1px solid #30363d;border-radius:7px;padding:9px 12px;text-align:center}
+.ll{font-size:0.65rem;color:#8b949e;text-transform:uppercase}.lval{font-size:1rem;font-weight:700;margin-top:3px}
+.timebar{border-radius:7px;padding:9px 14px;margin-bottom:10px;display:flex;justify-content:space-between;font-size:0.8rem}
+.t-g{background:#0d3320;border:1px solid #3fb950}.t-o{background:#3d2200;border:1px solid #f0883e}
+.t-r{background:#3d1515;border:1px solid #f85149}.t-n{background:#161b22;border:1px solid #30363d;color:#555}
+
+.sec{font-size:0.68rem;color:#8b949e;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+table{width:100%;border-collapse:collapse;font-size:0.77rem}
+th{text-align:left;padding:5px 7px;color:#8b949e;border-bottom:1px solid #30363d;font-weight:400}
+td{padding:5px 7px;border-bottom:1px solid #21262d}
+.tb{color:#3fb950;font-weight:700}.ts{color:#f85149;font-weight:700}.ty{color:#f0d000;font-weight:700}.tm{color:#cc00ff;font-weight:700}.th{color:#555}
+
+/* Paper tab */
+.pt-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.pt-s{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px;text-align:center}
+.pt-l{font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
+.pt-v{font-size:1.4rem;font-weight:800;margin-top:3px}
+.pt-sub{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.pt-sub-item{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 12px}
+.pt-sub-lbl{font-size:0.65rem;color:#8b949e;text-transform:uppercase}
+.pt-sub-val{font-size:0.9rem;font-weight:600;margin-top:2px}
+.open-pos{border-radius:8px;padding:9px 14px;margin-bottom:10px;font-size:0.8rem;display:flex;justify-content:space-between;align-items:center}
+.op-long{background:#0d3320;border:1px solid #3fb950}
+.op-short{background:#3d1515;border:1px solid #f85149}
+.op-none{background:#161b22;border:1px solid #30363d;color:#555}
+
+/* Manual paper trading */
+.mt-panel{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.mt-title{font-size:0.75rem;color:#58a6ff;text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.mt-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.mt-btn{border:none;border-radius:9px;padding:14px 10px;cursor:pointer;font-family:inherit;font-weight:700;font-size:1rem;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px;line-height:1.2}
+.mt-btn:hover{filter:brightness(1.15)}.mt-btn:active{transform:scale(.97)}.mt-btn:disabled{opacity:.35;cursor:not-allowed;filter:none}
+.mt-call{background:linear-gradient(135deg,#0d4429,#196c2e);border:2px solid #3fb950;color:#3fb950}
+.mt-put{background:linear-gradient(135deg,#4d1818,#8b2020);border:2px solid #f85149;color:#f85149}
+.mt-close{background:linear-gradient(135deg,#2a1f00,#4a3800);border:2px solid #f0883e;color:#f0883e;border-radius:9px;padding:10px 20px;cursor:pointer;font-family:inherit;font-weight:700;font-size:0.88rem;transition:all .15s;width:100%;margin-top:8px}
+.mt-close:hover{filter:brightness(1.15)}.mt-close:active{transform:scale(.97)}
+.mt-open-card{border-radius:9px;padding:12px 14px;margin-bottom:8px}
+.mt-call-card{background:#0a2e1a;border:1.5px solid #3fb950}
+.mt-put-card{background:#2e0a0a;border:1.5px solid #f85149}
+.mt-card-dir{font-size:1.3rem;font-weight:900;letter-spacing:.5px}
+.mt-card-dir.call{color:#3fb950}.mt-card-dir.put{color:#f85149}
+.mt-unr{font-size:1.6rem;font-weight:900}
+.mt-unr.pos{color:#3fb950}.mt-unr.neg{color:#f85149}.mt-unr.flat{color:#8b949e}
+.mt-snap-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:8px}
+.mt-snap-item{background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:6px 8px;text-align:center}
+.mt-snap-lbl{font-size:0.6rem;color:#8b949e;text-transform:uppercase;letter-spacing:.4px}
+.mt-snap-val{font-size:0.8rem;font-weight:700;margin-top:2px}
+.mt-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:12px}
+.mt-stat{background:#0d1117;border:1px solid #21262d;border-radius:7px;padding:8px 10px;text-align:center}
+.mt-stat-lbl{font-size:0.6rem;color:#8b949e;text-transform:uppercase;letter-spacing:.4px}
+.mt-stat-val{font-size:1.1rem;font-weight:800;margin-top:2px}
+.mt-feedback{border-radius:8px;padding:8px 12px;font-size:0.8rem;text-align:center;margin-bottom:8px;display:none}
+.mt-feedback.ok{background:#0d3320;border:1px solid #3fb950;color:#3fb950}
+.mt-feedback.err{background:#3d1515;border:1px solid #f85149;color:#f85149}
+.mt-sep{border:none;border-top:1px solid #21262d;margin:14px 0}
+</style>
+</head>
+<body>
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
+  <div style="width:34px;height:34px;border-radius:8px;background:#0d3320;border:1.5px solid #3fb950;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><polyline points="3,16 8,9 13,13 19,5" stroke="#3fb950" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="5" r="2" fill="#3fb950"/></svg>
+  </div>
+  <div>
+    <h1 style="margin:0">Hiranya's SPY Trader</h1>
+    <p class="sub" style="margin:0">AK MACD BB v2.0 — Reversal Edition &nbsp;|&nbsp; LA: 6:30–8:15 AM PT &nbsp;|&nbsp; 5-Factor Trend + 6-Method Reversal</p>
+  </div>
+</div>
+
+<div class="sbar">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span><span class="dot g" id="dot"></span><span id="stxt">Connecting...</span></span>
+    <button id="tv-status-btn" onclick="openTvModal()" style="border:none;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all 0.2s;outline:none"></button>
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px">
+      <span style="color:#8b949e">Target App:</span>
+      <select id="target-app-select" onchange="changeTargetApp(this.value)" style="background:#161b22;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;outline:none">
+        <option value="Chrome">Google Chrome</option>
+        <option value="TradingView">TradingView Desktop</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;margin-left:6px">
+      <span style="color:#8b949e">Interval:</span>
+      <select id="update-interval-select" onchange="changeUpdateInterval(this.value)" style="background:#161b22;color:#e6edf3;border:1px solid #30363d;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;outline:none">
+        <option value="15">15s</option>
+        <option value="30">30s</option>
+        <option value="45">45s</option>
+        <option value="60">1m</option>
+      </select>
+      <span id="countdown-badge" style="background:#1f2937;color:#58a6ff;border:1px solid #30363d;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700;font-family:monospace;margin-left:2px;display:none">--s</span>
+    </div>
+  </div>
+  <span id="upd">--</span>
+</div>
+
+<div class="tabs">
+  <div class="tab on" onclick="sw('live')">Live Signal</div>
+  <div class="tab"    onclick="sw('paper')">Paper Trading</div>
+  <div class="tab"    onclick="sw('tl')">📊 Trendline Breaks</div>
+  <div class="tab"    onclick="sw('ctrl')">Controls</div>
+  <div class="tab"    onclick="sw('guide')">Symbol Guide</div>
+</div>
+
+<!-- ══ TAB: LIVE ══ -->
+<div class="tc on" id="tab-live">
+
+  <!-- Main signal card -->
+  <div class="sig-card WAIT" id="sig-card">
+    <div>
+      <div class="sig-lbl" id="sig-lbl">WAITING</div>
+      <div class="sig-sub" id="sig-sub">Waiting for first tick...</div>
+      <div id="sig-badge"></div>
+    </div>
+  </div>
+
+  <!-- Trend Line Breaks (SPY & QQQ) -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    <!-- SPY Trend Line Break -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">SPY LuxAlgo Trend Break</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <div style="font-size:1.8rem" id="spy-tl-icon">--</div>
+        <div>
+          <div style="font-size:1.2rem;font-weight:700" id="spy-tl-dir">--</div>
+          <div style="font-size:0.7rem;color:#8b949e" id="spy-tl-label">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QQQ Trend Line Break -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">QQQ LuxAlgo Trend Break</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+        <div style="font-size:1.8rem" id="qqq-tl-icon">--</div>
+        <div>
+          <div style="font-size:1.2rem;font-weight:700" id="qqq-tl-dir">--</div>
+          <div style="font-size:0.7rem;color:#8b949e" id="qqq-tl-label">--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Market Context Bar: VIX + Events + Gap -->
+  <div id="ctx-bar" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+    <!-- VIX -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px">
+      <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">VIX</div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">
+        <span style="font-size:1.3rem;font-weight:700" id="ctx-vix">--</span>
+        <span style="font-size:0.72rem;padding:1px 7px;border-radius:8px" id="ctx-vix-badge">--</span>
+      </div>
+      <div style="font-size:0.7rem;color:#8b949e;margin-top:2px" id="ctx-vix-warn"></div>
+    </div>
+    <!-- Gap -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px">
+      <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Pre-market gap</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-top:2px" id="ctx-gap">--</div>
+      <div style="font-size:0.7rem;color:#8b949e;margin-top:2px" id="ctx-gap-rule"></div>
+    </div>
+    <!-- Events -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px" id="ctx-events-box">
+      <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Economic events today</div>
+      <div style="font-size:0.78rem;margin-top:4px" id="ctx-events">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Trading paused banner -->
+  <div id="paused-banner" style="display:none;background:#4d2800;border:1.5px solid #f0883e;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:0.85rem;color:#f0883e;font-weight:600;text-align:center"></div>
+
+  <!-- 5-Factor confluence -->
+  <div class="conf-box">
+    <div class="conf-hdr">
+      <span>5-Factor Confluence Trend</span>
+      <span class="conf-score na" id="conf-score">--/5</span>
+    </div>
+    <div class="factors">
+      <div class="factor na" id="f-macd"><div class="fn">MACD BB</div><div class="fv" id="fv-macd">--</div><div class="fs">hist+BB</div></div>
+      <div class="factor na" id="f-qqq"> <div class="fn">QQQ 1m</div><div class="fv" id="fv-qqq">--</div><div class="fs" id="fs-qqq">--</div></div>
+      <div class="factor na" id="f-add"> <div class="fn">ADD 1m</div><div class="fv" id="fv-add">--</div><div class="fs" id="fs-add">--</div></div>
+      <div class="factor na" id="f-spy5"><div class="fn">SPY 5m</div><div class="fv" id="fv-spy5">--</div><div class="fs">Supertrend</div></div>
+      <div class="factor na" id="f-spy1"><div class="fn">SPY 1m</div><div class="fv" id="fv-spy1">--</div><div class="fs">Supertrend</div></div>
+    </div>
+    <div class="conf-banner" id="conf-banner">Waiting for data...</div>
+  </div>
+
+  <!-- Reversal box -->
+  <div class="rev-box">
+    <div class="rev-hdr">
+      <span>6-Method Reversal Detection</span>
+      <span class="rev-score-lbl" id="rev-score-lbl" style="color:#8b949e">Score: --</span>
+    </div>
+    <div class="rev-grid">
+      <div class="rev-item" id="ri-div">   <div class="ri-lbl">MACD Divergence</div><div class="ri-val" id="rv-div">--</div></div>
+      <div class="rev-item" id="ri-add">   <div class="ri-lbl">ADD Extreme</div>    <div class="ri-val" id="rv-add">--</div></div>
+      <div class="rev-item" id="ri-stflip"><div class="ri-lbl">ST Flip</div>        <div class="ri-val" id="rv-stflip">--</div></div>
+      <div class="rev-item" id="ri-vwap">  <div class="ri-lbl">VWAP Distance</div> <div class="ri-val" id="rv-vwap">--</div></div>
+      <div class="rev-item" id="ri-engulf"><div class="ri-lbl">Engulfing</div>      <div class="ri-val" id="rv-engulf">--</div></div>
+      <div class="rev-item" id="ri-rev">   <div class="ri-lbl">REV Score</div>      <div class="ri-val" id="rv-rev" style="font-size:1.1rem;font-weight:800">--</div></div>
+    </div>
+  </div>
+
+  <!-- Prices -->
+  <div class="grid4">
+    <div class="metric"><div class="ml">SPY Price</div><div class="mv bl" id="m-spy">--</div></div>
+    <div class="metric"><div class="ml">QQQ Price</div><div class="mv bl" id="m-qqq">--</div></div>
+    <div class="metric"><div class="ml">ADD Value</div><div class="mv" id="m-add">--</div></div>
+    <div class="metric"><div class="ml">TV Conf</div>  <div class="mv" id="m-conf">--</div></div>
+  </div>
+
+  <!-- Key levels -->
+  <div class="levels">
+    <div class="lv"><div class="ll">Price</div>      <div class="lval bl" id="lv-price">--</div></div>
+    <div class="lv"><div class="ll">Resistance</div> <div class="lval rd" id="lv-resist">--</div></div>
+    <div class="lv"><div class="ll">Support</div>    <div class="lval gn" id="lv-support">--</div></div>
+    <div class="lv"><div class="ll">ST Level</div>   <div class="lval" id="lv-st">--</div></div>
+  </div>
+
+  <!-- Time bar -->
+  <div class="timebar t-n" id="tbar">
+    <span>Time to candle close</span>
+    <span style="font-weight:700;font-size:0.95rem" id="tval">--</span>
+  </div>
+
+  <!-- Signal history -->
+  <div class="sec">Signal History</div>
+  <table>
+    <thead><tr><th>Time</th><th>Signal</th><th>Type</th><th>SPY</th><th>QQQ</th><th>Conf</th><th>Rev</th><th>ST Flip</th></tr></thead>
+    <tbody id="sig-hist"><tr><td colspan="8" style="color:#555;text-align:center">No signals yet</td></tr></tbody>
+  </table>
+</div>
+
+<!-- ══ TAB: PAPER TRADING ══ -->
+<div class="tc" id="tab-paper">
+
+  <!-- ── Manual Paper Trading ── -->
+  <div class="mt-panel">
+    <div class="mt-title">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#58a6ff" stroke-width="1.4"/><line x1="7" y1="4" x2="7" y2="7.5" stroke="#58a6ff" stroke-width="1.4" stroke-linecap="round"/><circle cx="7" cy="10" r=".7" fill="#58a6ff"/></svg>
+      Manual Paper Trading
+    </div>
+
+    <!-- Buy buttons (shown when no open trade) -->
+    <div id="mt-buy-row" class="mt-btns">
+      <button class="mt-btn mt-call" id="mt-call-btn" onclick="manualBuy('CALL')">
+        <span style="font-size:1.5rem">📈</span>
+        <span>BUY CALL</span>
+        <span style="font-size:0.7rem;font-weight:400;color:#8b949e">at current SPY price</span>
+      </button>
+      <button class="mt-btn mt-put" id="mt-put-btn" onclick="manualBuy('PUT')">
+        <span style="font-size:1.5rem">📉</span>
+        <span>BUY PUT</span>
+        <span style="font-size:0.7rem;font-weight:400;color:#8b949e">at current SPY price</span>
+      </button>
+    </div>
+
+    <!-- Auto-Trade Controls -->
+    <div style="margin-top:12px;padding:12px;background:#1a1a1a;border-radius:8px;border:1px solid #333">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <input type="checkbox" id="auto-trade-toggle" onchange="toggleAutoTrade()" style="cursor:pointer;width:18px;height:18px">
+        <label for="auto-trade-toggle" style="cursor:pointer;font-size:0.9rem;font-weight:600;color:#e6edf3">🤖 Auto-Trade on Trend Breaks</label>
+        <span id="auto-trade-status" style="font-size:0.7rem;color:#8b949e;margin-left:auto">OFF</span>
+      </div>
+      <div style="font-size:0.75rem;color:#8b949e;margin-bottom:8px">Auto-Exit Conditions:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.75rem">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="checkbox" id="exit-profit-check" checked style="cursor:pointer"> Profit: <input type="number" id="exit-profit-pts" value="0.5" step="0.1" style="width:40px;padding:2px;font-size:0.7rem">pts
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="checkbox" id="exit-loss-check" checked style="cursor:pointer"> Loss: <input type="number" id="exit-loss-pts" value="0.6" step="0.1" style="width:40px;padding:2px;font-size:0.7rem">pts
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="checkbox" id="exit-flip-check" checked style="cursor:pointer"> ST Flip
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="checkbox" id="exit-time-check" checked style="cursor:pointer"> Max: <input type="number" id="exit-time-min" value="5" min="1" style="width:35px;padding:2px;font-size:0.7rem">min
+        </label>
+      </div>
+    </div>
+
+    <!-- Feedback toast -->
+    <div class="mt-feedback" id="mt-feedback"></div>
+
+    <!-- Open trade card (hidden until trade open) -->
+    <div id="mt-open-card" style="display:none">
+      <div class="mt-open-card" id="mt-card-inner">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="mt-card-dir" id="mt-card-dir">--</span>
+              <span style="font-size:0.78rem;color:#8b949e">@ <span id="mt-card-entry" style="color:#e6edf3;font-weight:700">--</span> &nbsp;·&nbsp; <span id="mt-card-time">--</span></span>
+            </div>
+            <div style="font-size:0.72rem;color:#8b949e;margin-top:4px">
+              Signal: <span id="mt-card-signal" style="color:#e6edf3;font-weight:600">--</span>
+              &nbsp;|&nbsp; Conf: <span id="mt-card-conf" style="color:#e6edf3">--</span>
+              &nbsp;|&nbsp; Rev: <span id="mt-card-rev" style="color:#e6edf3">--</span>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Unrealized P&L</div>
+            <div class="mt-unr flat" id="mt-unr-pnl">+0.000</div>
+            <div style="font-size:0.7rem;color:#8b949e" id="mt-unr-pct">+0.000%</div>
+          </div>
+        </div>
+
+        <!-- Indicator snapshot grid -->
+        <div class="mt-snap-grid" id="mt-snap-grid">
+          <div class="mt-snap-item"><div class="mt-snap-lbl">SPY Entry</div><div class="mt-snap-val bl" id="ms-spy">--</div></div>
+          <div class="mt-snap-item"><div class="mt-snap-lbl">MACD</div><div class="mt-snap-val" id="ms-macd">--</div></div>
+          <div class="mt-snap-item"><div class="mt-snap-lbl">ADD</div><div class="mt-snap-val" id="ms-add">--</div></div>
+          <div class="mt-snap-item"><div class="mt-snap-lbl">VWAP%</div><div class="mt-snap-val" id="ms-vwap">--</div></div>
+          <div class="mt-snap-item"><div class="mt-snap-lbl">QQQ</div><div class="mt-snap-val bl" id="ms-qqq">--</div></div>
+          <div class="mt-snap-item"><div class="mt-snap-lbl">ST Flip</div><div class="mt-snap-val" id="ms-stflip">--</div></div>
+          <div class="mt-snap-item"><div class="mt-snap-lbl">SPY 1m</div><div class="mt-snap-val" id="ms-spy1">--</div></div>
+          <div class="mt-snap-item"><div class="mt-snap-lbl">Div</div><div class="mt-snap-val" id="ms-div">--</div></div>
+        </div>
+
+        <button class="mt-close" onclick="manualClose()">❌ &nbsp;CLOSE TRADE — lock in P&amp;L</button>
+      </div>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="mt-stats" id="mt-stats-row" style="display:none">
+      <div class="mt-stat"><div class="mt-stat-lbl">Trades</div><div class="mt-stat-val bl" id="mt-s-tot">0</div></div>
+      <div class="mt-stat"><div class="mt-stat-lbl">Win Rate</div><div class="mt-stat-val" id="mt-s-wr">--</div></div>
+      <div class="mt-stat"><div class="mt-stat-lbl">Total P&L</div><div class="mt-stat-val" id="mt-s-pnl">0.000</div></div>
+      <div class="mt-stat"><div class="mt-stat-lbl">Calls / Puts</div><div class="mt-stat-val" id="mt-s-cp" style="font-size:0.85rem">0 / 0</div></div>
+    </div>
+    <div class="mt-stats" id="mt-stats-row2" style="display:none">
+      <div class="mt-stat"><div class="mt-stat-lbl">Avg Win</div><div class="mt-stat-val gn" id="mt-s-aw">--</div></div>
+      <div class="mt-stat"><div class="mt-stat-lbl">Avg Loss</div><div class="mt-stat-val rd" id="mt-s-al">--</div></div>
+      <div class="mt-stat"><div class="mt-stat-lbl">Win P&L</div><div class="mt-stat-val gn" id="mt-s-wpnl">--</div></div>
+      <div class="mt-stat"><div class="mt-stat-lbl">Loss P&L</div><div class="mt-stat-val rd" id="mt-s-lpnl">--</div></div>
+    </div>
+
+    <!-- Daily P/L breakdown -->
+    <div id="mt-daily-wrap" style="display:none">
+      <hr class="mt-sep">
+      <div class="sec" style="margin-bottom:6px">Daily P&L Breakdown</div>
+      <table style="width:100%;font-size:0.75rem;margin-bottom:12px">
+        <thead><tr style="border-bottom:1px solid #444">
+          <th style="text-align:left;padding:4px">Date</th>
+          <th style="text-align:center">Trades</th>
+          <th style="text-align:center">Wins</th>
+          <th style="text-align:right;padding-right:8px">Daily P&L</th>
+        </tr></thead>
+        <tbody id="mt-daily-body"></tbody>
+      </table>
+
+      <!-- Overall Summary -->
+      <div style="background:#1a1a1a;border-radius:8px;padding:12px;margin-bottom:12px;border:1px solid #333">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+          <div>
+            <div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">OVERALL P/L</div>
+            <div style="font-size:1.2rem;font-weight:700;color:#3fb950" id="mt-overall-pnl">0.000</div>
+          </div>
+          <div>
+            <div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">Total Trades</div>
+            <div style="font-size:1.2rem;font-weight:700;color:#e6edf3" id="mt-overall-total">0</div>
+          </div>
+          <div>
+            <div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">Win Rate</div>
+            <div style="font-size:1.2rem;font-weight:700;color:#e6edf3" id="mt-overall-wr">0%</div>
+          </div>
+          <div>
+            <div style="font-size:0.7rem;color:#8b949e;margin-bottom:4px">Days Trading</div>
+            <div style="font-size:1.2rem;font-weight:700;color:#e6edf3" id="mt-overall-days">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual history table -->
+    <div id="mt-hist-wrap" style="display:none">
+      <hr class="mt-sep">
+      <div class="sec" style="margin-bottom:6px">Manual Trade History</div>
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Entry</th><th>Exit</th><th>Dir</th>
+          <th>Entry $</th><th>Exit $</th>
+          <th>Signal</th><th>Conf</th><th>ADD</th>
+          <th>P&L pts</th><th>P&L %</th><th>Result</th><th>Action</th>
+        </tr></thead>
+        <tbody id="mt-hist-body"></tbody>
+      </table>
+      <div style="margin-top:8px;text-align:right">
+        <button onclick="clearManualTrades()" style="background:#2a0033;color:#cc00ff;border:1px solid #cc00ff;border-radius:6px;padding:4px 12px;font-size:0.72rem;cursor:pointer;font-family:inherit">Clear Manual Trades</button>
+      </div>
+    </div>
+  </div>
+
+  <hr class="mt-sep" style="margin-bottom:14px">
+  <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px">⚙️ Auto Paper Trading (Bot Signals)</div>
+
+  <!-- Overall stats -->
+  <div class="pt-stats">
+    <div class="pt-s"><div class="pt-l">Total Trades</div><div class="pt-v bl" id="pt-tot">0</div></div>
+    <div class="pt-s"><div class="pt-l">Overall Win Rate</div><div class="pt-v" id="pt-wr">--</div></div>
+    <div class="pt-s"><div class="pt-l">Total PnL</div><div class="pt-v" id="pt-pnl">0.000</div></div>
+    <div class="pt-s"><div class="pt-l">Avg Win / Loss</div><div class="pt-v" id="pt-awl" style="font-size:0.85rem">--</div></div>
+  </div>
+
+  <!-- Trend vs Reversal vs Strong split -->
+  <div class="pt-sub" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="pt-sub-item">
+      <div class="pt-sub-lbl">TREND Trades (5/5)</div>
+      <div class="pt-sub-val gn" id="pt-trend">0 trades — --% WR</div>
+    </div>
+    <div class="pt-sub-item">
+      <div class="pt-sub-lbl">REVERSAL Trades (Rev ≥3)</div>
+      <div class="pt-sub-val yw" id="pt-rev">0 trades — --% WR</div>
+    </div>
+    <div class="pt-sub-item" style="border-color:#ff9500">
+      <div class="pt-sub-lbl" style="color:#ff9500">⭐ STRONG Trades (LUX+ST)</div>
+      <div class="pt-sub-val" style="color:#ff9500" id="pt-strong">0 trades — --% WR</div>
+    </div>
+  </div>
+
+  <!-- Open position -->
+  <div class="open-pos op-none" id="op-banner">No open position</div>
+
+  <!-- Charts row 1 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px">
+      <div class="sec" style="margin-bottom:8px">Equity curve (cumulative PnL)</div>
+      <canvas id="chart-eq" height="150"></canvas>
+    </div>
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px">
+      <div class="sec" style="margin-bottom:8px">PnL per trade (green=trend, yellow=reversal)</div>
+      <canvas id="chart-tr" height="150"></canvas>
+    </div>
+  </div>
+
+  <!-- Charts row 2 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px">
+      <div class="sec" style="margin-bottom:8px">Trend vs reversal win rate</div>
+      <canvas id="chart-compare" height="150"></canvas>
+    </div>
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px">
+      <div class="sec" style="margin-bottom:8px">Daily PnL</div>
+      <canvas id="chart-daily" height="150"></canvas>
+    </div>
+  </div>
+
+  <!-- Smart suggestions -->
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 16px;margin-bottom:10px">
+    <div class="sec" style="margin-bottom:8px">Smart suggestions from your paper trades</div>
+    <div id="suggestions-content" style="font-size:12px;color:#8b949e;line-height:1.8">
+      No trades yet — suggestions appear after 5+ trades.
+    </div>
+  </div>
+
+  <!-- Trade history -->
+  <div class="sec" style="margin-bottom:6px">Paper Trade History</div>
+  <table>
+    <thead><tr><th>Entry</th><th>Exit</th><th>Type</th><th>Dir</th><th>Entry $</th><th>Exit $</th><th>PnL</th><th>Result</th></tr></thead>
+    <tbody id="pt-hist"></tbody>
+  </table>
+  <div id="pt-empty" style="text-align:center;color:#555;padding:20px;font-size:0.82rem">
+    No paper trades yet. Trades open on ⭐ Strong (LUX+ST), 5/5 Trend, or Reversal ≥3.
+  </div>
+</div>
+
+<!-- ══ TAB: CONTROLS ══ -->
+<div class="tc" id="tab-ctrl">
+<style>
+.ctrl-section{margin-bottom:20px}
+.ctrl-title{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #21262d}
+.ctrl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.ctrl-btn{border:none;border-radius:8px;padding:14px 16px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;transition:opacity .15s;width:100%}
+.ctrl-btn:hover{opacity:.85}.ctrl-btn:active{opacity:.7}
+.ctrl-btn i{font-size:20px}
+.btn-restart{background:#0d4429;color:#3fb950;border:1.5px solid #3fb950}
+.btn-stop{background:#3d1515;color:#f85149;border:1.5px solid #f85149}
+.btn-start{background:#0d2a3d;color:#58a6ff;border:1.5px solid #58a6ff}
+.btn-briefing{background:#2d2a00;color:#f0d000;border:1.5px solid #f0d000}
+.btn-clear{background:#2a0033;color:#cc00ff;border:1.5px solid #cc00ff}
+.btn-log{background:#1a1a1a;color:#8b949e;border:1px solid #30363d}
+.status-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.status-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;border-bottom:1px solid #21262d}
+.status-row:last-child{border-bottom:none}
+.status-lbl{color:#8b949e}
+.status-val{font-weight:500}
+.ind{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+.ind-g{background:#3fb950}.ind-r{background:#f85149}.ind-y{background:#f0883e}
+.msg-box{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 14px;font-size:12px;color:#8b949e;min-height:60px;max-height:200px;overflow-y:auto;font-family:monospace;margin-top:8px;white-space:pre-wrap}
+.log-box{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px 14px;font-size:11px;color:#8b949e;max-height:300px;overflow-y:auto;font-family:monospace;white-space:pre-wrap;margin-top:8px}
+</style>
+
+  <!-- Status -->
+  <div class="ctrl-section">
+    <div class="ctrl-title">System status</div>
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-lbl">Trading bot</span>
+        <span class="status-val" id="cs-bot"><span class="ind ind-y"></span>Checking...</span>
+      </div>
+      <div class="status-row">
+        <span class="status-lbl">Chrome CDP (port 9222)</span>
+        <span class="status-val" id="cs-chrome"><span class="ind ind-y"></span>Checking...</span>
+      </div>
+      <div class="status-row">
+        <span class="status-lbl">Last signal update</span>
+        <span class="status-val" id="cs-update">--</span>
+      </div>
+      <div class="status-row">
+        <span class="status-lbl">Current signal</span>
+        <span class="status-val" id="cs-signal">--</span>
+      </div>
+      <div class="status-row">
+        <span class="status-lbl">Data fresh</span>
+        <span class="status-val" id="cs-fresh">--</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main controls -->
+  <div class="ctrl-section">
+    <div class="ctrl-title">Bot controls</div>
+    <div class="ctrl-grid">
+      <button class="ctrl-btn btn-restart" onclick="ctrlAction('restart')">
+        <i class="ti ti-refresh" aria-hidden="true"></i>
+        <div style="text-align:left">
+          <div>Restart everything</div>
+          <div style="font-size:11px;opacity:.7">Kills bot + Chrome, relaunches bat file</div>
+        </div>
+      </button>
+      <button class="ctrl-btn btn-stop" onclick="ctrlAction('stop')">
+        <i class="ti ti-player-stop" aria-hidden="true"></i>
+        <div style="text-align:left">
+          <div>Stop bot only</div>
+          <div style="font-size:11px;opacity:.7">Keeps Chrome open, stops signals</div>
+        </div>
+      </button>
+      <button class="ctrl-btn btn-start" onclick="ctrlAction('start')">
+        <i class="ti ti-player-play" aria-hidden="true"></i>
+        <div style="text-align:left">
+          <div>Start bot only</div>
+          <div style="font-size:11px;opacity:.7">Chrome must already be running</div>
+        </div>
+      </button>
+      <button class="ctrl-btn btn-briefing" onclick="ctrlAction('briefing')">
+        <i class="ti ti-sun" aria-hidden="true"></i>
+        <div style="text-align:left">
+          <div>Run pre-market briefing</div>
+          <div style="font-size:11px;opacity:.7">VIX + gap + events + paper stats</div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="ctrl-section">
+    <div class="ctrl-title">Diagnostics</div>
+    <div class="ctrl-grid">
+      <button class="ctrl-btn btn-log" onclick="loadLog()">
+        <i class="ti ti-file-text" aria-hidden="true"></i>
+        <div style="text-align:left">
+          <div>View bot log</div>
+          <div style="font-size:11px;opacity:.7">Last 50 lines of spy_trader.log</div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Output / Log -->
+  <div class="ctrl-section">
+    <div class="ctrl-title">Output</div>
+    <div class="msg-box" id="ctrl-output">Click a button above to run a command...</div>
+  </div>
+
+  <div id="log-section" style="display:none">
+    <div class="ctrl-title" style="margin-top:12px">Bot log (last 50 lines)</div>
+    <div class="log-box" id="log-output"></div>
+  </div>
+</div>
+
+<!-- ══ TAB: SYMBOL GUIDE ══ -->
+<div class="tc" id="tab-guide">
+<style>
+.guide-entry{display:flex;align-items:flex-start;gap:14px;padding:11px 0;border-bottom:1px solid #21262d}
+.guide-entry:last-child{border-bottom:none}
+.guide-sym{width:54px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.guide-info{}
+.guide-name{font-size:13px;font-weight:600;margin-bottom:3px}
+.guide-desc{font-size:12px;color:#8b949e;line-height:1.55}
+.guide-when{display:inline-block;font-size:10px;margin-top:4px;padding:2px 8px;border-radius:4px;background:#161b22;color:#8b949e;border:1px solid #30363d}
+.guide-section{font-size:10px;color:#58a6ff;text-transform:uppercase;letter-spacing:1px;padding:14px 0 6px;border-bottom:1px solid #30363d;margin-bottom:2px;font-weight:600}
+</style>
+
+<div class="guide-section">Trend Signals — 5/5 Confluence</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <svg width="44" height="54" viewBox="0 0 44 54">
+      <rect x="18" y="4" width="8" height="24" fill="#f85149" rx="1"/>
+      <line x1="22" y1="0" x2="22" y2="4" stroke="#f85149" stroke-width="1.5"/>
+      <line x1="22" y1="28" x2="22" y2="34" stroke="#f85149" stroke-width="1.5"/>
+      <polygon points="22,50 14,40 30,40" fill="#3fb950"/>
+      <text x="22" y="54" text-anchor="middle" fill="#3fb950" font-size="8" font-weight="700">BUY</text>
+    </svg>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#3fb950">▲ BUY — Large green triangle</div>
+    <div class="guide-desc">All 5 factors aligned UP simultaneously: MACD bullish + QQQ rising + ADD rising + SPY 5m Supertrend up + SPY 1m Supertrend up. Strongest trend signal — 5/5 confluence.</div>
+    <span class="guide-when">Below candle &nbsp;|&nbsp; Candle turns lime green &nbsp;|&nbsp; Status = READY</span>
+  </div>
+</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <svg width="44" height="54" viewBox="0 0 44 54">
+      <rect x="18" y="20" width="8" height="24" fill="#3fb950" rx="1"/>
+      <line x1="22" y1="14" x2="22" y2="20" stroke="#3fb950" stroke-width="1.5"/>
+      <line x1="22" y1="44" x2="22" y2="50" stroke="#3fb950" stroke-width="1.5"/>
+      <polygon points="22,4 14,14 30,14" fill="#f85149"/>
+      <text x="22" y="2" text-anchor="middle" fill="#f85149" font-size="8" font-weight="700">SELL</text>
+    </svg>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#f85149">▼ SELL — Large red triangle</div>
+    <div class="guide-desc">All 5 factors aligned DOWN: MACD bearish + QQQ falling + ADD falling + SPY 5m Supertrend down + SPY 1m Supertrend down. Strongest short/put signal — 5/5 confluence.</div>
+    <span class="guide-when">Above candle &nbsp;|&nbsp; Candle turns red &nbsp;|&nbsp; Status = READY</span>
+  </div>
+</div>
+
+<div class="guide-section">Reversal Signals — Multi-Method Score</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <svg width="44" height="54" viewBox="0 0 44 54">
+      <rect x="18" y="14" width="8" height="24" fill="#3fb950" rx="1"/>
+      <polygon points="22,50 14,42 30,42 22,50" fill="#f0d000"/>
+      <text x="22" y="54" text-anchor="middle" fill="#f0d000" font-size="8" font-weight="700">REV+</text>
+    </svg>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#f0d000">◆ REV+ — Yellow diamond</div>
+    <div class="guide-desc">High-confidence BUY reversal. Reversal score ≥ 3/10 — at least 2 reversal methods agree (divergence, ADD extreme, ST flip, VWAP snap, engulfing, QQQ/SPY divergence).</div>
+    <span class="guide-when">Below candle &nbsp;|&nbsp; Candle turns yellow &nbsp;|&nbsp; Counter-trend entry</span>
+  </div>
+</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <svg width="44" height="54" viewBox="0 0 44 54">
+      <rect x="18" y="16" width="8" height="24" fill="#f85149" rx="1"/>
+      <polygon points="22,4 14,12 30,12 22,4" fill="#cc00ff"/>
+      <text x="22" y="2" text-anchor="middle" fill="#cc00ff" font-size="7" font-weight="700">REV-</text>
+    </svg>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#cc00ff">◆ REV- — Purple diamond</div>
+    <div class="guide-desc">High-confidence SELL reversal. Multiple reversal methods firing downward: bearish MACD divergence, ADD overbought, Supertrend flip down, price too far above VWAP, bearish engulfing.</div>
+    <span class="guide-when">Above candle &nbsp;|&nbsp; Candle turns purple &nbsp;|&nbsp; Counter-trend entry</span>
+  </div>
+</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <svg width="44" height="54" viewBox="0 0 44 54">
+      <rect x="18" y="14" width="8" height="24" fill="#f85149" rx="1"/>
+      <circle cx="22" cy="50" r="7" fill="rgba(240,208,0,0.45)" stroke="#f0d000" stroke-width="1.5"/>
+    </svg>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#f0d000">● Yellow dot (faint)</div>
+    <div class="guide-desc">Medium BUY reversal warning — score is 2/10. Not strong enough for a diamond yet. Watch the next candle: if score hits 3, the ◆ REV+ diamond fires. Don't trade on the dot alone.</div>
+    <span class="guide-when">Below candle &nbsp;|&nbsp; Score = 2 &nbsp;|&nbsp; Watch, don't act yet</span>
+  </div>
+</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <svg width="44" height="54" viewBox="0 0 44 54">
+      <rect x="18" y="16" width="8" height="24" fill="#3fb950" rx="1"/>
+      <circle cx="22" cy="4" r="7" fill="rgba(204,0,255,0.35)" stroke="#cc00ff" stroke-width="1.5"/>
+    </svg>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#cc00ff">● Purple dot (faint)</div>
+    <div class="guide-desc">Medium SELL reversal warning — score is 2/10. A heads-up that a sell reversal may be building. If another reversal method triggers next candle, score hits 3 and the ◆ REV- diamond fires.</div>
+    <span class="guide-when">Above candle &nbsp;|&nbsp; Score = 2 &nbsp;|&nbsp; Watch, don't act yet</span>
+  </div>
+</div>
+
+<div class="guide-section">Divergence Arrows</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <svg width="44" height="54" viewBox="0 0 44 54">
+      <rect x="18" y="14" width="8" height="22" fill="#f85149" rx="1"/>
+      <line x1="22" y1="8" x2="22" y2="14" stroke="#f85149" stroke-width="1.5"/>
+      <line x1="22" y1="36" x2="22" y2="42" stroke="#f85149" stroke-width="1.5"/>
+      <polygon points="22,52 15,44 29,44" fill="#3fb950" opacity="0.9"/>
+      <text x="22" y="54" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="800">D</text>
+    </svg>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#3fb950">D — Green arrow (Bullish Divergence)</div>
+    <div class="guide-desc">Price made a new LOW but MACD histogram did NOT — sell momentum is weakening even though price is still dropping. Often precedes a bounce. Look for this at support levels.</div>
+    <span class="guide-when">Below candle &nbsp;|&nbsp; Price falling, MACD turning up = potential BUY</span>
+  </div>
+</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <svg width="44" height="54" viewBox="0 0 44 54">
+      <rect x="18" y="18" width="8" height="22" fill="#3fb950" rx="1"/>
+      <line x1="22" y1="12" x2="22" y2="18" stroke="#3fb950" stroke-width="1.5"/>
+      <line x1="22" y1="40" x2="22" y2="46" stroke="#3fb950" stroke-width="1.5"/>
+      <polygon points="22,2 15,10 29,10" fill="#f85149" opacity="0.9"/>
+      <text x="22" y="2" text-anchor="middle" fill="#f85149" font-size="11" font-weight="800">D</text>
+    </svg>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#f85149">D — Red arrow (Bearish Divergence)</div>
+    <div class="guide-desc">Price made a new HIGH but MACD histogram did NOT — buying momentum is fading even though price keeps rising. Warning the move is running out of steam. Watch for reversal.</div>
+    <span class="guide-when">Above candle &nbsp;|&nbsp; Price rising, MACD weakening = potential SELL</span>
+  </div>
+</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <svg width="44" height="54" viewBox="0 0 44 54">
+      <rect x="18" y="14" width="8" height="22" fill="#f85149" rx="1"/>
+      <line x1="22" y1="8" x2="22" y2="14" stroke="#f85149" stroke-width="1.5"/>
+      <line x1="22" y1="36" x2="22" y2="42" stroke="#f85149" stroke-width="1.5"/>
+      <polygon points="22,52 15,44 29,44" fill="#00bcd4" opacity="0.9"/>
+      <text x="22" y="54" text-anchor="middle" fill="#00bcd4" font-size="10" font-weight="800">hD</text>
+    </svg>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#00bcd4">hD — Teal arrow (Hidden Divergence)</div>
+    <div class="guide-desc">Price made a HIGHER low but MACD made a lower low. Happens during pullbacks inside an uptrend — confirms the trend is still intact and the dip is a buying opportunity. Best for trend continuation entries.</div>
+    <span class="guide-when">Below candle &nbsp;|&nbsp; Buy the dip in an uptrend</span>
+  </div>
+</div>
+
+<div class="guide-section">Supertrend Flip Circles</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <svg width="44" height="54" viewBox="0 0 44 54">
+      <rect x="18" y="18" width="8" height="22" fill="#f85149" rx="1"/>
+      <circle cx="22" cy="50" r="8" fill="#00bcd4"/>
+    </svg>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#00bcd4">● Cyan circle — Supertrend flipped UP</div>
+    <div class="guide-desc">The Supertrend indicator just changed direction from bearish to bullish on this exact candle. The green line switched from above to below price. One of the strongest single reversal signals — acts fast and early.</div>
+    <span class="guide-when">Below candle &nbsp;|&nbsp; Often the start of a new uptrend</span>
+  </div>
+</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <svg width="44" height="54" viewBox="0 0 44 54">
+      <rect x="18" y="14" width="8" height="22" fill="#3fb950" rx="1"/>
+      <circle cx="22" cy="4" r="8" fill="#f0883e"/>
+    </svg>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#f0883e">● Orange circle — Supertrend flipped DOWN</div>
+    <div class="guide-desc">The Supertrend changed from bullish to bearish on this candle. The support line crossed above price — warning that the uptrend may be ending. Prepare for possible short or put.</div>
+    <span class="guide-when">Above candle &nbsp;|&nbsp; Often the start of a new downtrend</span>
+  </div>
+</div>
+
+<div class="guide-section">Background Colors</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <div style="width:44px;height:44px;background:rgba(63,185,80,0.15);border:1px solid #3fb950;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#3fb950">green</div>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#3fb950">Green background zone</div>
+    <div class="guide-desc">Price is more than 0.30% BELOW the VWAP — oversold relative to today's average price. This zone historically snaps back upward. Watch for a BUY reversal signal here. The further below VWAP, the stronger the snap-back.</div>
+    <span class="guide-when">Potential BUY zone &nbsp;|&nbsp; Wait for REV+ confirmation</span>
+  </div>
+</div>
+
+<div class="guide-entry">
+  <div class="guide-sym">
+    <div style="width:44px;height:44px;background:rgba(248,81,73,0.15);border:1px solid #f85149;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#f85149">red</div>
+  </div>
+  <div class="guide-info">
+    <div class="guide-name" style="color:#f85149">Red background zone</div>
+    <div class="guide-desc">Price is more than 0.30% ABOVE the VWAP — overbought relative to today's average price. This zone tends to pull back toward VWAP. Watch for a SELL reversal signal here.</div>
+    <span class="guide-when">Potential SELL zone &nbsp;|&nbsp; Wait for REV- confirmation</span>
+  </div>
+</div>
+
+<div style="margin-top:16px;padding:12px 14px;background:#161b22;border:1px solid #30363d;border-radius:8px;font-size:12px;color:#8b949e;line-height:1.7">
+  <span style="color:#58a6ff;font-weight:600">Priority order for trading:</span><br>
+  1. <span style="color:#3fb950">▲ BUY / ▼ SELL triangles</span> — act immediately, all 5 factors confirmed<br>
+  2. <span style="color:#f0d000">◆ REV+ / ◆ REV- diamonds</span> — act on reversal, high confidence<br>
+  3. <span style="color:#00bcd4">Cyan/orange circles</span> — strong warning, confirm with other signals<br>
+  4. <span style="color:#8b949e">D arrows / faint dots</span> — early warning only, do not trade alone
+</div>
+</div>
+
+<!-- ══ TAB: TRENDLINE BREAKS ══ -->
+<div class="tc" id="tab-tl">
+<style>
+.tl-container{margin-bottom:20px}
+.tl-date-group{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.tl-date-header{font-size:0.85rem;font-weight:700;color:#58a6ff;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.tl-break-row{display:grid;grid-template-columns:60px 120px 80px 80px 1fr;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #21262d}
+.tl-break-row:last-child{border-bottom:none}
+.tl-symbol{font-weight:700;font-size:1.1rem;color:#58a6ff}
+.tl-time{font-size:0.8rem;color:#8b949e}
+.tl-dir-up{background:#0d3320;color:#3fb950;border-radius:6px;padding:6px 10px;font-weight:700;text-align:center}
+.tl-dir-dn{background:#3d1515;color:#f85149;border-radius:6px;padding:6px 10px;font-weight:700;text-align:center}
+.tl-price{color:#8b949e;font-size:0.9rem}
+.tl-empty{text-align:center;color:#555;padding:20px;font-size:0.8rem}
+.tl-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.tl-stat{background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:12px;text-align:center}
+.tl-stat-label{font-size:0.65rem;color:#8b949e;text-transform:uppercase;margin-bottom:4px}
+.tl-stat-value{font-size:1.3rem;font-weight:700;color:#58a6ff}
+</style>
+
+<div class="tl-container">
+  <div class="sec" style="margin-bottom:12px">Daily Trendline Break History</div>
+
+  <!-- Stats -->
+  <div class="tl-stats">
+    <div class="tl-stat">
+      <div class="tl-stat-label">Total Breaks</div>
+      <div class="tl-stat-value" id="tl-total">0</div>
+    </div>
+    <div class="tl-stat">
+      <div class="tl-stat-label">SPY UP</div>
+      <div class="tl-stat-value gn" id="tl-spy-up">0</div>
+    </div>
+    <div class="tl-stat">
+      <div class="tl-stat-label">SPY DOWN</div>
+      <div class="tl-stat-value rd" id="tl-spy-dn">0</div>
+    </div>
+    <div class="tl-stat">
+      <div class="tl-stat-label">QQQ Total</div>
+      <div class="tl-stat-value bl" id="tl-qqq-total">0</div>
+    </div>
+  </div>
+
+  <!-- Breaks by date -->
+  <div id="tl-breaks-container"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+Chart.defaults.color='#8b949e'; Chart.defaults.borderColor='#30363d';
+let eqChart=null, trChart=null, compareChart=null, dailyChart=null;
+let lastUpdateStr = null;
+let updateIntervalSec = 60;
+
+function parseLocalISO(s) {
+  if (!s || s === 'None' || s === 'N/A') return new Date();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+  let d;
+  if (m) {
+    d = new Date(
+      parseInt(m[1]),
+      parseInt(m[2]) - 1,
+      parseInt(m[3]),
+      parseInt(m[4]),
+      parseInt(m[5]),
+      parseInt(m[6])
+    );
+  } else {
+    d = new Date(s);
+  }
+  return isNaN(d.getTime()) ? new Date() : d;
+}
+
+function sw(n){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',['live','paper','ctrl','guide'][i]===n));
+  document.querySelectorAll('.tc').forEach(c=>c.classList.remove('on'));
+  document.getElementById('tab-'+n).classList.add('on');
+  if(n==='ctrl') refreshStatus();
+}
+
+// ── Controls ─────────────────────────────────────────────────
+async function refreshStatus(){
+  try{
+    const s = await (await fetch('/control/status')).json();
+    const botEl = document.getElementById('cs-bot');
+    const chromeEl = document.getElementById('cs-chrome');
+    botEl.innerHTML = s.bot_running
+      ? `<span class="ind ind-g"></span>Running (PID ${s.bot_pids.join(',')})`
+      : `<span class="ind ind-r"></span>Stopped`;
+    botEl.style.color = s.bot_running ? '#3fb950' : '#f85149';
+    
+    if (s.tv_running) {
+      chromeEl.innerHTML = `<span class="ind ind-g"></span>TradingView Desktop (PID ${s.tv_pid})`;
+      chromeEl.style.color = '#3fb950';
+    } else if (s.chrome_running) {
+      chromeEl.innerHTML = `<span class="ind ind-g"></span>Google Chrome (PID ${s.chrome_pid})`;
+      chromeEl.style.color = '#3fb950';
+    } else {
+      chromeEl.innerHTML = `<span class="ind ind-r"></span>Not running`;
+      chromeEl.style.color = '#f85149';
+    }
+    
+    document.getElementById('cs-update').textContent =
+      s.last_update ? fmtLastUpdate(s.last_update) : '--';
+    document.getElementById('cs-signal').textContent = s.signal || '--';
+    const freshEl = document.getElementById('cs-fresh');
+    freshEl.textContent = s.stale ? 'STALE (bot may be stopped)' : 'Fresh';
+    freshEl.style.color = s.stale ? '#f0883e' : '#3fb950';
+  }catch(e){
+    document.getElementById('cs-bot').textContent = 'Server error';
+  }
+}
+
+async function ctrlAction(action){
+  const out = document.getElementById('ctrl-output');
+  const labels = {restart:'Restarting everything...',stop:'Stopping bot...',start:'Starting bot...',briefing:'Running pre-market briefing...'};
+  out.textContent = labels[action] || 'Running...';
+  document.getElementById('log-section').style.display='none';
+  try{
+    const r = await fetch(`/control/${action}`, {method:'POST'});
+    const d = await r.json();
+    if(action==='briefing'){
+      out.textContent = d.output || (d.ok ? 'Done' : 'Failed');
+    } else {
+      out.textContent = (d.messages||[]).join('\n') || (d.ok?'Done':'Failed');
+    }
+    setTimeout(refreshStatus, 3000);
+  }catch(e){
+    out.textContent = 'Error: ' + e.message;
+  }
+}
+
+async function confirmClear(){
+  if(!confirm('Clear ALL paper trade history? This cannot be undone.')) return;
+  const out = document.getElementById('ctrl-output');
+  out.textContent = 'Clearing paper trades...';
+  const r = await fetch('/control/clear_paper', {method:'POST'});
+  const d = await r.json();
+  out.textContent = (d.messages||[]).join('\n');
+}
+
+async function loadLog(){
+  document.getElementById('log-section').style.display='block';
+  const logEl = document.getElementById('log-output');
+  logEl.textContent = 'Loading...';
+  try{
+    const d = await (await fetch('/control/log?lines=50')).json();
+    logEl.textContent = d.lines.join('');
+    logEl.scrollTop = logEl.scrollHeight;
+    document.getElementById('ctrl-output').textContent = 'Log loaded below.';
+  }catch(e){
+    logEl.textContent = 'Error loading log: ' + e.message;
+  }
+}
+function fmt(v,d=2){return v!=null&&!isNaN(Number(v))?Number(v).toFixed(d):'--'}
+
+// Format a raw "HH:MM:SS" string (LA time) into "H:MM AM/PM PT"
+function fmtLA(t) {
+  if (!t || t === '--') return '--';
+  const m = t.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return t;
+  let h = parseInt(m[1]), min = m[2];
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${min} ${ampm} PT`;
+}
+
+// Format a last_update ISO string as LA 12-hour time
+function fmtLastUpdate(s) {
+  if (!s || s === 'None') return '--';
+  try {
+    return new Date(s).toLocaleTimeString('en-US', {
+      timeZone: 'America/Los_Angeles',
+      hour: 'numeric', minute: '2-digit', second: '2-digit',
+      hour12: true
+    }) + ' PT';
+  } catch(e) { return '--'; }
+}
+
+function setFactor(id,vid,sid,dir,val,sub){
+  document.getElementById(id).className='factor '+(dir==='UP'?'up':dir==='DN'?'dn':'na');
+  document.getElementById(vid).textContent=dir==='UP'?'▲':dir==='DN'?'▼':'--';
+  if(sid&&sub) document.getElementById(sid).textContent=sub;
+}
+
+function setRevItem(id,vid,active,val){
+  const el=document.getElementById(id);
+  el.className='rev-item'+(active==='buy'?' active-buy':active==='sell'?' active-sell':'');
+  document.getElementById(vid).textContent=val||'--';
+}
+
+async function refresh(){
+  try{
+    const d=await (await fetch('/data')).json();
+    document.getElementById('dot').className='dot g';
+    
+    // Update target select value
+    if (d.target_app) {
+      document.getElementById('target-app-select').value = d.target_app;
+    }
+    
+    // Update interval select value
+    if (d.update_interval) {
+      document.getElementById('update-interval-select').value = d.update_interval;
+    }
+    
+    let connApp = d.target_app === 'TradingView' ? 'TradingView Desktop' : 'Google Chrome';
+    // Determine live status from data freshness rather than process detection
+    const dataAge_s = d.last_update ? (new Date() - parseLocalISO(d.last_update)) / 1000 : 9999;
+    const isDataFresh = dataAge_s <= 180 && d.details && d.details.spy_price != null;
+    if (isDataFresh) {
+      document.getElementById('stxt').textContent = 'Live — Connected via ' + connApp;
+    } else if (d.chrome_running || d.tv_running) {
+      document.getElementById('stxt').textContent = 'Live — ' + connApp + ' running, waiting for data';
+    } else {
+      document.getElementById('stxt').textContent = 'Live — Target App (' + connApp + ') Offline';
+    }
+    lastUpdateStr = d.last_update;
+    updateIntervalSec = d.update_interval || 60;
+    updateCountdown();
+    
+    // Check TV connection state — use data quality, not process detection
+    // chrome_running via psutil is unreliable (parent proc may have exited)
+    const chromeConn = d.chrome_running || d.tv_running;
+    if (d.last_update) {
+      const age_s = (new Date() - parseLocalISO(d.last_update)) / 1000;
+      const statusTv = d.details && d.details.status_tv;
+      const hasFreshData = age_s <= 180 && d.details && d.details.spy_price != null;
+      if (age_s > 180) {
+        tvStatus = { ok: false, reason: 'data stale', chromeRunning: chromeConn, tvRunning: d.tv_running };
+      } else if (hasFreshData && (statusTv === 'READY' || statusTv === 'WAIT')) {
+        // Bot is actively reading chart data — connection is good
+        tvStatus = { ok: true, reason: 'active', chromeRunning: chromeConn, tvRunning: d.tv_running };
+      } else if (d.signal && d.signal.includes("PAUSED:")) {
+        tvStatus = { ok: false, reason: 'trading blocked (events/regime)', chromeRunning: chromeConn, tvRunning: d.tv_running };
+      } else if (!d.details || d.details.spy_price == null) {
+        tvStatus = { ok: false, reason: 'failed to read indicators from chart', chromeRunning: chromeConn, tvRunning: d.tv_running };
+      } else {
+        tvStatus = { ok: true, reason: 'active', chromeRunning: chromeConn, tvRunning: d.tv_running };
+      }
+    } else {
+      tvStatus = { ok: false, reason: 'no data recorded', chromeRunning: chromeConn, tvRunning: d.tv_running };
+    }
+    
+    updateTvStatusDisplay(tvStatus);
+    updateLive(d);
+    updatePaper(d);
+    updateManualTrading(d);
+  }catch(e){
+    document.getElementById('dot').className='dot gr';
+    document.getElementById('stxt').textContent='Bot offline — run launch_spy_trader.bat';
+    
+    tvStatus = { ok: false, reason: 'server offline', chromeRunning: false, tvRunning: false };
+    updateTvStatusDisplay(tvStatus);
+  }
+}
+
+function updateLive(d){
+  const sig=d.signal||'WAITING', det=d.details||{}, stype=d.signal_type||'none';
+  const base=sig.startsWith('STRONG-BUY')?'STRONG-BUY':sig.startsWith('STRONG-SELL')?'STRONG-SELL':
+              sig.startsWith('BUY')?'BUY':sig.startsWith('SELL')?'SELL':
+              sig.startsWith('REV-BUY')?'REV-BUY':sig.startsWith('REV-SELL')?'REV-SELL':
+              sig.startsWith('HOLD')?'HOLD':'WAIT';
+
+  const card=document.getElementById('sig-card');
+  card.className='sig-card '+base;
+  const lbl=document.getElementById('sig-lbl');
+  lbl.textContent=base==='STRONG-BUY'?'⭐ STRONG BUY':base==='STRONG-SELL'?'⭐ STRONG SELL':
+                  base==='BUY'?'▲ BUY':base==='SELL'?'▼ SELL':
+                  base==='REV-BUY'?'◆ REVERSAL BUY':base==='REV-SELL'?'◆ REVERSAL SELL':
+                  sig.length>28?sig.substring(0,26)+'…':sig;
+  document.getElementById('sig-sub').textContent=
+    `SPY: ${fmt(det.spy_price)}  QQQ: ${fmt(det.qqq_price)}  ADD: ${det.add||'--'}`;
+  const badgeEl=document.getElementById('sig-badge');
+  if(stype==='strong')   badgeEl.innerHTML='<span class="sig-badge badge-strong">⭐ STRONG — ST FLIPPED + '+(det.conf_tv||'?')+' CONFLUENCE</span>';
+  else if(stype==='trend')    badgeEl.innerHTML='<span class="sig-badge badge-trend">5/5 TREND SIGNAL</span>';
+  else if(stype==='reversal') badgeEl.innerHTML='<span class="sig-badge badge-rev">REVERSAL SIGNAL (score '+det.rev_score+')</span>';
+  else badgeEl.innerHTML='';
+
+  // 5-Factor grid
+  const confNum=det.conf_tv?parseInt(det.conf_tv):0;
+  const cs=document.getElementById('conf-score');
+  cs.textContent=det.conf_tv||'--';
+  cs.className='conf-score '+(confNum===5?'f5':confNum>=4?'f4':'low');
+
+  const tvSig=det.signal_tv||'';
+  const macdDir=tvSig==='BUY'?'UP':tvSig==='SELL'?'DN':'na';
+  setFactor('f-macd','fv-macd',null,macdDir,null,null);
+  setFactor('f-qqq','fv-qqq','fs-qqq',det.qqq_dir||'na',null,fmt(det.qqq_price));
+  const addNum=det.add?Number(det.add):null;
+  setFactor('f-add','fv-add','fs-add',det.add_dir||'na',null,addNum!=null?(addNum>0?'+':'')+Math.round(addNum):'--');
+  setFactor('f-spy5','fv-spy5',null,det.spy5_dir||'na',null,null);
+  setFactor('f-spy1','fv-spy1',null,det.spy1_dir||'na',null,null);
+
+  const banner=document.getElementById('conf-banner');
+  if(base==='STRONG-BUY'){banner.style.background='#2d1a00';banner.style.color='#ff9500';banner.textContent='⭐ STRONG BUY — Supertrend FLIPPED UP + '+(det.conf_tv||'?')+' Confluence';}
+  else if(base==='STRONG-SELL'){banner.style.background='#2d0e00';banner.style.color='#ff6a00';banner.textContent='⭐ STRONG SELL — Supertrend FLIPPED DN + '+(det.conf_tv||'?')+' Confluence';}
+  else if(base==='BUY'){banner.style.background='#0d3320';banner.style.color='#3fb950';banner.textContent='5/5 ALL UP — READY TO BUY';}
+  else if(base==='SELL'){banner.style.background='#3d1515';banner.style.color='#f85149';banner.textContent='5/5 ALL DOWN — READY TO SELL';}
+  else if(confNum===4){banner.style.background='#3d2200';banner.style.color='#f0883e';banner.textContent=`4/5 — Waiting for 1 more factor (${tvSig||'no signal'})`;}
+  else{banner.style.background='#0d1117';banner.style.color='#555';banner.textContent=`Monitoring — ${det.conf_tv||'--'} factors aligned | Signal: ${tvSig||'waiting'}`;}
+
+  // ── Trend Line Breaks (SPY & QQQ) ──
+  const tlBreak = det.tl_break || null;
+
+  // SPY Trend Line Break
+  const spyTlDir = document.getElementById('spy-tl-dir');
+  const spyTlIcon = document.getElementById('spy-tl-icon');
+  const spyTlLabel = document.getElementById('spy-tl-label');
+
+  if(tlBreak === 'UP') {
+    spyTlDir.textContent = '↑ BREAKOUT';
+    spyTlDir.style.color = '#3fb950';
+    spyTlIcon.textContent = '📈';
+    spyTlLabel.textContent = 'Bullish break above trendline';
+    spyTlLabel.style.color = '#3fb950';
+  } else if(tlBreak === 'DN') {
+    spyTlDir.textContent = '↓ BREAKDOWN';
+    spyTlDir.style.color = '#f85149';
+    spyTlIcon.textContent = '📉';
+    spyTlLabel.textContent = 'Bearish break below trendline';
+    spyTlLabel.style.color = '#f85149';
+  } else {
+    spyTlDir.textContent = '--';
+    spyTlDir.style.color = '#8b949e';
+    spyTlIcon.textContent = '➖';
+    spyTlLabel.textContent = 'No trendline break detected';
+    spyTlLabel.style.color = '#8b949e';
+  }
+
+  // QQQ Trend Line Break (use same data if bot reads both)
+  // TODO: If bot can read separate QQQ trendlines, add det.tl_break_qqq field
+  const qqqTlDir = document.getElementById('qqq-tl-dir');
+  const qqqTlIcon = document.getElementById('qqq-tl-icon');
+  const qqqTlLabel = document.getElementById('qqq-tl-label');
+
+  // For now, mirror SPY trend line break (will update when QQQ separate data is available)
+  if(tlBreak === 'UP') {
+    qqqTlDir.textContent = '↑ BREAKOUT';
+    qqqTlDir.style.color = '#3fb950';
+    qqqTlIcon.textContent = '📈';
+    qqqTlLabel.textContent = 'Bullish break above trendline';
+    qqqTlLabel.style.color = '#3fb950';
+  } else if(tlBreak === 'DN') {
+    qqqTlDir.textContent = '↓ BREAKDOWN';
+    qqqTlDir.style.color = '#f85149';
+    qqqTlIcon.textContent = '📉';
+    qqqTlLabel.textContent = 'Bearish break below trendline';
+    qqqTlLabel.style.color = '#f85149';
+  } else {
+    qqqTlDir.textContent = '--';
+    qqqTlDir.style.color = '#8b949e';
+    qqqTlIcon.textContent = '➖';
+    qqqTlLabel.textContent = 'No trendline break detected';
+    qqqTlLabel.style.color = '#8b949e';
+  }
+
+  // ── Auto-Trade Logic ──
+  if (autoTradeEnabled && tlBreak && tlBreak !== lastTrendBreak) {
+    lastTrendBreak = tlBreak;
+    if (tlBreak === 'UP') {
+      autoOpenTrade('CALL');
+    } else if (tlBreak === 'DN') {
+      autoOpenTrade('PUT');
+    }
+  }
+  lastTrendBreak = tlBreak;
+
+  // Reversal box
+  const rs=det.rev_score, rd=det.rev_dir;
+  const rsEl=document.getElementById('rev-score-lbl');
+  if(rs!=null){
+    const col=rs>=3?(rd==='BUY'?'#f0d000':'#cc00ff'):rs>=2?'#f0883e':'#8b949e';
+    rsEl.style.color=col;
+    rsEl.textContent=`Score: ${rs}/10 ${rd||''}${rs>=3?' ◆ SIGNAL':rs>=2?' ◇ WATCH':''}`;
+  } else rsEl.textContent='Score: --';
+
+  const divS=det.div_signal||'--';
+  const isBullDiv=divS.includes('BULL')||divS.includes('hBull');
+  const isBearDiv=divS.includes('BEAR')||divS.includes('hBear');
+  setRevItem('ri-div','rv-div',isBullDiv?'buy':isBearDiv?'sell':'',divS);
+
+  const addExt=det.add_ext;
+  setRevItem('ri-add','rv-add',addExt==='OVERSOLD'?'buy':addExt==='OVERBOUGHT'?'sell':'',addExt||'--');
+
+  const stf=det.st_flip||'--';
+  setRevItem('ri-stflip','rv-stflip',stf.includes('UP')?'buy':stf.includes('DN')?'sell':'',stf);
+
+  const vwap=det.vwap_pct;
+  const vwapActive=vwap!=null?(vwap<-0.2?'buy':vwap>0.2?'sell':''):'';
+  setRevItem('ri-vwap','rv-vwap',vwapActive,vwap!=null?`${Number(vwap).toFixed(2)}%`:'--');
+
+  const eng=det.engulf||'--';
+  setRevItem('ri-engulf','rv-engulf',eng.includes('BULL')?'buy':eng.includes('BEAR')?'sell':'',eng);
+
+  const revCol=rs>=3?(rd==='BUY'?'#f0d000':'#cc00ff'):rs>=2?'#f0883e':'#8b949e';
+  document.getElementById('ri-rev').style.borderColor=revCol;
+  document.getElementById('rv-rev').style.color=revCol;
+  document.getElementById('rv-rev').textContent=rs!=null?`${rs} ${rd||'--'}`:'--';
+
+  // Prices
+  document.getElementById('m-spy').textContent=fmt(det.spy_price);
+  document.getElementById('m-qqq').textContent=fmt(det.qqq_price);
+  const mAdd=document.getElementById('m-add');
+  mAdd.textContent=addNum!=null?(addNum>0?'+':'')+Math.round(addNum):'--';
+  mAdd.className='mv '+(addNum>0?'gn':addNum<0?'rd':'gr');
+  document.getElementById('m-conf').textContent=det.conf_tv||'--';
+
+  // Levels
+  document.getElementById('lv-price').textContent=fmt(det.price_tv||det.spy_price);
+  document.getElementById('lv-resist').textContent=fmt(det.resist);
+  document.getElementById('lv-support').textContent=fmt(det.support);
+  const stEl=document.getElementById('lv-st');
+  stEl.textContent=fmt(det.st_level);
+  stEl.className='lval '+(det.spy1_dir==='UP'?'gn':det.spy1_dir==='DN'?'rd':'gr');
+
+  // Time bar
+  const tBar=document.getElementById('tbar'), tVal=document.getElementById('tval');
+  const tl=det.time_left?parseInt(det.time_left):null;
+  if(tl!=null){
+    tVal.textContent=tl+'s';
+    if(tl>33){tBar.className='timebar t-g';tVal.style.color='#3fb950';}
+    else if(tl>15){tBar.className='timebar t-o';tVal.style.color='#f0883e';}
+    else{tBar.className='timebar t-r';tVal.style.color='#f85149';}
+  } else {tBar.className='timebar t-n';tVal.textContent='--';}
+
+  // Market context bar
+  const det2 = d.details || {};
+  // VIX
+  const vix = det2.vix;
+  const vixRegime = det2.vix_regime || '--';
+  document.getElementById('ctx-vix').textContent = vix != null ? vix.toFixed(2) : '--';
+  const vixBadge = document.getElementById('ctx-vix-badge');
+  const vixColors = {EXTREME:'#f85149',HIGH:'#f0883e',NORMAL:'#3fb950',LOW:'#58a6ff',UNKNOWN:'#555'};
+  const vixBgColors = {EXTREME:'#3d1515',HIGH:'#3d2200',NORMAL:'#0d3320',LOW:'#0d2a3d',UNKNOWN:'#161b22'};
+  vixBadge.textContent = vixRegime;
+  vixBadge.style.background = vixBgColors[vixRegime] || '#161b22';
+  vixBadge.style.color = vixColors[vixRegime] || '#555';
+  vixBadge.style.border = `1px solid ${vixColors[vixRegime]||'#555'}`;
+  document.getElementById('ctx-vix-warn').textContent = det2.vix_warn || '';
+
+  // Gap
+  const gap = det2.gap;
+  const gapEl = document.getElementById('ctx-gap');
+  const gapRule = document.getElementById('ctx-gap-rule');
+  if (gap) {
+    const gc = gap.direction==='UP'?'#3fb950':gap.direction==='DOWN'?'#f85149':'#8b949e';
+    gapEl.style.color = gc;
+    gapEl.textContent = `${gap.direction} ${gap.gap_pct > 0 ? '+' : ''}${Number(gap.gap_pct).toFixed(2)}%`;
+    gapRule.textContent = gap.direction==='UP'?'Bias: BUY signals only':gap.direction==='DOWN'?'Bias: SELL signals only':'Both directions OK';
+    gapRule.style.color = gc;
+  } else {
+    gapEl.textContent = '--'; gapEl.style.color='#555';
+    gapRule.textContent = 'Gap data unavailable';
+  }
+
+  // Events
+  const events = det2.events || [];
+  const evBox = document.getElementById('ctx-events-box');
+  const evEl = document.getElementById('ctx-events');
+  if (events.length === 0) {
+    evBox.style.borderColor = '#30363d';
+    evEl.innerHTML = '<span style="color:#3fb950">No high-impact events today</span>';
+  } else {
+    evBox.style.borderColor = '#f0883e';
+    evBox.style.background = '#2a1a00';
+    evEl.innerHTML = events.map(e =>
+      `<div style="color:${e.impact==='HIGH'?'#f85149':'#f0883e'};margin-bottom:2px">
+        ${e.impact==='HIGH'?'HALT':'SLOW'} ${e.name} at ${e.time_et} ET
+        ${e.minutes > 0 ? `(in ${e.minutes}m)` : `(${Math.abs(e.minutes)}m ago)`}
+      </div>`
+    ).join('');
+  }
+
+  // Paused banner
+  const pausedBanner = document.getElementById('paused-banner');
+  if (det2.is_blocked) {
+    pausedBanner.style.display = 'block';
+    pausedBanner.textContent = det2.block_reason || 'Trading paused — economic event';
+  } else {
+    pausedBanner.style.display = 'none';
+  }
+
+  // History
+  const hist=(d.history||[]).slice().reverse().slice(0,20);
+  const tbody=document.getElementById('sig-hist');
+  tbody.innerHTML=hist.length?hist.map(h=>{
+    const sc=h.signal?.startsWith('STRONG-BUY')?'tsg':h.signal?.startsWith('STRONG-SELL')?'tsg':
+             h.signal?.startsWith('BUY')?'tb':h.signal?.startsWith('SELL')?'ts':
+             h.signal?.startsWith('REV-BUY')?'ty':h.signal?.startsWith('REV-SELL')?'tm':'th';
+    return `<tr><td style="white-space:nowrap">${fmtLA(h.time)||'--'}</td><td class="${sc}">${h.signal||'--'}</td>
+      <td style="color:${h.signal_type==='trend'?'#3fb950':h.signal_type==='reversal'?'#f0d000':'#555'}">${h.signal_type||'--'}</td>
+      <td>${fmt(h.spy)}</td><td>${fmt(h.qqq)}</td><td>${h.conf_tv||'--'}</td>
+      <td>${h.rev_score!=null?h.rev_score+' '+h.rev_dir:'--'}</td><td>${h.st_flip||'--'}</td></tr>`;
+  }).join(''):'<tr><td colspan="8" style="color:#555;text-align:center">No signals yet</td></tr>';
+}
+
+function updatePaper(d){
+  const st=d.paper_stats||{}, trades=d.paper_trades||[], open=d.open_position;
+  const wr=st.win_rate||0;
+  const wrEl=document.getElementById('pt-wr');
+  wrEl.textContent=st.total?wr.toFixed(1)+'%':'--';
+  wrEl.className='pt-v '+(wr>=60?'gn':wr>0?'rd':'gr');
+  document.getElementById('pt-tot').textContent=st.total||0;
+  const pnlEl=document.getElementById('pt-pnl');
+  pnlEl.textContent=st.total_pnl!=null?(st.total_pnl>=0?'+':'')+Number(st.total_pnl).toFixed(3):'0.000';
+  pnlEl.className='pt-v '+(st.total_pnl>0?'gn':st.total_pnl<0?'rd':'gr');
+  document.getElementById('pt-awl').textContent=`+${Number(st.avg_win||0).toFixed(3)} / ${Number(st.avg_loss||0).toFixed(3)}`;
+  document.getElementById('pt-trend').textContent=`${st.trend_total||0} trades — ${st.trend_wr||0}% WR`;
+  document.getElementById('pt-rev').textContent=`${st.rev_total||0} trades — ${st.rev_wr||0}% WR`;
+  document.getElementById('pt-strong').textContent=`${st.strong_total||0} trades — ${st.strong_wr||0}% WR`;
+
+  const banner=document.getElementById('op-banner');
+  if(open){
+    const unr=Number(open.unrealized), isLong=open.direction==='LONG';
+    banner.className='open-pos '+(isLong?'op-long':'op-short');
+    const typeLabel=open.signal_type==='reversal'?'[REVERSAL]':'[TREND]';
+    const atrStr = open.atr ? ` | ATR=${Number(open.atr).toFixed(4)}` : '';
+    banner.innerHTML=`<span><b>${open.direction}</b> ${typeLabel} @ <b>$${fmt(open.entry_price)}</b> at ${fmtLA(open.entry_time)}${atrStr}</span>
+      <span style="display:flex;gap:12px;align-items:center">
+        <span style="color:#3fb950">TP $${fmt(open.tp_price)}</span>
+        <span style="color:#f85149">SL $${fmt(open.sl_price)}</span>
+        <span>Unrealized: <b style="color:${unr>=0?'#3fb950':'#f85149'}">${unr>=0?'+':''}${unr.toFixed(3)}</b></span>
+      </span>`;
+  } else {banner.className='open-pos op-none';banner.textContent='No open position';}
+
+  // Charts
+  if(trades.length){
+    let cum=0;
+    const eqL=[],eqD=[];
+    trades.forEach((t,i)=>{cum+=Number(t.pnl);eqL.push(t.entry_time||i+1);eqD.push(+cum.toFixed(4));});
+    const eqCtx=document.getElementById('chart-eq').getContext('2d');
+    if(eqChart)eqChart.destroy();
+    eqChart=new Chart(eqCtx,{type:'line',data:{labels:eqL,datasets:[{data:eqD,
+      borderColor:eqD[eqD.length-1]>=0?'#3fb950':'#f85149',
+      backgroundColor:eqD[eqD.length-1]>=0?'rgba(63,185,80,0.08)':'rgba(248,81,73,0.08)',
+      borderWidth:2,pointRadius:3,fill:true,tension:0.3}]},
+      options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.raw>=0?'+':'')+c.raw.toFixed(3)+' pts'}}},
+        scales:{x:{ticks:{maxTicksLimit:8,font:{size:10}}},y:{grid:{color:'#21262d'},ticks:{font:{size:10},callback:v=>(v>=0?'+':'')+v.toFixed(2)}}}}});
+
+    // PnL per trade
+    const trCtx=document.getElementById('chart-tr').getContext('2d');
+    if(trChart)trChart.destroy();
+    trChart=new Chart(trCtx,{type:'bar',data:{labels:trades.map((t,i)=>t.entry_time||i+1),
+      datasets:[{data:trades.map(t=>+Number(t.pnl).toFixed(4)),
+        backgroundColor:trades.map(t=>{
+          const isRev=t.signal_type==='reversal';
+          return t.win?(isRev?'rgba(240,208,0,0.75)':'rgba(63,185,80,0.75)'):(isRev?'rgba(204,0,255,0.55)':'rgba(248,81,73,0.75)');
+        }),borderColor:trades.map(t=>t.win?'#3fb950':'#f85149'),borderWidth:1}]},
+      options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.raw>=0?'+':'')+c.raw.toFixed(3)+' pts'}}},
+        scales:{x:{ticks:{maxTicksLimit:8,font:{size:10}}},y:{grid:{color:'#21262d'},ticks:{font:{size:10},callback:v=>(v>=0?'+':'')+v.toFixed(2)}}}}});
+
+    // Trend vs Reversal comparison
+    const trendTrades = trades.filter(t=>t.signal_type==='trend');
+    const revTrades   = trades.filter(t=>t.signal_type==='reversal');
+    const tWR  = trendTrades.length ? trendTrades.filter(t=>t.win).length/trendTrades.length*100 : 0;
+    const rWR  = revTrades.length   ? revTrades.filter(t=>t.win).length/revTrades.length*100 : 0;
+    const tPnl = trendTrades.reduce((a,t)=>a+Number(t.pnl),0);
+    const rPnl = revTrades.reduce((a,t)=>a+Number(t.pnl),0);
+    const cmpCtx=document.getElementById('chart-compare').getContext('2d');
+    if(compareChart)compareChart.destroy();
+    compareChart=new Chart(cmpCtx,{type:'bar',
+      data:{labels:['Win Rate %','Avg PnL (x10)','Trade Count'],
+        datasets:[
+          {label:'Trend (5/5)',data:[+tWR.toFixed(1), +(trendTrades.length?tPnl/trendTrades.length*10:0).toFixed(2), trendTrades.length],backgroundColor:'rgba(63,185,80,0.65)',borderColor:'#3fb950',borderWidth:1},
+          {label:'Reversal',  data:[+rWR.toFixed(1),  +(revTrades.length?rPnl/revTrades.length*10:0).toFixed(2),  revTrades.length],  backgroundColor:'rgba(240,208,0,0.65)', borderColor:'#f0d000',borderWidth:1}
+        ]},
+      options:{plugins:{legend:{labels:{color:'#8b949e',font:{size:10}}}},
+        scales:{x:{ticks:{font:{size:10},color:'#8b949e'}},y:{grid:{color:'#21262d'},ticks:{font:{size:10},color:'#8b949e'}}}}});
+
+    // Daily PnL
+    const byDay={};
+    trades.forEach(t=>{
+      const day=(t.entry_time||'').substring(0,5)||t.date||'?';
+      if(!byDay[day])byDay[day]=0;
+      byDay[day]+=Number(t.pnl);
+    });
+    const dayK=Object.keys(byDay), dayV=dayK.map(k=>+byDay[k].toFixed(3));
+    const dCtx=document.getElementById('chart-daily').getContext('2d');
+    if(dailyChart)dailyChart.destroy();
+    dailyChart=new Chart(dCtx,{type:'bar',data:{labels:dayK,datasets:[{data:dayV,
+      backgroundColor:dayV.map(v=>v>=0?'rgba(63,185,80,0.7)':'rgba(248,81,73,0.7)'),
+      borderColor:dayV.map(v=>v>=0?'#3fb950':'#f85149'),borderWidth:1}]},
+      options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>(c.raw>=0?'+':'')+c.raw.toFixed(3)+' pts'}}},
+        scales:{x:{ticks:{font:{size:10},color:'#8b949e'}},y:{grid:{color:'#21262d'},ticks:{font:{size:10},color:'#8b949e',callback:v=>(v>=0?'+':'')+v.toFixed(2)}}}}});
+
+    // Smart suggestions
+    buildSuggestions(trades, trendTrades, revTrades, tWR, rWR, st);
+  }
+
+  // History table
+  const sorted=[...trades].reverse();
+  const ptEmpty=document.getElementById('pt-empty');
+  const ptBody=document.getElementById('pt-hist');
+  if(!sorted.length){ptEmpty.style.display='block';ptBody.innerHTML='';}
+  else{
+    ptEmpty.style.display='none';
+    ptBody.innerHTML=sorted.map(t=>{
+      const pnl=Number(t.pnl), cls=t.win?'tb':'ts';
+      const typeCol=t.signal_type==='reversal'?'#f0d000':t.signal_type==='trend'?'#3fb950':'#555';
+      return `<tr><td>${fmtLA(t.entry_time)||'--'}</td><td>${fmtLA(t.exit_time)||'--'}</td>
+        <td style="color:${typeCol}">${t.signal_type||'--'}</td>
+        <td style="color:${t.direction==='LONG'?'#3fb950':'#f85149'}">${t.direction}</td>
+        <td>$${fmt(t.entry_price)}</td><td>$${fmt(t.exit_price)}</td>
+        <td class="${cls}">${pnl>=0?'+':''}${pnl.toFixed(3)}</td>
+        <td class="${cls}">${t.win?'WIN':'LOSS'}</td></tr>`;
+    }).join('');
+  }
+}
+
+function buildSuggestions(trades, trendTrades, revTrades, tWR, rWR, st){
+  const el = document.getElementById('suggestions-content');
+  if(!trades || trades.length < 5){ el.innerHTML='<span style="color:#555">Need 5+ trades for suggestions. Keep paper trading!</span>'; return; }
+  const tips = [];
+  const icon = (col,txt) => `<span style="color:${col};margin-right:6px">●</span>${txt}`;
+
+  // Win rate analysis
+  if(st.win_rate >= 60) tips.push(icon('#3fb950',`Win rate ${st.win_rate}% — beating the 60% target. System is working well.`));
+  else if(st.win_rate >= 50) tips.push(icon('#f0883e',`Win rate ${st.win_rate}% — below 60% target. Consider only trading 5/5 trend signals until rate improves.`));
+  else tips.push(icon('#f85149',`Win rate ${st.win_rate}% — significantly below target. Consider pausing paper trading and reviewing losing trades.`));
+
+  // Trend vs Reversal
+  if(trendTrades.length >= 3 && revTrades.length >= 3){
+    if(tWR > rWR + 15) tips.push(icon('#3fb950',`Trend signals (${tWR.toFixed(0)}% WR) are outperforming reversal signals (${rWR.toFixed(0)}% WR) by ${(tWR-rWR).toFixed(0)}%. Focus on 5/5 trend entries.`));
+    else if(rWR > tWR + 15) tips.push(icon('#f0d000',`Reversal signals (${rWR.toFixed(0)}% WR) are outperforming trend signals (${tWR.toFixed(0)}% WR). Your chart reads reversals well.`));
+    else tips.push(icon('#8b949e',`Trend (${tWR.toFixed(0)}%) and reversal (${rWR.toFixed(0)}%) signals performing similarly — both are viable entries.`));
+  } else if(trendTrades.length < 3) tips.push(icon('#58a6ff','Fewer than 3 trend trades — need more 5/5 signals to compare. Ensure AK MACD BB v2.0 is on your chart.'));
+
+  // Avg win vs loss
+  const aw = Number(st.avg_win||0), al = Math.abs(Number(st.avg_loss||0));
+  if(aw > 0 && al > 0){
+    const rr = aw/al;
+    if(rr >= 1.3) tips.push(icon('#3fb950',`Good risk/reward: avg win ${aw.toFixed(3)} vs avg loss ${al.toFixed(3)} (R:R = ${rr.toFixed(2)}). TP/SL ratio is healthy.`));
+    else if(rr < 0.8) tips.push(icon('#f85149',`Risk/reward is poor: avg win ${aw.toFixed(3)} vs avg loss ${al.toFixed(3)} (R:R = ${rr.toFixed(2)}). Consider tighter SL or wider TP.`));
+    else tips.push(icon('#f0883e',`Risk/reward is fair (R:R = ${rr.toFixed(2)}). ATR-based stop loss would help size stops more accurately.`));
+  }
+
+  // Total PnL
+  const pnl = Number(st.total_pnl||0);
+  if(pnl > 0) tips.push(icon('#3fb950',`System is profitable: +${pnl.toFixed(3)} pts total. Equivalent to ~$${(pnl*100).toFixed(0)} on 1 SPY option contract.`));
+  else if(pnl < 0) tips.push(icon('#f85149',`System is in drawdown: ${pnl.toFixed(3)} pts total. Review losing trades — are they in the same time period or signal type?`));
+
+  // ATR suggestion
+  tips.push(icon('#58a6ff','<b>Next improvement:</b> ATR-based stop loss is now available. It automatically widens stops in volatile markets and tightens in calm ones — much better than fixed 0.09%.'));
+
+  el.innerHTML = tips.map(t=>`<div style="margin-bottom:6px">${t}</div>`).join('');
+}
+
+let tvStatus = { ok: false, reason: 'connecting' };
+
+function updateTvStatusDisplay(statusObj) {
+  const btn = document.getElementById('tv-status-btn');
+  if (!btn) return;
+  
+  if (statusObj.ok) {
+    btn.style.background = '#0d3320';
+    btn.style.color = '#3fb950';
+    btn.style.border = '1px solid #3fb950';
+    btn.innerHTML = '🟢 TV Connection: OK';
+    btn.style.animation = 'none';
+  } else {
+    btn.style.background = '#3d1515';
+    btn.style.color = '#f85149';
+    btn.style.border = '1px solid #f85149';
+    btn.innerHTML = '🔴 TV Connection: Action Required ⚡';
+    btn.style.animation = 'status-pulse 2s infinite';
+  }
+}
+
+function openTvModal() {
+  const modal = document.getElementById('tv-modal');
+  const icon = document.getElementById('tv-modal-icon');
+  const title = document.getElementById('tv-modal-title');
+  const subtitle = document.getElementById('tv-modal-subtitle');
+  const inst = document.getElementById('tv-modal-instructions');
+  
+  modal.style.display = 'flex';
+  
+  if (tvStatus.ok) {
+    let connApp = tvStatus.tvRunning ? 'TradingView Desktop' : (tvStatus.chromeRunning ? 'Google Chrome' : 'CDP Port 9222');
+    icon.style.background = '#0d3320';
+    icon.style.color = '#3fb950';
+    icon.style.border = '1.5px solid #3fb950';
+    icon.innerHTML = '✓';
+    title.textContent = 'TradingView Connected';
+    subtitle.textContent = 'Live telemetry is active and fresh';
+    inst.innerHTML = `
+      <div style="margin-bottom:12px">
+        <span style="color:#3fb950;font-weight:600">✔ Telemetry Connection:</span> Active via ${connApp} on port 9222.
+      </div>
+      <div style="margin-bottom:12px">
+        <span style="color:#3fb950;font-weight:600">✔ TradingView Chart:</span> Active SPY page found and scraping correctly.
+      </div>
+      <div>
+        <span style="color:#3fb950;font-weight:600">✔ Data Freshness:</span> Received updates within the last 3 minutes.
+      </div>
+    `;
+  } else {
+    icon.style.background = '#3d1515';
+    icon.style.color = '#f85149';
+    icon.style.border = '1.5px solid #f85149';
+    icon.innerHTML = '!';
+    title.textContent = 'TV Connection Missing';
+    subtitle.textContent = `Reason: ${tvStatus.reason}`;
+    
+    let instructionsHtml = '';
+    if (tvStatus.reason === 'server offline') {
+      instructionsHtml = `
+        <p style="margin-bottom:12px">The dashboard server is unable to fetch any signal data. Follow these steps to start the trading bot and dashboard:</p>
+        <ol style="margin-left:20px;margin-bottom:12px">
+          <li style="margin-bottom:6px">Run <b><code>launch_spy_trader.bat</code></b> from your project folder to start the entire system.</li>
+          <li style="margin-bottom:6px">Ensure TradingView Desktop or Chrome opens automatically with the TradingView chart on port 9222.</li>
+        </ol>
+      `;
+    } else if (tvStatus.reason === 'data stale') {
+      instructionsHtml = `
+        <p style="margin-bottom:12px">No fresh signals have been written in the last 3 minutes. The bot may have crashed or lost its connection to Chrome. Please do the following:</p>
+        <ol style="margin-left:20px;margin-bottom:12px">
+          <li style="margin-bottom:6px">Go to the <b>Controls</b> tab on this dashboard.</li>
+          <li style="margin-bottom:6px">Click <b>Restart Everything</b> to reboot Chrome/TV CDP and the bot.</li>
+          <li style="margin-bottom:6px">Check <b>View bot log</b> in the Controls tab to view diagnostics.</li>
+        </ol>
+      `;
+    } else { // waiting for TV tab or Chrome CDP
+      instructionsHtml = `
+        <p style="margin-bottom:12px">The bot is running but cannot access the TradingView chart. Follow this checklist to resolve:</p>
+        <div style="background:#21262d;border:1px solid #30363d;padding:10px;border-radius:6px;margin-bottom:12px">
+          <span style="color:#58a6ff;font-weight:600;font-size:12px">Option A: TradingView Desktop App (Recommended)</span>
+          <p style="font-size:11px;color:#8b949e;margin-top:4px">1. Close TradingView Desktop.<br>2. Open a PowerShell window and run:</p>
+          <code style="background:#0d1117;padding:4px 6px;border-radius:4px;font-size:10px;display:block;margin-top:4px;white-space:pre-wrap;word-break:break-all">Start-Process -FilePath "C:\\Program Files\\WindowsApps\\31178TradingViewInc.TradingView_3.1.0.0_x64__q4jpyh43s5mv6\\TradingView.exe" -ArgumentList "--remote-debugging-port=9222 --remote-allow-origins=*"</code>
+        </div>
+        <div style="background:#21262d;border:1px solid #30363d;padding:10px;border-radius:6px;margin-bottom:12px">
+          <span style="color:#58a6ff;font-weight:600;font-size:12px">Option B: Google Chrome Browser</span>
+          <p style="font-size:11px;color:#8b949e;margin-top:4px">1. Close Google Chrome.<br>2. Open PowerShell and run:</p>
+          <code style="background:#0d1117;padding:4px 6px;border-radius:4px;font-size:10px;display:block;margin-top:4px;white-space:pre-wrap;word-break:break-all">Start-Process -FilePath "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" -ArgumentList "--remote-debugging-port=9222 --remote-allow-origins=* --user-data-dir=C:\\ChromeCDP"</code>
+        </div>
+        <p style="font-size:12px">Make sure the active window has a TradingView chart open for symbol <b>SPY</b> and that the <b>AK MACD BB</b> indicator legend is visible.</p>
+      `;
+    }
+    inst.innerHTML = instructionsHtml;
+  }
+}
+
+function closeTvModal() {
+  document.getElementById('tv-modal').style.display = 'none';
+}
+
+async function changeTargetApp(val) {
+  try {
+    const r = await fetch('/control/set_target', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_app: val })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      refresh();
+      const out = document.getElementById('ctrl-output');
+      if (out) {
+        out.textContent = `Target App updated to ${val}. Click 'Restart Everything' in the Controls tab to reboot the system.`;
+      }
+    }
+  } catch(e) {
+    console.error('Failed to change target app:', e);
+  }
+}
+
+async function changeUpdateInterval(val) {
+  try {
+    const r = await fetch('/control/set_interval', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ interval: parseInt(val) })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      refresh();
+      const out = document.getElementById('ctrl-output');
+      if (out) {
+        out.textContent = `Update interval updated to ${val}s. The bot will apply this on its next sleep.`;
+      }
+    }
+  } catch(e) {
+    console.error('Failed to change update interval:', e);
+  }
+}
+
+function updateCountdown() {
+  const updEl = document.getElementById('upd');
+  const badgeEl = document.getElementById('countdown-badge');
+  if (!lastUpdateStr) {
+    updEl.textContent = '--';
+    if (badgeEl) badgeEl.style.display = 'none';
+    return;
+  }
+  const lastUpdate = parseLocalISO(lastUpdateStr);
+  const now = new Date();
+  const diffMs = now - lastUpdate;
+  const diffSec = Math.floor(diffMs / 1000);
+  const remaining = updateIntervalSec - diffSec;
+
+  const lastUpdateStrLocal = lastUpdate.toLocaleTimeString();
+  updEl.textContent = `Updated: ${lastUpdateStrLocal}`;
+
+  if (badgeEl) {
+    badgeEl.style.display = 'inline-block';
+    if (remaining > 0) {
+      badgeEl.textContent = remaining + 's';
+      badgeEl.style.background = '#1f2937'; // slate dark grey
+      badgeEl.style.color = '#58a6ff'; // blue
+      badgeEl.style.borderColor = '#30363d';
+    } else {
+      badgeEl.textContent = 'Sync';
+      badgeEl.style.background = '#0d3320'; // dark green
+      badgeEl.style.color = '#3fb950'; // bright green
+      badgeEl.style.borderColor = '#238636';
+    }
+  }
+}
+
+// ── Manual Paper Trading ─────────────────────────────────────
+
+let mtFeedbackTimer = null;
+
+function mtShowFeedback(msg, isOk) {
+  const el = document.getElementById('mt-feedback');
+  el.textContent = msg;
+  el.className = 'mt-feedback ' + (isOk ? 'ok' : 'err');
+  el.style.display = 'block';
+  clearTimeout(mtFeedbackTimer);
+  mtFeedbackTimer = setTimeout(() => { el.style.display = 'none'; }, 4000);
+}
+
+async function safeJSON(r) {
+  const text = await r.text();
+  if (text.trim().startsWith('<')) throw new Error('Server needs restart — run launch_spy_trader.bat');
+  try { return JSON.parse(text); } catch(e) { throw new Error('Bad response: ' + text.slice(0,80)); }
+}
+
+async function manualBuy(direction) {
+  const callBtn = document.getElementById('mt-call-btn');
+  const putBtn  = document.getElementById('mt-put-btn');
+  callBtn.disabled = putBtn.disabled = true;
+  try {
+    const r = await fetch('/manual_trade/open', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({direction})
+    });
+    const d = await safeJSON(r);
+    if (d.ok) {
+      mtShowFeedback(`${direction} opened at $${Number(d.trade.entry_price).toFixed(2)} — watching…`, true);
+      refresh();
+    } else {
+      mtShowFeedback('Error: ' + d.error, false);
+      callBtn.disabled = putBtn.disabled = false;
+    }
+  } catch(e) {
+    mtShowFeedback(e.message, false);
+    callBtn.disabled = putBtn.disabled = false;
+  }
+}
+
+async function manualClose() {
+  const closeBtn = document.querySelector('.mt-close');
+  if (closeBtn) closeBtn.disabled = true;
+  try {
+    const r = await fetch('/manual_trade/close', {method:'POST'});
+    const d = await safeJSON(r);
+    if (d.ok) {
+      const pnl = Number(d.pnl);
+      const sign = pnl >= 0 ? '+' : '';
+      const emoji = pnl >= 0 ? '✅' : '❌';
+      mtShowFeedback(`${emoji} Trade closed — P&L: ${sign}${pnl.toFixed(3)} pts (${sign}${(d.trade.pnl_pct||0).toFixed(3)}%)`, pnl >= 0);
+      refresh();
+    } else {
+      mtShowFeedback('Error: ' + d.error, false);
+    }
+  } catch(e) {
+    mtShowFeedback(e.message, false);
+  }
+  if (closeBtn) closeBtn.disabled = false;
+}
+
+async function clearManualTrades() {
+  if (!confirm('Clear all manual paper trades?')) return;
+  try {
+    const r = await fetch('/manual_trade/clear', {method:'POST'});
+    const d = await safeJSON(r);
+    if (d.ok) { mtShowFeedback('Manual trades cleared', true); refresh(); }
+    else mtShowFeedback('Error: ' + (d.messages||['unknown'])[0], false);
+  } catch(e) { mtShowFeedback(e.message, false); }
+}
+
+async function deleteManualTrade(tradeId) {
+  if (!confirm('Delete this trade?')) return;
+  try {
+    const r = await fetch(`/manual_trade/delete/${tradeId}`, {method:'POST'});
+    const d = await safeJSON(r);
+    if (d.ok) { mtShowFeedback('Trade deleted', true); refresh(); }
+    else mtShowFeedback('Error: ' + (d.messages||['unknown'])[0], false);
+  } catch(e) { mtShowFeedback(e.message, false); }
+}
+
+// ── Auto-Trading State ────────────────────────────────────────────────
+let autoTradeEnabled = false;
+let lastTrendBreak = null;
+let openTradeStartTime = null;
+
+function toggleAutoTrade() {
+  autoTradeEnabled = document.getElementById('auto-trade-toggle').checked;
+  document.getElementById('auto-trade-status').textContent = autoTradeEnabled ? '🟢 ON' : '⚪ OFF';
+  document.getElementById('auto-trade-status').style.color = autoTradeEnabled ? '#3fb950' : '#8b949e';
+}
+
+async function autoOpenTrade(direction) {
+  if (!autoTradeEnabled || document.getElementById('mt-call-btn').disabled) return;
+  console.log(`[AUTO-TRADE] Opening ${direction} trade on trend break`);
+  await manualBuy(direction);
+  openTradeStartTime = Date.now();
+}
+
+async function autoCloseTrade() {
+  const closeBtn = document.querySelector('.mt-close');
+  if (!closeBtn || closeBtn.disabled) return;
+  console.log(`[AUTO-TRADE] Closing trade - exit condition met`);
+  await manualClose();
+}
+
+function checkAutoExitConditions(open, currentSpy, details) {
+  if (!open || !autoTradeEnabled) return false;
+
+  const entryPrice = Number(open.entry_price);
+  const currentPnL = currentSpy ? (open.direction === 'CALL' ? currentSpy - entryPrice : entryPrice - currentSpy) : null;
+  const exitProfitPts = parseFloat(document.getElementById('exit-profit-pts').value) || 0.5;
+  const exitLossPts = parseFloat(document.getElementById('exit-loss-pts').value) || 0.6;
+  const maxHoldMin = parseInt(document.getElementById('exit-time-min').value) || 5;
+
+  // Profit target
+  if (document.getElementById('exit-profit-check').checked && currentPnL >= exitProfitPts) {
+    mtShowFeedback(`✅ PROFIT TARGET: +${currentPnL.toFixed(3)} pts`, true);
+    return true;
+  }
+
+  // Stop loss
+  if (document.getElementById('exit-loss-check').checked && currentPnL <= -exitLossPts) {
+    mtShowFeedback(`⛔ STOP LOSS: ${currentPnL.toFixed(3)} pts`, false);
+    return true;
+  }
+
+  // Supertrend flip (opposite direction)
+  if (document.getElementById('exit-flip-check').checked && details && details.st_flip) {
+    const isCall = open.direction === 'CALL';
+    const stFlip = details.st_flip || '';
+    if ((isCall && stFlip.includes('DN')) || (!isCall && stFlip.includes('UP'))) {
+      mtShowFeedback(`🔄 SUPERTREND FLIP (${stFlip})`, false);
+      return true;
+    }
+  }
+
+  // Max hold time
+  if (document.getElementById('exit-time-check').checked && openTradeStartTime) {
+    const holdMins = (Date.now() - openTradeStartTime) / 1000 / 60;
+    if (holdMins >= maxHoldMin) {
+      mtShowFeedback(`⏱️ MAX HOLD TIME (${holdMins.toFixed(1)}min) - Exiting`, false);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function updateManualTrading(d) {
+  const open   = d.open_manual_trade;
+  const trades = d.manual_trades || [];
+  const stats  = d.manual_stats  || {};
+  const currentSpy = d.details && d.details.spy_price ? Number(d.details.spy_price) : null;
+  const details = d.details || {};
+
+  const callBtn = document.getElementById('mt-call-btn');
+  const putBtn  = document.getElementById('mt-put-btn');
+  const buyRow  = document.getElementById('mt-buy-row');
+  const openCard = document.getElementById('mt-open-card');
+  const statsRow  = document.getElementById('mt-stats-row');
+  const statsRow2 = document.getElementById('mt-stats-row2');
+  const histWrap  = document.getElementById('mt-hist-wrap');
+
+  // ── Open position card ──
+  if (open) {
+    callBtn.disabled = putBtn.disabled = true;
+    openCard.style.display = 'block';
+
+    const isCall = open.direction === 'CALL';
+    const inner = document.getElementById('mt-card-inner');
+    inner.className = 'mt-open-card ' + (isCall ? 'mt-call-card' : 'mt-put-card');
+
+    const dirEl = document.getElementById('mt-card-dir');
+    dirEl.textContent = isCall ? '📈 CALL' : '📉 PUT';
+    dirEl.className   = 'mt-card-dir ' + (isCall ? 'call' : 'put');
+
+    document.getElementById('mt-card-entry').textContent = '$' + Number(open.entry_price).toFixed(2);
+    document.getElementById('mt-card-time').textContent  = fmtLA(open.entry_time);
+
+    const snap = open.snapshot || {};
+    document.getElementById('mt-card-signal').textContent = snap.signal || '--';
+    document.getElementById('mt-card-conf').textContent   = snap.conf_tv || '--';
+    document.getElementById('mt-card-rev').textContent    = snap.rev_score != null ? snap.rev_score + ' ' + (snap.rev_dir||'') : '--';
+
+    // Snapshot grid
+    document.getElementById('ms-spy').textContent    = '$' + Number(open.entry_price).toFixed(2);
+    document.getElementById('ms-macd').textContent   = snap.macd_dir || '--';
+    const addNum = snap.add != null ? Math.round(Number(snap.add)) : null;
+    const addEl = document.getElementById('ms-add');
+    addEl.textContent = addNum != null ? (addNum > 0 ? '+' : '') + addNum : '--';
+    addEl.style.color = addNum > 0 ? '#3fb950' : addNum < 0 ? '#f85149' : '#8b949e';
+    document.getElementById('ms-vwap').textContent   = snap.vwap_pct != null ? Number(snap.vwap_pct).toFixed(2) + '%' : '--';
+    document.getElementById('ms-qqq').textContent    = snap.qqq_price != null ? '$' + Number(snap.qqq_price).toFixed(2) : '--';
+    document.getElementById('ms-stflip').textContent = snap.st_flip || '--';
+    const spy1El = document.getElementById('ms-spy1');
+    spy1El.textContent  = snap.spy1_dir || '--';
+    spy1El.style.color  = snap.spy1_dir === 'UP' ? '#3fb950' : snap.spy1_dir === 'DN' ? '#f85149' : '#8b949e';
+    document.getElementById('ms-div').textContent    = snap.div_signal || '--';
+
+    // Live unrealized P&L
+    if (currentSpy != null) {
+      const entry = Number(open.entry_price);
+      const unr   = isCall ? currentSpy - entry : entry - currentSpy;
+      const unrPct = entry ? unr / entry * 100 : 0;
+      const unrEl  = document.getElementById('mt-unr-pnl');
+      const pctEl  = document.getElementById('mt-unr-pct');
+      const sign   = unr >= 0 ? '+' : '';
+      unrEl.textContent = sign + unr.toFixed(3) + ' pts';
+      unrEl.className   = 'mt-unr ' + (unr > 0 ? 'pos' : unr < 0 ? 'neg' : 'flat');
+      pctEl.textContent = sign + unrPct.toFixed(3) + '%';
+      pctEl.style.color = unr > 0 ? '#3fb950' : unr < 0 ? '#f85149' : '#8b949e';
+
+      // ── Auto-Exit Check ──
+      if (checkAutoExitConditions(open, currentSpy, details)) {
+        autoCloseTrade();
+      }
+    }
+  } else {
+    if (openTradeStartTime) openTradeStartTime = null;
+    callBtn.disabled = putBtn.disabled = false;
+    openCard.style.display = 'none';
+  }
+
+  // ── Stats ──
+  if (stats.total > 0) {
+    statsRow.style.display = statsRow2.style.display = 'grid';
+    document.getElementById('mt-s-tot').textContent = stats.total;
+    const wrEl = document.getElementById('mt-s-wr');
+    wrEl.textContent  = stats.win_rate.toFixed(1) + '%';
+    wrEl.style.color  = stats.win_rate >= 60 ? '#3fb950' : stats.win_rate >= 50 ? '#f0883e' : '#f85149';
+    const pnlEl = document.getElementById('mt-s-pnl');
+    pnlEl.textContent = (stats.total_pnl >= 0 ? '+' : '') + stats.total_pnl.toFixed(3);
+    pnlEl.style.color = stats.total_pnl > 0 ? '#3fb950' : stats.total_pnl < 0 ? '#f85149' : '#8b949e';
+    document.getElementById('mt-s-cp').textContent  = stats.calls + ' / ' + stats.puts;
+    document.getElementById('mt-s-aw').textContent  = '+' + Number(stats.avg_win  || 0).toFixed(3);
+    document.getElementById('mt-s-al').textContent  = Number(stats.avg_loss || 0).toFixed(3);
+
+    // Win/Loss PnL totals (calculate from closed trades)
+    const winTrades  = trades.filter(t => t.win);
+    const lossTrades = trades.filter(t => !t.win);
+    const winTotal   = winTrades.reduce((a,t)=>a+Number(t.pnl), 0);
+    const lossTotal  = lossTrades.reduce((a,t)=>a+Number(t.pnl), 0);
+    document.getElementById('mt-s-wpnl').textContent = winTotal  > 0 ? '+' + winTotal.toFixed(3)  : '--';
+    document.getElementById('mt-s-lpnl').textContent = lossTotal < 0 ? lossTotal.toFixed(3) : '--';
+  } else {
+    statsRow.style.display = statsRow2.style.display = 'none';
+  }
+
+  // ── Daily P/L breakdown ──
+  if (trades.length > 0) {
+    document.getElementById('mt-daily-wrap').style.display = 'block';
+
+    // Group trades by date
+    const byDate = {};
+    trades.forEach(t => {
+      const date = t.entry_date || 'unknown';
+      if (!byDate[date]) {
+        byDate[date] = { date, trades: [], pnl: 0, wins: 0 };
+      }
+      byDate[date].trades.push(t);
+      byDate[date].pnl += Number(t.pnl || 0);
+      if (t.win) byDate[date].wins += 1;
+    });
+
+    // Sort by date descending
+    const dates = Object.keys(byDate).sort().reverse();
+
+    // Build daily table
+    document.getElementById('mt-daily-body').innerHTML = dates.map(date => {
+      const day = byDate[date];
+      const pnl = day.pnl;
+      const wr = day.trades.length > 0 ? (day.wins / day.trades.length * 100).toFixed(0) : 0;
+      const pnlCol = pnl > 0 ? '#3fb950' : pnl < 0 ? '#f85149' : '#8b949e';
+      const sign = pnl >= 0 ? '+' : '';
+      return `<tr style="border-bottom:1px solid #333;hover:background:#1a1a1a">
+        <td style="padding:6px 4px;text-align:left;color:#8b949e">${date.substring(5)}</td>
+        <td style="padding:6px 4px;text-align:center;color:#e6edf3">${day.trades.length}</td>
+        <td style="padding:6px 4px;text-align:center;color:#3fb950">${day.wins}W</td>
+        <td style="padding:6px 4px;text-align:right;padding-right:8px;color:${pnlCol};font-weight:700">${sign}${pnl.toFixed(3)}</td>
+      </tr>`;
+    }).join('');
+
+    // Overall summary
+    const totalPnl = trades.reduce((a,t) => a + Number(t.pnl || 0), 0);
+    const totalWins = trades.filter(t => t.win).length;
+    const totalWr = trades.length > 0 ? (totalWins / trades.length * 100).toFixed(1) : 0;
+    const totalDays = dates.length;
+    const totalCol = totalPnl > 0 ? '#3fb950' : totalPnl < 0 ? '#f85149' : '#8b949e';
+
+    document.getElementById('mt-overall-pnl').textContent = (totalPnl >= 0 ? '+' : '') + totalPnl.toFixed(3);
+    document.getElementById('mt-overall-pnl').style.color = totalCol;
+    document.getElementById('mt-overall-total').textContent = trades.length;
+    document.getElementById('mt-overall-wr').textContent = totalWr + '%';
+    document.getElementById('mt-overall-days').textContent = totalDays;
+  } else {
+    document.getElementById('mt-daily-wrap').style.display = 'none';
+  }
+
+  // ── History table ──
+  if (trades.length > 0) {
+    histWrap.style.display = 'block';
+    const sorted = [...trades].reverse();
+    document.getElementById('mt-hist-body').innerHTML = sorted.map(t => {
+      const pnl    = Number(t.pnl);
+      const pnlPct = Number(t.pnl_pct || 0);
+      const win    = t.win;
+      const isCall = t.direction === 'CALL';
+      const snap   = t.snapshot || {};
+      const dirCol = isCall ? '#3fb950' : '#f85149';
+      const pnlCol = win ? '#3fb950' : '#f85149';
+      const sign   = pnl >= 0 ? '+' : '';
+      const addNum = snap.add != null ? Math.round(Number(snap.add)) : null;
+      const date   = t.entry_date ? t.entry_date.substring(5) : '--';
+      return `<tr>
+        <td style="white-space:nowrap;color:#8b949e">${date}</td>
+        <td style="white-space:nowrap">${fmtLA(t.entry_time)||'--'}</td>
+        <td style="white-space:nowrap">${fmtLA(t.exit_time)||'--'}</td>
+        <td style="color:${dirCol};font-weight:700">${t.direction}</td>
+        <td>$${Number(t.entry_price).toFixed(2)}</td>
+        <td>$${Number(t.exit_price||0).toFixed(2)}</td>
+        <td style="color:#8b949e;font-size:0.72rem">${snap.signal||'--'}</td>
+        <td style="color:#e6edf3">${snap.conf_tv||'--'}</td>
+        <td style="color:${addNum>0?'#3fb950':addNum<0?'#f85149':'#8b949e'}">${addNum!=null?(addNum>0?'+':'')+addNum:'--'}</td>
+        <td style="color:${pnlCol};font-weight:700">${sign}${pnl.toFixed(3)}</td>
+        <td style="color:${pnlCol};font-size:0.72rem">${sign}${pnlPct.toFixed(3)}%</td>
+        <td style="color:${pnlCol};font-weight:700">${win ? '✅ WIN' : '❌ LOSS'}</td>
+        <td style="text-align:center"><button onclick="deleteManualTrade(${t.id})" style="background:none;border:1px solid #f85149;color:#f85149;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:0.7rem;transition:all 0.2s">✕</button></td>
+      </tr>`;
+    }).join('');
+  } else {
+    histWrap.style.display = 'none';
+  }
+}
+
+async function loadTrendlineBreaks(){
+  try{
+    const d = await (await fetch('/trendline-breaks')).json();
+    const breaks = d.breaks || [];
+    const container = document.getElementById('tl-breaks-container');
+
+    // Calculate stats
+    const spyUp = breaks.filter(b => b.symbol === 'SPY' && b.direction === 'UP').length;
+    const spyDn = breaks.filter(b => b.symbol === 'SPY' && b.direction === 'DN').length;
+    const qqqTotal = breaks.filter(b => b.symbol === 'QQQ').length;
+    document.getElementById('tl-total').textContent = breaks.length;
+    document.getElementById('tl-spy-up').textContent = spyUp;
+    document.getElementById('tl-spy-dn').textContent = spyDn;
+    document.getElementById('tl-qqq-total').textContent = qqqTotal;
+
+    // Group by date
+    const byDate = {};
+    for (const br of breaks) {
+      const date = br.date || 'unknown';
+      if (!byDate[date]) byDate[date] = [];
+      byDate[date].push(br);
+    }
+
+    if (breaks.length === 0) {
+      container.innerHTML = '<div class="tl-empty">No trendline breaks recorded yet</div>';
+      return;
+    }
+
+    // Render by date (newest first)
+    const dates = Object.keys(byDate).sort().reverse();
+    container.innerHTML = dates.map(date => {
+      const dayBreaks = byDate[date];
+      return `<div class="tl-date-group">
+        <div class="tl-date-header">${date}</div>
+        ${dayBreaks.map(br => `<div class="tl-break-row">
+          <div class="tl-symbol">${br.symbol}</div>
+          <div class="tl-time">${br.time}</div>
+          <div class="tl-dir-${br.direction==='UP'?'up':'dn'}">${br.direction==='UP'?'▲ UP':'▼ DOWN'}</div>
+          <div class="tl-price">$${br.price}</div>
+          <div></div>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.error('Error loading trendline breaks:', e);
+    document.getElementById('tl-breaks-container').innerHTML = '<div class="tl-empty">Error loading data</div>';
+  }
+}
+
+refresh();
+loadTrendlineBreaks();
+setInterval(refresh, 3000);
+setInterval(loadTrendlineBreaks, 60000);
+setInterval(updateCountdown, 1000);
+</script>
+
+<!-- TV Status Modal -->
+<div id="tv-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;max-width:480px;width:90%;box-shadow:0 10px 25px rgba(0,0,0,0.5);position:relative">
+    <button onclick="closeTvModal()" style="position:absolute;top:15px;right:15px;background:none;border:none;color:#8b949e;cursor:pointer;font-size:22px;line-height:1;outline:none">&times;</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div id="tv-modal-icon" style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0"></div>
+      <div>
+        <h3 id="tv-modal-title" style="margin:0;font-size:16px;font-weight:700;color:#e6edf3"></h3>
+        <p id="tv-modal-subtitle" style="margin:2px 0 0;font-size:12px;color:#8b949e"></p>
+      </div>
+    </div>
+    <div id="tv-modal-instructions" style="border-top:1px solid #21262d;padding-top:14px;font-size:13px;line-height:1.6;color:#c9d1d9">
+      <!-- Steps go here -->
+    </div>
+    <div style="margin-top:20px;display:flex;justify-content:flex-end">
+      <button onclick="closeTvModal()" style="background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;outline:none;font-family:inherit">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
