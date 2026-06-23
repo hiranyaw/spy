@@ -658,7 +658,16 @@ class AKMACDBBStrategy:
 def record_trendline_break(details):
     """Record trendline break events to trendline_breaks.json"""
     tl_break = details.get("tl_break")
-    if not tl_break or tl_break == "?":
+    tl_break_raw = details.get("tl_break_raw", "")
+
+    # Log detection attempts for debugging
+    if not tl_break:
+        if tl_break_raw:
+            logger.debug(f"TrendlineBreak detection: no match. Raw text: {tl_break_raw[:200]}")
+        return
+
+    if tl_break == "?":
+        logger.warning(f"TrendlineBreak detection returned '?'. Raw: {tl_break_raw[:200]}")
         return
 
     spy_price = details.get("spy_price")
@@ -675,13 +684,24 @@ def record_trendline_break(details):
         else:
             data = {"breaks": []}
 
-        # Avoid duplicates within 10 seconds
+        # Avoid duplicates within 30 seconds
         recent = [b for b in data.get("breaks", [])
                   if b.get("date") == date_str]
         if recent:
             last_break = recent[-1]
+            last_time_str = last_break.get("time", "")
+            # Check if same direction within 30 seconds
             if last_break.get("symbol") == "SPY" and last_break.get("direction") == tl_break:
-                return  # Already recorded
+                try:
+                    from datetime import datetime
+                    last_dt = datetime.strptime(last_time_str, "%H:%M:%S")
+                    curr_dt = datetime.strptime(time_str, "%H:%M:%S")
+                    if (curr_dt.hour * 3600 + curr_dt.minute * 60 + curr_dt.second) - \
+                       (last_dt.hour * 3600 + last_dt.minute * 60 + last_dt.second) < 30:
+                        logger.debug(f"Skipping duplicate trendline break (same direction within 30s)")
+                        return
+                except:
+                    pass
 
         # Record the break
         data["breaks"].append({
@@ -694,7 +714,7 @@ def record_trendline_break(details):
 
         with open(TRENDLINE_BREAKS_FILE, "w") as f:
             json.dump(data, f, indent=2)
-        logger.info(f"Recorded trendline break: SPY {tl_break} @ {spy_price}")
+        logger.info(f"✓ RECORDED: SPY Trendline {tl_break} @ {spy_price} [{time_str}]")
     except Exception as e:
         logger.warning(f"Failed to record trendline break: {e}")
 

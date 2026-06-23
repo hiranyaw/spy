@@ -168,6 +168,37 @@ def trendline_breaks_endpoint():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/trendline-breaks/record", methods=["POST"])
+def record_trendline_break_manual():
+    """Manually record a trendline break (for when auto-detection fails)"""
+    try:
+        req_data = request.get_json()
+        direction = req_data.get("direction", "").upper()
+        price = req_data.get("price", "?")
+        time_str = req_data.get("time", time.strftime("%H:%M:%S"))
+
+        if direction not in ("UP", "DN"):
+            return jsonify({"error": "Direction must be UP or DN"}), 400
+
+        data = load_trendline_breaks()
+        from datetime import datetime
+        date_str = datetime.now().strftime("%Y-%m-%d")
+
+        # Record the manual break
+        data["breaks"].append({
+            "date": date_str,
+            "time": time_str,
+            "symbol": "SPY",
+            "direction": direction,
+            "price": str(price),
+            "manual": True
+        })
+
+        save_trendline_breaks(data)
+        return jsonify({"ok": True, "message": f"Recorded SPY {direction} @ {price}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # ── Control endpoints ──────────────────────────────────────────
 def find_bot_pids():
     """Find all PIDs running spy_trader_bot.py"""
