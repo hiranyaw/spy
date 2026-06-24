@@ -6,6 +6,15 @@ Open: http://localhost:5000
 from flask import Flask, jsonify, send_from_directory, request
 import json, os, subprocess, signal, sys, time, math
 import psutil
+from datetime import datetime
+
+# Database support (with JSON fallback for local dev)
+try:
+    from database import db
+    DB_AVAILABLE = db.connect()
+except:
+    DB_AVAILABLE = False
+    print("⚠️  Database not available, using JSON fallback")
 
 def sanitize(obj):
     """Recursively replace NaN/Infinity with None so JSON serialization is valid."""
@@ -22,6 +31,7 @@ BASE    = os.path.dirname(os.path.abspath(__file__))
 SIGNALS = os.path.join(BASE, "signals.json")
 PAPER   = os.path.join(BASE, "paper_trades.json")
 LOG     = os.path.join(BASE, "spy_trader.log")
+DB_LOG  = os.path.join(BASE, "database_log.txt")
 BAT     = os.path.join(BASE, "launch_spy_trader.bat")
 BOT_PY  = os.path.join(BASE, "spy_trader_bot.py")
 BRIEFING= os.path.join(BASE, "premarket_briefing.py")
@@ -111,14 +121,34 @@ def index():
 
 @app.route("/data")
 def data():
-    try:
-        with open(SIGNALS) as f:
-            d = json.load(f)
-    except FileNotFoundError:
-        d = {"signal":"WAITING","details":{},"history":[],"last_update":None,
-             "paper_stats":{},"paper_trades":[],"open_position":None}
-    except Exception as e:
-        return jsonify({"error":str(e)}), 500
+    d = {}
+
+    # Get signal data from database or JSON
+    if DB_AVAILABLE:
+        try:
+            latest_signal = db.get_latest_signal()
+            if latest_signal:
+                d = {
+                    "signal": latest_signal.get("signal", "WAITING"),
+                    "signal_type": latest_signal.get("signal_type"),
+                    "details": json.loads(latest_signal.get("raw_data", "{}")),
+                    "last_update": latest_signal.get("timestamp").isoformat() if latest_signal.get("timestamp") else None,
+                    "history": [dict(h) for h in db.get_signal_history(60)]
+                }
+            else:
+                d = {"signal":"WAITING","details":{},"history":[],"last_update":None}
+        except Exception as e:
+            print(f"Database error in /data: {e}")
+            d = {"signal":"WAITING","details":{},"history":[],"last_update":None}
+    else:
+        # Fallback to JSON
+        try:
+            with open(SIGNALS) as f:
+                d = json.load(f)
+        except FileNotFoundError:
+            d = {"signal":"WAITING","details":{},"history":[],"last_update":None}
+        except Exception as e:
+            return jsonify({"error":str(e)}), 500
 
     chrome_pid, tv_pid = find_cdp_status()
     d["chrome_running"] = chrome_pid is not None
@@ -126,16 +156,51 @@ def data():
     d["target_app"] = get_target_app()
     d["update_interval"] = get_update_interval()
 
-    # Manual paper trades
-    manual = load_manual_trades()
-    open_manual = next((t for t in reversed(manual) if not t.get("closed")), None)
-    d["manual_trades"]    = [t for t in manual if t.get("closed")]
-    d["open_manual_trade"] = open_manual
-    d["manual_stats"]     = manual_trade_stats(manual)
+    # Paper trades from database
+    if DB_AVAILABLE:
+        try:
+            d["paper_trades"] = [dict(t) for t in db.get_paper_trades(100)]
+            d["paper_stats"] = dict(db.get_paper_stats())
+        except Exception as e:
+            print(f"Error fetching paper trades: {e}")
+            d["paper_trades"] = []
+            d["paper_stats"] = {}
+    else:
+        d["paper_trades"] = []
+        d["paper_stats"] = {}
 
-    # Trendline breaks
-    tl_data = load_trendline_breaks()
-    d["trendline_breaks"] = tl_data.get("breaks", [])
+    # Manual trades from database
+    if DB_AVAILABLE:
+        try:
+            manual = [dict(t) for t in db.get_manual_trades(100)]
+            open_manual = next((t for t in reversed(manual) if not t.get("closed")), None)
+            d["manual_trades"] = [t for t in manual if t.get("closed")]
+            d["open_manual_trade"] = open_manual
+            d["manual_stats"] = manual_trade_stats(manual)
+        except Exception as e:
+            print(f"Error fetching manual trades: {e}")
+            d["manual_trades"] = []
+            d["open_manual_trade"] = None
+            d["manual_stats"] = {}
+    else:
+        # Fallback to JSON
+        manual = load_manual_trades()
+        open_manual = next((t for t in reversed(manual) if not t.get("closed")), None)
+        d["manual_trades"]    = [t for t in manual if t.get("closed")]
+        d["open_manual_trade"] = open_manual
+        d["manual_stats"]     = manual_trade_stats(manual)
+
+    # Trendline breaks from database
+    if DB_AVAILABLE:
+        try:
+            d["trendline_breaks"] = [dict(t) for t in db.get_trendline_breaks(1)]
+        except Exception as e:
+            print(f"Error fetching trendline breaks: {e}")
+            d["trendline_breaks"] = []
+    else:
+        # Fallback to JSON
+        tl_data = load_trendline_breaks()
+        d["trendline_breaks"] = tl_data.get("breaks", [])
 
     return jsonify(sanitize(d))
 
@@ -149,12 +214,39 @@ def log():
     except Exception as e:
         return jsonify({"lines":[], "error":str(e)})
 
+@app.route("/control/db-log")
+def db_log():
+    """Get database operation logs"""
+    try:
+        lines = int(request.args.get("lines", 50))
+        if os.path.exists(DB_LOG):
+            with open(DB_LOG, encoding="utf-8", errors="replace") as f:
+                all_lines = f.readlines()
+            return jsonify({"lines": all_lines[-lines:], "status": "ok"})
+        else:
+            return jsonify({"lines": ["[INFO] Database logging started...\n"], "status": "no_logs_yet"})
+    except Exception as e:
+        return jsonify({"lines": [], "error": str(e)})
+
+@app.route("/control/db-status")
+def db_status():
+    """Check database connection status"""
+    status = {
+        "db_connected": DB_AVAILABLE,
+        "db_module": "database.py" if DB_AVAILABLE else "Not loaded",
+        "status": "✓ Connected" if DB_AVAILABLE else "✗ Using JSON fallback"
+    }
+    return jsonify(status)
+
 @app.route("/trendline-breaks")
 def trendline_breaks_endpoint():
     """Get daily trendline break history"""
     try:
-        data = load_trendline_breaks()
-        breaks = data.get("breaks", [])
+        if DB_AVAILABLE:
+            breaks = [dict(b) for b in db.get_trendline_breaks(30)]  # Last 30 days
+        else:
+            data = load_trendline_breaks()
+            breaks = data.get("breaks", [])
 
         # Group by date
         by_date = {}
@@ -180,21 +272,31 @@ def record_trendline_break_manual():
         if direction not in ("UP", "DN"):
             return jsonify({"error": "Direction must be UP or DN"}), 400
 
-        data = load_trendline_breaks()
-        from datetime import datetime
         date_str = datetime.now().strftime("%Y-%m-%d")
 
-        # Record the manual break
-        data["breaks"].append({
-            "date": date_str,
-            "time": time_str,
-            "symbol": "SPY",
-            "direction": direction,
-            "price": str(price),
-            "manual": True
-        })
+        # Record to database
+        if DB_AVAILABLE:
+            db.save_trendline_break({
+                "date": date_str,
+                "time": time_str,
+                "symbol": "SPY",
+                "direction": direction,
+                "price": str(price),
+                "is_manual": True
+            })
+        else:
+            # Fallback to JSON
+            data = load_trendline_breaks()
+            data["breaks"].append({
+                "date": date_str,
+                "time": time_str,
+                "symbol": "SPY",
+                "direction": direction,
+                "price": str(price),
+                "manual": True
+            })
+            save_trendline_breaks(data)
 
-        save_trendline_breaks(data)
         return jsonify({"ok": True, "message": f"Recorded SPY {direction} @ {price}"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -380,30 +482,48 @@ def clear_paper():
 @app.route("/manual_trade/open", methods=["POST"])
 def manual_trade_open():
     """Open a manual paper trade (CALL or PUT) with current indicator snapshot"""
-    from datetime import datetime
     req = request.get_json(force=True)
     direction = req.get("direction", "CALL")
     if direction not in ("CALL", "PUT"):
         return jsonify({"ok": False, "error": "direction must be CALL or PUT"}), 400
 
     # Snapshot current signal data
-    try:
-        with open(SIGNALS) as f:
-            sig = json.load(f)
-        det = sig.get("details", {})
-        spy_price = det.get("spy_price")
-    except:
-        spy_price = None
-        det = {}
-        sig = {}
+    sig = {}
+    det = {}
+    spy_price = None
+
+    if DB_AVAILABLE:
+        try:
+            latest_signal = db.get_latest_signal()
+            if latest_signal:
+                sig = json.loads(latest_signal.get("raw_data", "{}"))
+                det = sig.get("details", {}) if isinstance(sig, dict) else {}
+                spy_price = det.get("spy_price") or latest_signal.get("spy_price")
+        except Exception as e:
+            print(f"Error getting signal from DB: {e}")
+
+    # Fallback to JSON
+    if not spy_price:
+        try:
+            with open(SIGNALS) as f:
+                sig = json.load(f)
+            det = sig.get("details", {})
+            spy_price = det.get("spy_price")
+        except:
+            pass
 
     if not spy_price:
         return jsonify({"ok": False, "error": "No SPY price — is the bot running?"}), 400
 
-    trades = load_manual_trades()
-    # Block if already open
-    if any(not t.get("closed") for t in trades):
-        return jsonify({"ok": False, "error": "A trade is already open. Close it first."}), 400
+    # Check for open trades
+    if DB_AVAILABLE:
+        open_trades = [t for t in db.get_manual_trades(100) if not t.get("closed")]
+        if open_trades:
+            return jsonify({"ok": False, "error": "A trade is already open. Close it first."}), 400
+    else:
+        trades = load_manual_trades()
+        if any(not t.get("closed") for t in trades):
+            return jsonify({"ok": False, "error": "A trade is already open. Close it first."}), 400
 
     now = datetime.now()
     trade = {
@@ -434,54 +554,85 @@ def manual_trade_open():
         "pnl_pct":     None,
         "win":         None,
     }
-    trades.append(trade)
-    save_manual_trades(trades)
+
+    # Save to database or JSON
+    if DB_AVAILABLE:
+        db.save_manual_trade(trade)
+    else:
+        trades = load_manual_trades()
+        trades.append(trade)
+        save_manual_trades(trades)
+
     return jsonify({"ok": True, "trade": trade})
 
 
 @app.route("/manual_trade/close", methods=["POST"])
 def manual_trade_close():
     """Close the open manual paper trade and calculate P&L"""
-    from datetime import datetime
     # Get current SPY price
-    try:
-        with open(SIGNALS) as f:
-            sig = json.load(f)
-        exit_price = sig.get("details", {}).get("spy_price")
-        if exit_price is not None:
-            exit_price = float(exit_price)
-    except:
-        exit_price = None
+    exit_price = None
+
+    if DB_AVAILABLE:
+        try:
+            latest_signal = db.get_latest_signal()
+            if latest_signal:
+                exit_price = float(latest_signal.get("spy_price", 0)) if latest_signal.get("spy_price") else None
+        except Exception as e:
+            print(f"Error getting price from DB: {e}")
+
+    # Fallback to JSON
+    if not exit_price:
+        try:
+            with open(SIGNALS) as f:
+                sig = json.load(f)
+            exit_price = sig.get("details", {}).get("spy_price")
+            if exit_price is not None:
+                exit_price = float(exit_price)
+        except:
+            pass
 
     if not exit_price:
         return jsonify({"ok": False, "error": "No SPY price — is the bot running?"}), 400
 
-    trades = load_manual_trades()
-    open_list = [t for t in trades if not t.get("closed")]
-    if not open_list:
-        return jsonify({"ok": False, "error": "No open trade to close"}), 400
+    # Find and close open trade
+    if DB_AVAILABLE:
+        open_trades = [t for t in db.get_manual_trades(100) if not t.get("closed")]
+        if not open_trades:
+            return jsonify({"ok": False, "error": "No open trade to close"}), 400
 
-    now = datetime.now()
-    for trade in trades:
-        if not trade.get("closed"):
-            entry = float(trade["entry_price"])
-            # CALL profits when price goes UP, PUT profits when price goes DOWN
-            if trade["direction"] == "CALL":
-                pnl = round(exit_price - entry, 3)
-            else:
-                pnl = round(entry - exit_price, 3)
-            pnl_pct = round(pnl / entry * 100, 3) if entry else 0
-            trade["closed"]      = True
-            trade["exit_price"]  = exit_price
-            trade["exit_time"]   = now.strftime("%H:%M:%S")
-            trade["pnl"]         = pnl
-            trade["pnl_pct"]     = pnl_pct
-            trade["win"]         = pnl > 0
-            break
+        # Close the first open trade
+        trade_id = open_trades[0].get("id")
+        db.close_manual_trade(trade_id, exit_price)
+        closed_trade = open_trades[0]
+        closed_trade["exit_price"] = exit_price
 
-    save_manual_trades(trades)
-    closed_trade = next(t for t in reversed(trades) if t.get("closed"))
-    return jsonify({"ok": True, "trade": closed_trade, "pnl": closed_trade["pnl"]})
+        return jsonify({"ok": True, "trade": closed_trade, "pnl": closed_trade.get("pnl")})
+    else:
+        trades = load_manual_trades()
+        open_list = [t for t in trades if not t.get("closed")]
+        if not open_list:
+            return jsonify({"ok": False, "error": "No open trade to close"}), 400
+
+        now = datetime.now()
+        for trade in trades:
+            if not trade.get("closed"):
+                entry = float(trade["entry_price"])
+                if trade["direction"] == "CALL":
+                    pnl = round(exit_price - entry, 3)
+                else:
+                    pnl = round(entry - exit_price, 3)
+                pnl_pct = round(pnl / entry * 100, 3) if entry else 0
+                trade["closed"]      = True
+                trade["exit_price"]  = exit_price
+                trade["exit_time"]   = now.strftime("%H:%M:%S")
+                trade["pnl"]         = pnl
+                trade["pnl_pct"]     = pnl_pct
+                trade["win"]         = pnl > 0
+                break
+
+        save_manual_trades(trades)
+        closed_trade = next(t for t in reversed(trades) if t.get("closed"))
+        return jsonify({"ok": True, "trade": closed_trade, "pnl": closed_trade["pnl"]})
 
 
 @app.route("/manual_trade/clear", methods=["POST"])

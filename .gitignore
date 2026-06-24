@@ -1,0 +1,90 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+spy_trader.log
+
+# Data files (use .env instead)
+*.csv
+backtest_*.csv
+strat_*.csv
+v*_*.csv
+
+# Test/temp files
+test_*.html
+test_*.py
+test.txt
+debug_*.txt
+chrome_error.log
+
+# Screenshots/images
+*.png
+*.jpg
+screenshot_*.png
+dash_now.png
+trade_analysis_chart.png
+
+# Temp directories
+ChromeCDP_Temp/
+.gemini/
+logs/
+__pycache__/
+.pytest_cache/
+
+# Local env files (keep .env.example, ignore .env)
+.env.local
+.env.*.local
+
+# Misc scripts (keep main ones)
+install_startup.bat
+launch_spy_trader.bat
+start_dashboard.bat
+*.bat
+setup_postgresql.ps1
+
+# Strategy test files
+strategy_v*.py
+analyze_trades.py
+backtest_strategy.py
+strategy_comparison.py
+plot_trades.py
+market_context.py
+get_tv_script.py
+
+# Pine Script files
+*.pine
+
+# JSON data files (keep for local use, exclude from git)
+signals.json
+paper_trades.json
+manual_trades.json
+trendline_breaks.json
+premarket_briefing.json
+target_app.txt
+update_interval.txt
+
+# Documentation
+IMPROVEMENTS_ROADMAP.md
+SETUP.md
+SETUP_GUIDE.md
+RAILWAY_DEPLOYMENT.md
+RAILWAY_QUICKSTART.md
+RUN_SETUP.bat

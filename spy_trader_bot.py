@@ -1,4 +1,4 @@
-import asyncio
+﻿import asyncio
 import json
 import logging
 import math
@@ -372,22 +372,20 @@ SCRAPE_JS = r"""
     // Scan legend/overlay elements for the LUXAlgo Trendlines indicator text
     document.querySelectorAll('[class*="legend"], [class*="pane-legend"], [class*="wrap"]').forEach(function(el) {
         var t = (el.innerText || el.textContent || '').replace(/\s+/g, ' ');
-        if (/trendline|luxalgo/i.test(t)) {
+        // Look for either "TL_Break" or "B" with arrow (LuxAlgo format)
+        if (/TL_Break|B\s*[\u2191\u2193\u25b2\u25bc]/.test(t)) {
             tl_break_raw += ' | ' + t.substring(0, 300);
         }
     });
 
-    // Also check body text around 'trendline' keyword
-    var tlIdx = body.toLowerCase().indexOf('trendline');
-    if (tlIdx !== -1) {
-        tl_break_raw += ' |body| ' + body.substring(Math.max(0, tlIdx - 30), tlIdx + 150);
-    }
-
-    // Detect break direction: bullish (B↑ / breakout / break up / bull break)
+    // Detect break direction from "B \u2191" or "B \u2193" (LuxAlgo format)
     if (tl_break_raw) {
-        if (/B\s*[\u2191\u25b2]|[Bb]reakout|break[\s-]*up|up[\s-]*break|[Bb]ullish[\s-]*break/i.test(tl_break_raw)) {
+        // Match "B" with up arrow for bullish break
+        if (/B\s*[\u2191\u25b2]/i.test(tl_break_raw)) {
             tl_break = 'UP';
-        } else if (/B\s*[\u2193\u25bc]|[Bb]reakdown|break[\s-]*down|down[\s-]*break|[Bb]earish[\s-]*break/i.test(tl_break_raw)) {
+        }
+        // Match "B" with down arrow for bearish break
+        else if (/B\s*[\u2193\u25bc]/i.test(tl_break_raw)) {
             tl_break = 'DN';
         }
     }
@@ -684,21 +682,22 @@ def record_trendline_break(details):
         else:
             data = {"breaks": []}
 
-        # Avoid duplicates within 30 seconds
+        # Avoid duplicates within 60 seconds (prevents repeated false positives)
         recent = [b for b in data.get("breaks", [])
                   if b.get("date") == date_str]
         if recent:
             last_break = recent[-1]
             last_time_str = last_break.get("time", "")
-            # Check if same direction within 30 seconds
+            # Check if same direction within 60 seconds
             if last_break.get("symbol") == "SPY" and last_break.get("direction") == tl_break:
                 try:
                     from datetime import datetime
                     last_dt = datetime.strptime(last_time_str, "%H:%M:%S")
                     curr_dt = datetime.strptime(time_str, "%H:%M:%S")
-                    if (curr_dt.hour * 3600 + curr_dt.minute * 60 + curr_dt.second) - \
-                       (last_dt.hour * 3600 + last_dt.minute * 60 + last_dt.second) < 30:
-                        logger.debug(f"Skipping duplicate trendline break (same direction within 30s)")
+                    time_diff = (curr_dt.hour * 3600 + curr_dt.minute * 60 + curr_dt.second) - \
+                               (last_dt.hour * 3600 + last_dt.minute * 60 + last_dt.second)
+                    if time_diff < 60 and time_diff >= 0:
+                        logger.debug(f"Skipping duplicate trendline break (same direction within 60s)")
                         return
                 except:
                     pass

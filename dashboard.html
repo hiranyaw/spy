@@ -647,8 +647,33 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
   </div>
 
   <div id="log-section" style="display:none">
-    <div class="ctrl-title" style="margin-top:12px">Bot log (last 50 lines)</div>
-    <div class="log-box" id="log-output"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+      <!-- Database Log -->
+      <div>
+        <div class="ctrl-title" style="margin:0;padding-bottom:6px">📊 Database Log</div>
+        <div class="log-box" id="db-log-output" style="background:#0a1a1a;border-left:3px solid #58a6ff"></div>
+      </div>
+      <!-- Bot Log -->
+      <div>
+        <div class="ctrl-title" style="margin:0;padding-bottom:6px">🤖 Bot Log (last 50 lines)</div>
+        <div class="log-box" id="log-output" style="background:#1a0a0a;border-left:3px solid #ff9500"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Database Status Card -->
+  <div id="db-status-card" style="display:none;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px;margin-top:10px">
+    <div style="font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Database Status</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="padding:6px;background:#0d1117;border-radius:4px;border-left:3px solid #58a6ff">
+        <div style="font-size:10px;color:#8b949e">Connection</div>
+        <div id="db-status-text" style="font-size:12px;font-weight:600;color:#58a6ff">Checking...</div>
+      </div>
+      <div style="padding:6px;background:#0d1117;border-radius:4px">
+        <div style="font-size:10px;color:#8b949e">Last Activity</div>
+        <div id="db-status-time" style="font-size:11px;color:#8b949e;font-family:monospace">--</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1021,16 +1046,76 @@ async function confirmClear(){
 async function loadLog(){
   document.getElementById('log-section').style.display='block';
   const logEl = document.getElementById('log-output');
-  logEl.textContent = 'Loading...';
+  const dbLogEl = document.getElementById('db-log-output');
+
+  logEl.textContent = 'Loading bot log...';
+  dbLogEl.textContent = 'Loading database log...';
+
   try{
-    const d = await (await fetch('/control/log?lines=50')).json();
-    logEl.textContent = d.lines.join('');
+    // Load bot log
+    const botData = await (await fetch('/control/log?lines=50')).json();
+    logEl.textContent = botData.lines.join('') || 'No bot log yet';
     logEl.scrollTop = logEl.scrollHeight;
-    document.getElementById('ctrl-output').textContent = 'Log loaded below.';
+
+    // Load database log
+    const dbData = await (await fetch('/control/db-log?lines=50')).json();
+    dbLogEl.textContent = (dbData.lines && dbData.lines.length > 0) ?
+      dbData.lines.join('') :
+      '[INFO] Database logging started...\n[WAITING] No database operations yet.';
+    dbLogEl.scrollTop = dbLogEl.scrollHeight;
+
+    // Show database status card
+    await updateDbStatus();
+
+    document.getElementById('ctrl-output').textContent = 'Logs loaded below.';
   }catch(e){
-    logEl.textContent = 'Error loading log: ' + e.message;
+    logEl.textContent = 'Error loading bot log: ' + e.message;
+    dbLogEl.textContent = 'Error loading database log: ' + e.message;
   }
 }
+
+async function updateDbStatus(){
+  try{
+    const status = await (await fetch('/control/db-status')).json();
+    const statusCard = document.getElementById('db-status-card');
+    const statusText = document.getElementById('db-status-text');
+    const statusTime = document.getElementById('db-status-time');
+
+    statusCard.style.display = 'block';
+
+    if(status.db_connected){
+      statusText.textContent = '✓ Connected';
+      statusText.style.color = '#3fb950';
+    } else {
+      statusText.textContent = '✗ Disconnected';
+      statusText.style.color = '#f85149';
+    }
+
+    const now = new Date();
+    statusTime.textContent = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+  }catch(e){
+    console.error('Error updating DB status:', e);
+  }
+}
+
+// Auto-refresh database logs every 3 seconds when log section is visible
+setInterval(() => {
+  const logSection = document.getElementById('log-section');
+  if(logSection && logSection.style.display !== 'none'){
+    const dbLogEl = document.getElementById('db-log-output');
+    fetch('/control/db-log?lines=30')
+      .then(r => r.json())
+      .then(d => {
+        const newContent = (d.lines && d.lines.length > 0) ? d.lines.join('') : '[WAITING]\n';
+        if(dbLogEl.textContent !== newContent){
+          dbLogEl.textContent = newContent;
+          dbLogEl.scrollTop = dbLogEl.scrollHeight;
+        }
+      })
+      .catch(e => console.error('Auto-refresh failed:', e));
+  }
+}, 3000);
 function fmt(v,d=2){return v!=null&&!isNaN(Number(v))?Number(v).toFixed(d):'--'}
 
 // Format a raw "HH:MM:SS" string (LA time) into "H:MM AM/PM PT"
