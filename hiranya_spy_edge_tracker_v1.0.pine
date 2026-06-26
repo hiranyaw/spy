@@ -13,8 +13,8 @@ ema_slow = input.int(21, "Slow EMA")
 
 // ─── TABLE DISPLAY CONTROLS ───────────────────────────────────────────
 group_display = "TABLE DISPLAY"
-cell_width = input.int(55, "Cell width", group=group_display, minval=40, maxval=200)
-cell_height = input.int(20, "Cell height", group=group_display, minval=15, maxval=100)
+cell_width = input.int(55, "Cell width", group=group_display, minval=15, maxval=200)
+cell_height = input.int(20, "Cell height", group=group_display, minval=8, maxval=100)
 text_sz = input.string("tiny", "Text size", options=["tiny", "small", "normal"], group=group_display)
 border_sz = input.int(1, "Border width", group=group_display, minval=1, maxval=3)
 
