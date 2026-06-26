@@ -250,8 +250,7 @@ if entry_short
     plotshape(c, "Entry Short", shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
 
 if exit_signal
-    y_pos = entry_long ? location.abovebar : location.belowbar
-    plotshape(c, "Exit Signal", shape.diamond, location=y_pos, color=color.orange, size=size.small)
+    plotshape(c, "Exit Signal", shape.diamond, location=location.top, color=color.orange, size=size.small)
 
 // ─── CONFLUENCE DISPLAY ──────────────────────────────────────────────
 if show_confluence
