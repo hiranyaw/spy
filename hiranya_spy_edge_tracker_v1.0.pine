@@ -1,5 +1,5 @@
 //@version=6
-indicator("Trendlines with Breaks [LuxAlgo] - Count Tracker", "LuxAlgo B Counter", overlay=true)
+indicator("Trendlines with Breaks [LuxAlgo] - Count Tracker", "B Counter", overlay=true)
 
 //------------------------------------------------------------------------------
 //Settings
@@ -73,8 +73,8 @@ if pl and showExt
 //-----------------------------------------------------------------------------}
 //Plots
 //-----------------------------------------------------------------------------{
-plot(backpaint ? upper : upper - slope_ph * length, 'Upper', color=ph ? na : upCss, offset=-offset)
-plot(backpaint ? lower : lower + slope_pl * length, 'Lower', color=pl ? na : dnCss, offset=-offset)
+plot(backpaint ? upper : upper - slope_ph * length, 'Upper', color=upCss, offset=-offset)
+plot(backpaint ? lower : lower + slope_pl * length, 'Lower', color=dnCss, offset=-offset)
 
 //Breakouts with B labels
 plotshape(break_up ? low : na, "Upper Break"
