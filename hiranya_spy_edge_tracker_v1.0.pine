@@ -1,28 +1,32 @@
 //@version=6
-indicator("Hiranya SPY Edge Tracker v1.0", overlay=true)
+indicator("Trendlines with Breaks [LuxAlgo] - Count Tracker", "LuxAlgo B Counter", overlay=true)
 
-// ═══════════════════════════════════════════════════════════════════════
-// HIRANYA SPY EDGE TRACKER v1.0 - LuxAlgo Trendline Breaks Only
-// Counts ONLY when "B" label appears (LuxAlgo trendline breaks)
-// ═══════════════════════════════════════════════════════════════════════
-
-// ─── LUXALGO TRENDLINE SETTINGS ───────────────────────────────────────
+//------------------------------------------------------------------------------
+//Settings
+//-----------------------------------------------------------------------------{
 length = input.int(14, 'Swing Detection Lookback')
-mult = input.float(1., 'Slope Multiplier', minval=0, step=.1)
-calcMethod = input.string('Atr', 'Slope Method', options=['Atr','Stdev','Linreg'])
+mult = input.float(1., 'Slope', minval=0, step=.1)
+calcMethod = input.string('Atr', 'Slope Calculation Method', options=['Atr','Stdev','Linreg'])
+backpaint = input(true, tooltip='Backpainting offset displayed elements in the past. Disable backpainting to see real time information returned by the indicator.')
 
-// ─── TABLE DISPLAY CONTROLS ───────────────────────────────────────────
-group_display = "TABLE DISPLAY"
-cell_width = input.int(55, "Cell width", group=group_display, minval=15, maxval=200)
-cell_height = input.int(20, "Cell height", group=group_display, minval=8, maxval=100)
-text_sz = input.string("tiny", "Text size", options=["tiny", "small", "normal"], group=group_display)
-border_sz = input.int(1, "Border width", group=group_display, minval=1, maxval=3)
+//Style
+upCss = input.color(color.teal, 'Up Trendline Color', group='Style')
+dnCss = input.color(color.red, 'Down Trendline Color', group='Style')
+showExt = input(true, 'Show Extended Lines')
 
-// ─── LUXALGO TRENDLINE LOGIC ──────────────────────────────────────────
+//Display
+show_history = input(true, 'Show Break History')
+history_size = input.int(10, 'History Size', minval=5, maxval=20)
+
+//-----------------------------------------------------------------------------}
+//Calculations
+//-----------------------------------------------------------------------------{
 var upper = 0.
 var lower = 0.
 var slope_ph = 0.
 var slope_pl = 0.
+
+var offset = backpaint ? length : 0
 
 n = bar_index
 src = close
@@ -30,13 +34,13 @@ src = close
 ph = ta.pivothigh(src, length, length)
 pl = ta.pivotlow(src, length, length)
 
-// Slope Calculation Method
+//Slope Calculation Method
 slope = switch calcMethod
     'Atr'    => ta.atr(length) / length * mult
-    'Stdev'  => ta.stdev(src, length) / length * mult
+    'Stdev'  => ta.stdev(src,length) / length * mult
     'Linreg' => math.abs(ta.sma(src * n, length) - ta.sma(src, length) * ta.sma(n, length)) / ta.variance(n, length) / 2 * mult
 
-// Get slopes and calculate trendlines
+//Get slopes and calculate trendlines
 slope_ph := ph ? slope : slope_ph
 slope_pl := pl ? slope : slope_pl
 
@@ -48,65 +52,115 @@ var dnos = 0
 upos := ph ? 0 : close > upper - slope_ph * length ? 1 : upos
 dnos := pl ? 0 : close < lower + slope_pl * length ? 1 : dnos
 
-// ─── BREAK CONDITIONS (When "B" appears) ──────────────────────────────
-break_up = upos > upos[1]      // Upper break - "B" below candle
-break_dn = dnos > dnos[1]      // Lower break - "B" above candle
+//Break Detection
+break_up = upos > upos[1]
+break_dn = dnos > dnos[1]
 
-// ─── SIGNAL COUNTER (Only counts when B appears) ──────────────────────
-var int signal_count = 0
-var string last_direction = "WAIT"
+//-----------------------------------------------------------------------------}
+//Extended Lines
+//-----------------------------------------------------------------------------{
+var uptl = line.new(na,na,na,na, color=upCss, style=line.style_dashed, extend=extend.right)
+var dntl = line.new(na,na,na,na, color=dnCss, style=line.style_dashed, extend=extend.right)
 
-if break_up
-    last_direction := "LONG"
-    signal_count += 1
-else if break_dn
-    last_direction := "SHORT"
-    signal_count += 1
+if ph and showExt
+    uptl.set_xy1(n-offset, backpaint ? ph : upper - slope_ph * length)
+    uptl.set_xy2(n-offset+1, backpaint ? ph - slope : upper - slope_ph * (length+1))
 
-// Daily reset at midnight
+if pl and showExt
+    dntl.set_xy1(n-offset, backpaint ? pl : lower + slope_pl * length)
+    dntl.set_xy2(n-offset+1, backpaint ? pl + slope : lower + slope_pl * (length+1))
+
+//-----------------------------------------------------------------------------}
+//Plots
+//-----------------------------------------------------------------------------{
+plot(backpaint ? upper : upper - slope_ph * length, 'Upper', color=ph ? na : upCss, offset=-offset)
+plot(backpaint ? lower : lower + slope_pl * length, 'Lower', color=pl ? na : dnCss, offset=-offset)
+
+//Breakouts with B labels
+plotshape(break_up ? low : na, "Upper Break"
+  , shape.labelup
+  , location.absolute
+  , upCss
+  , text="B"
+  , textcolor=color.white
+  , size=size.tiny)
+
+plotshape(break_dn ? high : na, "Lower Break"
+  , shape.labeldown
+  , location.absolute
+  , dnCss
+  , text="B"
+  , textcolor=color.white
+  , size=size.tiny)
+
+//-----------------------------------------------------------------------------}
+//Counter Logic
+//-----------------------------------------------------------------------------{
+var int total_count = 0
+var array<string> break_times = array.new<string>()
+var array<string> break_dirs = array.new<string>()
+
+if break_up or break_dn
+    total_count += 1
+
+    // Get current time
+    hr = str.tostring(hour)
+    mn = str.tostring(minute, "00")
+    break_time = hr + ":" + mn
+    break_dir = break_up ? "LONG" : "SHORT"
+
+    // Store in arrays (keep only latest history_size entries)
+    array.unshift(break_times, break_time)
+    array.unshift(break_dirs, break_dir)
+
+    if array.size(break_times) > history_size
+        array.pop(break_times)
+        array.pop(break_dirs)
+
+// Daily reset
 if dayofweek == dayofweek.monday or (hour == 0 and minute == 0)
-    signal_count := 0
+    total_count := 0
 
-// ─── CALCULATIONS ─────────────────────────────────────────────────────
-atr = ta.atr(14)
-ema9 = ta.ema(close, 9)
+//-----------------------------------------------------------------------------}
+//Top Right Counter Box
+//-----------------------------------------------------------------------------{
+var table counter_box = na
 
-// ─── CORNER TABLE ─────────────────────────────────────────────────────
-var table info_table = na
-
-if na(info_table)
-    info_table := table.new(position.top_right, 2, 4,
+if na(counter_box)
+    counter_box := table.new(position.top_right, 2, history_size + 2,
         bgcolor=color.new(color.black, 30),
         border_color=color.gray,
-        border_width=border_sz)
+        border_width=2)
 
-// Map text size string to actual size
-text_size_val = text_sz == "small" ? size.small : (text_sz == "normal" ? size.normal : size.tiny)
+// Header - Count
+table.cell(counter_box, 0, 0, "B COUNT", text_size=size.small, text_color=color.white,
+    bgcolor=color.new(color.blue, 50), width=70, height=25)
+table.cell(counter_box, 1, 0, str.tostring(total_count), text_size=size.small, text_color=color.yellow,
+    bgcolor=color.new(color.blue, 70), width=70, height=25)
 
-// Row 0: Direction
-dir_bg = last_direction == "LONG" ? color.new(color.green, 60) :
-         last_direction == "SHORT" ? color.new(color.red, 60) :
-         color.new(color.gray, 60)
-dir_text = last_direction == "LONG" ? color.lime :
-           last_direction == "SHORT" ? color.red : color.white
+// Header - History
+table.cell(counter_box, 0, 1, "TIME", text_size=size.tiny, text_color=color.white,
+    bgcolor=color.new(color.gray, 50), width=70, height=20)
+table.cell(counter_box, 1, 1, "DIR", text_size=size.tiny, text_color=color.white,
+    bgcolor=color.new(color.gray, 50), width=70, height=20)
 
-table.cell(info_table, 0, 0, "Dir", text_size=text_size_val, text_color=color.white, bgcolor=color.new(color.teal, 50), width=cell_width, height=cell_height)
-table.cell(info_table, 1, 0, last_direction, text_size=text_size_val, text_color=dir_text, bgcolor=dir_bg, width=cell_width, height=cell_height)
+// History rows
+for i = 0 to math.min(array.size(break_times) - 1, history_size - 1)
+    time_str = array.get(break_times, i)
+    dir_str = array.get(break_dirs, i)
 
-// Row 1: ATR
-table.cell(info_table, 0, 1, "ATR", text_size=text_size_val, text_color=color.white, bgcolor=color.new(color.maroon, 50), width=cell_width, height=cell_height)
-table.cell(info_table, 1, 1, str.tostring(math.round(atr * 100) / 100), text_size=text_size_val, text_color=color.aqua, bgcolor=color.new(color.maroon, 70), width=cell_width, height=cell_height)
+    dir_color = dir_str == "LONG" ? color.new(color.green, 70) : color.new(color.red, 70)
+    dir_text = dir_str == "LONG" ? color.lime : color.red
 
-// Row 2: Count (ONLY LuxAlgo B breaks)
-table.cell(info_table, 0, 2, "Count", text_size=text_size_val, text_color=color.white, bgcolor=color.new(color.orange, 50), width=cell_width, height=cell_height)
-table.cell(info_table, 1, 2, str.tostring(signal_count), text_size=text_size_val, text_color=color.yellow, bgcolor=color.new(color.orange, 70), width=cell_width, height=cell_height)
+    table.cell(counter_box, 0, i + 2, time_str, text_size=size.tiny, text_color=color.white,
+        bgcolor=color.new(color.gray, 40), width=70, height=18)
+    table.cell(counter_box, 1, i + 2, dir_str, text_size=size.tiny, text_color=dir_text,
+        bgcolor=dir_color, width=70, height=18)
 
-// Row 3: Status
-status = close > ema9 ? "UP" : "DOWN"
-status_color = close > ema9 ? color.new(color.green, 70) : color.new(color.red, 70)
-table.cell(info_table, 0, 3, "EMA9", text_size=text_size_val, text_color=color.white, bgcolor=color.new(color.navy, 50), width=cell_width, height=cell_height)
-table.cell(info_table, 1, 3, status, text_size=text_size_val, text_color=color.white, bgcolor=status_color, width=cell_width, height=cell_height)
+//-----------------------------------------------------------------------------}
+//Alerts
+//-----------------------------------------------------------------------------{
+alertcondition(break_up, 'Upward Breakout', 'Price broke the down-trendline upward')
+alertcondition(break_dn, 'Downward Breakout', 'Price broke the up-trendline downward')
 
-// ─── DISPLAY B LABELS (LuxAlgo style) ──────────────────────────────────
-plotshape(break_up ? low : na, "B Up", shape.labelup, location.absolute, color.teal, text="B", textcolor=color.white, size=size.tiny)
-plotshape(break_dn ? high : na, "B Down", shape.labeldown, location.absolute, color.red, text="B", textcolor=color.white, size=size.tiny)
+//-----------------------------------------------------------------------------}
