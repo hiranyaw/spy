@@ -355,52 +355,15 @@ if show_labels
     else if bar_loss_short
         label.new(bar_index, high * 1.001, "✗ LOSS", textcolor=color.red, style=label.style_label_lower, size=size.small)
 
-// ═══════════════════════════════════════════════════════════════════════
-// WEBHOOK JSON ALERT STRINGS (copy-paste into TradingView alerts)
-// ═══════════════════════════════════════════════════════════════════════
+// Entry/Exit alerts
+if entry_long
+    alert("LONG Entry Signal", alert.freq_once_per_bar)
 
-// Entry signal JSON
-entry_json = entry_long ? str.format(
-    '{{"indicator":"Hiranya SPY Edge Tracker v1.0","symbol":"SPY","direction":"LONG","entry":{0},"sl":{1},"tp1":{2},"tp2":{3},"atr":{4},"confluence":{5},"add_value":{6},"time":"{7}"}}',
-    str.format("{0:.2f}", entry_price_long),
-    str.format("{0:.2f}", sl_long),
-    str.format("{0:.2f}", tp1_long),
-    str.format("{0:.2f}", tp2_long),
-    str.format("{0:.2f}", atr),
-    str.tostring(score_long),
-    str.format("{0:.0f}", add_proxy),
-    last_time_str
-) : (entry_short ? str.format(
-    '{{"indicator":"Hiranya SPY Edge Tracker v1.0","symbol":"SPY","direction":"SHORT","entry":{0},"sl":{1},"tp1":{2},"tp2":{3},"atr":{4},"confluence":{5},"add_value":{6},"time":"{7}"}}',
-    str.format("{0:.2f}", entry_price_short),
-    str.format("{0:.2f}", sl_short),
-    str.format("{0:.2f}", tp1_short),
-    str.format("{0:.2f}", tp2_short),
-    str.format("{0:.2f}", atr),
-    str.tostring(score_short),
-    str.format("{0:.0f}", add_proxy),
-    last_time_str
-) : "")
-
-// Exit signal JSON
-exit_event = last_direction == "LONG" ? "EXIT_LONG" : "EXIT_SHORT"
-exit_json = exit_signal ? str.format(
-    '{{"indicator":"Hiranya SPY Edge Tracker v1.0","symbol":"SPY","event":"{0}","reason":"{1}","price":{2},"time":"{3}"}}',
-    exit_event,
-    exit_reason,
-    str.format("{0:.2f}", c),
-    f_pt_to_time(hour - 3 + (minute / 60.0))
-) : ""
-
-// Alert messages
-alertmsg_entry = entry_json != "" ? entry_json : na
-alertmsg_exit = exit_json != "" ? exit_json : na
-
-if entry_long or entry_short
-    alert(entry_json, alert.freq_once_per_bar)
+if entry_short
+    alert("SHORT Entry Signal", alert.freq_once_per_bar)
 
 if exit_signal
-    alert(exit_json, alert.freq_once_per_bar)
+    alert("EXIT Signal: " + exit_reason, alert.freq_once_per_bar)
 
 // ─── TITLE/DEBUG ─────────────────────────────────────────────────────
 if barstate.islast
