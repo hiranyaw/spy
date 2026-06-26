@@ -255,85 +255,74 @@ if show_confluence
     table.cell(confluence_box, 0, 0, "Confluence", text_color=color.white, bgcolor=color.new(color.navy, 50))
     table.cell(confluence_box, 0, 1, score_text, text_color=color.white, bgcolor=color.new(color.gray, 80))
 
-// ─── CORNER TABLE ────────────────────────────────────────────────────
+// ─── CORNER TABLE (LARGE & COLORFUL) ────────────────────────────────
 if show_table
     var table corner_tbl = na
     if na(corner_tbl)
-        corner_tbl := table.new(position.top_right, 2, 10, bgcolor=color.new(color.black, 80), border_color=color.gray)
+        corner_tbl := table.new(position.top_right, 2, 11, bgcolor=color.new(color.black, 0), border_color=color.gray, border_width=2)
 
-    // Headers
-    table.cell(corner_tbl, 0, 0, "HIRANYA SPY EDGE TRACKER v1.0", text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.maroon, 50))
-    table.cell(corner_tbl, 1, 0, "", text_size=size.tiny)
+    // Title row
+    table.cell(corner_tbl, 0, 0, "HIRANYA SPY", text_size=size.small, text_color=color.white, bgcolor=color.new(color.blue, 20), width=100)
+    table.cell(corner_tbl, 1, 0, "EDGE TRACKER", text_size=size.small, text_color=color.white, bgcolor=color.new(color.blue, 20), width=100)
 
-    // Content rows
+    // Row 1 - Signals
+    table.cell(corner_tbl, 0, 1, "Signals", text_size=size.small, text_color=color.white, bgcolor=color.new(color.purple, 30), width=100)
+    table.cell(corner_tbl, 1, 1, str.tostring(signal_count), text_size=size.small, text_color=color.yellow, bgcolor=color.new(color.purple, 50), width=100)
+
+    // Row 2 - Direction
+    dir_color_bg = last_direction == "LONG" ? color.new(color.green, 40) : (last_direction == "SHORT" ? color.new(color.red, 40) : color.new(color.gray, 40))
+    dir_color_text = last_direction == "LONG" ? color.lime : (last_direction == "SHORT" ? color.red : color.white)
+    table.cell(corner_tbl, 0, 2, "Direction", text_size=size.small, text_color=color.white, bgcolor=color.new(color.teal, 30), width=100)
+    table.cell(corner_tbl, 1, 2, last_direction, text_size=size.small, text_color=dir_color_text, bgcolor=dir_color_bg, width=100)
+
+    // Row 3 - Confluence
+    table.cell(corner_tbl, 0, 3, "Confluence", text_size=size.small, text_color=color.white, bgcolor=color.new(color.orange, 30), width=100)
+    table.cell(corner_tbl, 1, 3, str.tostring(last_confluence) + "/5", text_size=size.small, text_color=color.yellow, bgcolor=color.new(color.orange, 50), width=100)
+
+    // Row 4 - ATR
+    table.cell(corner_tbl, 0, 4, "ATR", text_size=size.small, text_color=color.white, bgcolor=color.new(color.maroon, 30), width=100)
+    table.cell(corner_tbl, 1, 4, str.tostring(math.round(atr * 100) / 100), text_size=size.small, text_color=color.aqua, bgcolor=color.new(color.maroon, 50), width=100)
+
+    // Row 5 - ADD
+    add_color = add_proxy > 0 ? color.new(color.green, 40) : color.new(color.red, 40)
+    add_text = add_proxy > 0 ? color.lime : color.red
+    table.cell(corner_tbl, 0, 5, "$ADD", text_size=size.small, text_color=color.white, bgcolor=color.new(color.navy, 30), width=100)
+    table.cell(corner_tbl, 1, 5, str.tostring(math.round(add_proxy)), text_size=size.small, text_color=add_text, bgcolor=add_color, width=100)
+
+    // Row 6 - Exits
+    table.cell(corner_tbl, 0, 6, "Exits Fired", text_size=size.small, text_color=color.white, bgcolor=color.new(color.fuchsia, 30), width=100)
+    table.cell(corner_tbl, 1, 6, str.tostring(exit_count), text_size=size.small, text_color=color.yellow, bgcolor=color.new(color.fuchsia, 50), width=100)
+
+    // Row 7 - Exit Signals
     exit_signal_str = "—"
+    exit_color = color.new(color.gray, 50)
     if exit_add_long or exit_add_short
         exit_signal_str := "ADD ✓"
+        exit_color := color.new(color.red, 60)
     else if exit_ema_long or exit_ema_short
         exit_signal_str := "EMA ✓"
+        exit_color := color.new(color.orange, 60)
     else if exit_qqq_long or exit_qqq_short
         exit_signal_str := "QQQ ✓"
+        exit_color := color.new(color.blue, 60)
 
-    hard_stop_str = is_hard_stop ? "⏰ ACTIVE" : "—"
+    table.cell(corner_tbl, 0, 7, "EXIT Signal", text_size=size.small, text_color=color.white, bgcolor=color.new(color.gray, 30), width=100)
+    table.cell(corner_tbl, 1, 7, exit_signal_str, text_size=size.small, text_color=color.white, bgcolor=exit_color, width=100)
 
-    // Build table labels
-    row1 = "Signals today"
-    row2 = "Last direction"
-    row3 = "Last time"
-    row4 = "Confluence"
-    row5 = "Exits fired"
-    row6 = "ATR"
-    row7 = "$ADD proxy"
-    row8 = "EXIT signal"
-    row9 = "Hard stop"
+    // Row 8 - Time
+    table.cell(corner_tbl, 0, 8, "Last Time", text_size=size.small, text_color=color.white, bgcolor=color.new(color.gray, 30), width=100)
+    table.cell(corner_tbl, 1, 8, last_time_str, text_size=size.small, text_color=color.aqua, bgcolor=color.new(color.gray, 50), width=100)
 
-    // Build table values
-    val1 = str.tostring(signal_count)
-    val2 = last_direction
-    val3 = last_time_str
-    val4 = str.tostring(last_confluence) + "/5"
-    val5 = str.tostring(exit_count)
-    val6 = str.tostring(math.round(atr * 100) / 100)
-    val7 = str.tostring(math.round(add_proxy))
-    val8 = exit_signal_str
-    val9 = hard_stop_str
+    // Row 9 - EMA9
+    ema_color = close > ema9 ? color.new(color.green, 40) : color.new(color.red, 40)
+    table.cell(corner_tbl, 0, 9, "EMA 9", text_size=size.small, text_color=color.white, bgcolor=color.new(color.blue, 30), width=100)
+    table.cell(corner_tbl, 1, 9, close > ema9 ? "ABOVE" : "BELOW", text_size=size.small, text_color=close > ema9 ? color.lime : color.red, bgcolor=ema_color, width=100)
 
-    // Row 1
-    table.cell(corner_tbl, 0, 1, row1, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
-    table.cell(corner_tbl, 1, 1, val1, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
-
-    // Row 2 - direction (color coded)
-    dir_color = last_direction == "LONG" ? color.new(color.lime, 80) : (last_direction == "SHORT" ? color.new(color.red, 80) : color.new(color.gray, 80))
-    table.cell(corner_tbl, 0, 2, row2, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
-    table.cell(corner_tbl, 1, 2, val2, text_size=size.tiny, text_color=color.white, bgcolor=dir_color)
-
-    // Row 3
-    table.cell(corner_tbl, 0, 3, row3, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
-    table.cell(corner_tbl, 1, 3, val3, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
-
-    // Row 4
-    table.cell(corner_tbl, 0, 4, row4, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
-    table.cell(corner_tbl, 1, 4, val4, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
-
-    // Row 5
-    table.cell(corner_tbl, 0, 5, row5, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
-    table.cell(corner_tbl, 1, 5, val5, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
-
-    // Row 6
-    table.cell(corner_tbl, 0, 6, row6, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
-    table.cell(corner_tbl, 1, 6, val6, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
-
-    // Row 7
-    table.cell(corner_tbl, 0, 7, row7, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
-    table.cell(corner_tbl, 1, 7, val7, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
-
-    // Row 8
-    table.cell(corner_tbl, 0, 8, row8, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
-    table.cell(corner_tbl, 1, 8, val8, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
-
-    // Row 9
-    table.cell(corner_tbl, 0, 9, row9, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
-    table.cell(corner_tbl, 1, 9, val9, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
+    // Row 10 - Status
+    status_str = entry_long ? "LONG ENTRY" : (entry_short ? "SHORT ENTRY" : "WAITING")
+    status_color = entry_long ? color.new(color.green, 50) : (entry_short ? color.new(color.red, 50) : color.new(color.gray, 50))
+    table.cell(corner_tbl, 0, 10, "Status", text_size=size.small, text_color=color.white, bgcolor=color.new(color.black, 30), width=100)
+    table.cell(corner_tbl, 1, 10, status_str, text_size=size.small, text_color=color.white, bgcolor=status_color, width=100)
 
 // ─── BAR OUTCOME LABELS ──────────────────────────────────────────────
 if show_labels
