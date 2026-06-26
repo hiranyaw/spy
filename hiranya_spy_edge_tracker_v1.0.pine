@@ -244,13 +244,9 @@ if show_sl_tp
 plot(ema9, "EMA 9", color=color.blue, linewidth=1)
 plot(ema21, "EMA 21", color=color.orange, linewidth=1)
 
-if entry_long
-    plotshape(c, "Entry Long", shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
-if entry_short
-    plotshape(c, "Entry Short", shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
-
-if exit_signal
-    plotshape(c, "Exit Signal", shape.diamond, location=location.top, color=color.orange, size=size.small)
+plotshape(entry_long ? c : na, "Entry Long", shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
+plotshape(entry_short ? c : na, "Entry Short", shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
+plotshape(exit_signal ? c : na, "Exit Signal", shape.diamond, location=location.top, color=color.orange, size=size.small)
 
 // ─── CONFLUENCE DISPLAY ──────────────────────────────────────────────
 if show_confluence
