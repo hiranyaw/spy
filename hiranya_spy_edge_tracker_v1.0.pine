@@ -365,12 +365,5 @@ if entry_short
 if exit_signal
     alert("EXIT Signal: " + exit_reason, alert.freq_once_per_bar)
 
-// ─── TITLE/DEBUG ─────────────────────────────────────────────────────
-if barstate.islast
-    debug_text = str.format("SPY: L{0}/S{1} | Confluence: L{2}/S{3} | ATR: {4:.2f} | ADD: {5:.0f}",
-        entry_long ? "✓" : "—",
-        entry_short ? "✓" : "—",
-        score_long, score_short,
-        atr,
-        add_proxy
-    )
+// ─── DEBUG ──────────────────────────────────────────────────────────
+// Indicator complete - all signals live on chart
