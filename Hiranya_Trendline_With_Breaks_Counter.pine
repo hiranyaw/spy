@@ -41,16 +41,16 @@ slope = switch calcMethod
     'Linreg' => math.abs(ta.sma(src * n, length) - ta.sma(src, length) * ta.sma(n, length)) / ta.variance(n, length) / 2 * mult
 
 //Get slopes and calculate trendlines
-slope_ph := ph ? slope : slope_ph
-slope_pl := pl ? slope : slope_pl
+slope_ph := not na(ph) ? slope : slope_ph
+slope_pl := not na(pl) ? slope : slope_pl
 
-upper := ph ? ph : upper - slope_ph
-lower := pl ? pl : lower + slope_pl
+upper := not na(ph) ? ph : upper - slope_ph
+lower := not na(pl) ? pl : lower + slope_pl
 
 var upos = 0
 var dnos = 0
-upos := ph ? 0 : close > upper - slope_ph * length ? 1 : upos
-dnos := pl ? 0 : close < lower + slope_pl * length ? 1 : dnos
+upos := not na(ph) ? 0 : close > upper - slope_ph * length ? 1 : upos
+dnos := not na(pl) ? 0 : close < lower + slope_pl * length ? 1 : dnos
 
 //Break Detection
 break_up = upos > upos[1]
