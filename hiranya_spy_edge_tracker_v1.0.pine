@@ -231,15 +231,12 @@ if entry_short
             break
 
 // ─── PLOTTING ────────────────────────────────────────────────────────
-if show_sl_tp
-    if entry_long
-        plot(sl_long, "SL Long", color=color.red, linewidth=2, style=plot.style_line)
-        plot(tp1_long, "TP1 Long", color=color.orange, linewidth=1, style=plot.style_line)
-        plot(tp2_long, "TP2 Long", color=color.lime, linewidth=1, style=plot.style_line)
-    if entry_short
-        plot(sl_short, "SL Short", color=color.red, linewidth=2, style=plot.style_line)
-        plot(tp1_short, "TP1 Short", color=color.orange, linewidth=1, style=plot.style_line)
-        plot(tp2_short, "TP2 Short", color=color.lime, linewidth=1, style=plot.style_line)
+plot(show_sl_tp and entry_long ? sl_long : na, "SL Long", color=color.red, linewidth=2, style=plot.style_line)
+plot(show_sl_tp and entry_long ? tp1_long : na, "TP1 Long", color=color.orange, linewidth=1, style=plot.style_line)
+plot(show_sl_tp and entry_long ? tp2_long : na, "TP2 Long", color=color.lime, linewidth=1, style=plot.style_line)
+plot(show_sl_tp and entry_short ? sl_short : na, "SL Short", color=color.red, linewidth=2, style=plot.style_line)
+plot(show_sl_tp and entry_short ? tp1_short : na, "TP1 Short", color=color.orange, linewidth=1, style=plot.style_line)
+plot(show_sl_tp and entry_short ? tp2_short : na, "TP2 Short", color=color.lime, linewidth=1, style=plot.style_line)
 
 plot(ema9, "EMA 9", color=color.blue, linewidth=1)
 plot(ema21, "EMA 21", color=color.orange, linewidth=1)
