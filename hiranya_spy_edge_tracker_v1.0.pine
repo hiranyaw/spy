@@ -31,10 +31,10 @@ hard_stop_hour = input.int(8, "Hard close hour PT", group=group_exit, minval=0, 
 hard_stop_min = input.int(10, "Hard close minute PT", group=group_exit, minval=0, maxval=59)
 
 group_display = "DISPLAY"
-show_confluence = input.bool(true, "Show confluence score", group=group_display)
-show_sl_tp = input.bool(true, "Show SL/TP lines", group=group_display)
+show_confluence = input.bool(false, "Show confluence score", group=group_display)
+show_sl_tp = input.bool(false, "Show SL/TP lines", group=group_display)
 show_table = input.bool(true, "Show corner table", group=group_display)
-show_labels = input.bool(true, "Show bar outcome labels", group=group_display)
+show_labels = input.bool(false, "Show bar outcome labels", group=group_display)
 label_lookback = input.int(5, "Bar outcome lookback", group=group_display, minval=1, maxval=20)
 
 // ─── HELPERS ──────────────────────────────────────────────────────────
