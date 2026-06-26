@@ -259,39 +259,39 @@ if show_confluence
 if show_table
     var table corner_tbl = na
     if na(corner_tbl)
-        corner_tbl := table.new(position.top_right, 2, 9, bgcolor=color.new(color.black, 20), border_color=color.gray, border_width=2)
+        corner_tbl := table.new(position.top_right, 2, 9, bgcolor=color.new(color.black, 20), border_color=color.gray, border_width=3)
 
     // Title row
-    table.cell(corner_tbl, 0, 0, "SPY TRACKER", text_size=size.small, text_color=color.white, bgcolor=color.new(color.blue, 40), width=80, height=30)
-    table.cell(corner_tbl, 1, 0, "v1.0", text_size=size.small, text_color=color.white, bgcolor=color.new(color.blue, 40), width=80, height=30)
+    table.cell(corner_tbl, 0, 0, "SPY TRACKER", text_size=size.normal, text_color=color.white, bgcolor=color.new(color.blue, 40), width=200, height=80)
+    table.cell(corner_tbl, 1, 0, "v1.0", text_size=size.normal, text_color=color.white, bgcolor=color.new(color.blue, 40), width=200, height=80)
 
     // Row 1 - Signals
-    table.cell(corner_tbl, 0, 1, "Signals", text_size=size.small, text_color=color.white, bgcolor=color.new(color.purple, 50), width=80, height=30)
-    table.cell(corner_tbl, 1, 1, str.tostring(signal_count), text_size=size.small, text_color=color.yellow, bgcolor=color.new(color.purple, 70), width=80, height=30)
+    table.cell(corner_tbl, 0, 1, "Signals", text_size=size.normal, text_color=color.white, bgcolor=color.new(color.purple, 50), width=200, height=80)
+    table.cell(corner_tbl, 1, 1, str.tostring(signal_count), text_size=size.normal, text_color=color.yellow, bgcolor=color.new(color.purple, 70), width=200, height=80)
 
     // Row 2 - Direction
     dir_color_bg = last_direction == "LONG" ? color.new(color.green, 60) : (last_direction == "SHORT" ? color.new(color.red, 60) : color.new(color.gray, 60))
     dir_color_text = last_direction == "LONG" ? color.lime : (last_direction == "SHORT" ? color.red : color.white)
-    table.cell(corner_tbl, 0, 2, "Direction", text_size=size.small, text_color=color.white, bgcolor=color.new(color.teal, 50), width=80, height=30)
-    table.cell(corner_tbl, 1, 2, last_direction, text_size=size.small, text_color=dir_color_text, bgcolor=dir_color_bg, width=80, height=30)
+    table.cell(corner_tbl, 0, 2, "Direction", text_size=size.normal, text_color=color.white, bgcolor=color.new(color.teal, 50), width=200, height=80)
+    table.cell(corner_tbl, 1, 2, last_direction, text_size=size.normal, text_color=dir_color_text, bgcolor=dir_color_bg, width=200, height=80)
 
     // Row 3 - Confluence
-    table.cell(corner_tbl, 0, 3, "Confluence", text_size=size.small, text_color=color.white, bgcolor=color.new(color.orange, 50), width=80, height=30)
-    table.cell(corner_tbl, 1, 3, str.tostring(last_confluence) + "/5", text_size=size.small, text_color=color.yellow, bgcolor=color.new(color.orange, 70), width=80, height=30)
+    table.cell(corner_tbl, 0, 3, "Confluence", text_size=size.normal, text_color=color.white, bgcolor=color.new(color.orange, 50), width=200, height=80)
+    table.cell(corner_tbl, 1, 3, str.tostring(last_confluence) + "/5", text_size=size.normal, text_color=color.yellow, bgcolor=color.new(color.orange, 70), width=200, height=80)
 
     // Row 4 - ATR
-    table.cell(corner_tbl, 0, 4, "ATR", text_size=size.small, text_color=color.white, bgcolor=color.new(color.maroon, 50), width=80, height=30)
-    table.cell(corner_tbl, 1, 4, str.tostring(math.round(atr * 100) / 100), text_size=size.small, text_color=color.aqua, bgcolor=color.new(color.maroon, 70), width=80, height=30)
+    table.cell(corner_tbl, 0, 4, "ATR", text_size=size.normal, text_color=color.white, bgcolor=color.new(color.maroon, 50), width=200, height=80)
+    table.cell(corner_tbl, 1, 4, str.tostring(math.round(atr * 100) / 100), text_size=size.normal, text_color=color.aqua, bgcolor=color.new(color.maroon, 70), width=200, height=80)
 
     // Row 5 - ADD
     add_color = add_proxy > 0 ? color.new(color.green, 60) : color.new(color.red, 60)
     add_text = add_proxy > 0 ? color.lime : color.red
-    table.cell(corner_tbl, 0, 5, "$ADD", text_size=size.small, text_color=color.white, bgcolor=color.new(color.navy, 50), width=80, height=30)
-    table.cell(corner_tbl, 1, 5, str.tostring(math.round(add_proxy)), text_size=size.small, text_color=add_text, bgcolor=add_color, width=80, height=30)
+    table.cell(corner_tbl, 0, 5, "$ADD", text_size=size.normal, text_color=color.white, bgcolor=color.new(color.navy, 50), width=200, height=80)
+    table.cell(corner_tbl, 1, 5, str.tostring(math.round(add_proxy)), text_size=size.normal, text_color=add_text, bgcolor=add_color, width=200, height=80)
 
     // Row 6 - Exits
-    table.cell(corner_tbl, 0, 6, "Exits", text_size=size.small, text_color=color.white, bgcolor=color.new(color.fuchsia, 50), width=80, height=30)
-    table.cell(corner_tbl, 1, 6, str.tostring(exit_count), text_size=size.small, text_color=color.yellow, bgcolor=color.new(color.fuchsia, 70), width=80, height=30)
+    table.cell(corner_tbl, 0, 6, "Exits", text_size=size.normal, text_color=color.white, bgcolor=color.new(color.fuchsia, 50), width=200, height=80)
+    table.cell(corner_tbl, 1, 6, str.tostring(exit_count), text_size=size.normal, text_color=color.yellow, bgcolor=color.new(color.fuchsia, 70), width=200, height=80)
 
     // Row 7 - Exit Signals
     exit_signal_str = "—"
@@ -306,14 +306,14 @@ if show_table
         exit_signal_str := "QQQ"
         exit_color := color.new(color.blue, 70)
 
-    table.cell(corner_tbl, 0, 7, "Signal", text_size=size.small, text_color=color.white, bgcolor=color.new(color.gray, 50), width=80, height=30)
-    table.cell(corner_tbl, 1, 7, exit_signal_str, text_size=size.small, text_color=color.white, bgcolor=exit_color, width=80, height=30)
+    table.cell(corner_tbl, 0, 7, "Signal", text_size=size.normal, text_color=color.white, bgcolor=color.new(color.gray, 50), width=200, height=80)
+    table.cell(corner_tbl, 1, 7, exit_signal_str, text_size=size.normal, text_color=color.white, bgcolor=exit_color, width=200, height=80)
 
     // Row 8 - Status
     status_str = entry_long ? "LONG" : (entry_short ? "SHORT" : "WAIT")
     status_color = entry_long ? color.new(color.green, 70) : (entry_short ? color.new(color.red, 70) : color.new(color.gray, 70))
-    table.cell(corner_tbl, 0, 8, "Status", text_size=size.small, text_color=color.white, bgcolor=color.new(color.black, 50), width=80, height=30)
-    table.cell(corner_tbl, 1, 8, status_str, text_size=size.small, text_color=color.white, bgcolor=status_color, width=80, height=30)
+    table.cell(corner_tbl, 0, 8, "Status", text_size=size.normal, text_color=color.white, bgcolor=color.new(color.black, 50), width=200, height=80)
+    table.cell(corner_tbl, 1, 8, status_str, text_size=size.normal, text_color=color.white, bgcolor=status_color, width=200, height=80)
 
 // ─── BAR OUTCOME LABELS ──────────────────────────────────────────────
 if show_labels
