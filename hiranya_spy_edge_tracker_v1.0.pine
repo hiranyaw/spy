@@ -231,7 +231,6 @@ if entry_short
             break
 
 // ─── PLOTTING ────────────────────────────────────────────────────────
-// SL/TP lines
 if show_sl_tp
     if entry_long
         plot(sl_long, "SL Long", color=color.red, linewidth=2, style=plot.style_dashed)
@@ -242,17 +241,14 @@ if show_sl_tp
         plot(tp1_short, "TP1 Short", color=color.orange, linewidth=1, style=plot.style_dashed)
         plot(tp2_short, "TP2 Short", color=color.lime, linewidth=1, style=plot.style_dashed)
 
-// EMA lines
 plot(ema9, "EMA 9", color=color.blue, linewidth=1)
 plot(ema21, "EMA 21", color=color.orange, linewidth=1)
 
-// Entry signal markers
 if entry_long
     plotshape(c, "Entry Long", shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
 if entry_short
     plotshape(c, "Entry Short", shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
 
-// Exit signal markers
 if exit_signal
     y_pos = entry_long ? location.abovebar : location.belowbar
     plotshape(c, "Exit Signal", shape.diamond, location=y_pos, color=color.orange, size=size.small)
