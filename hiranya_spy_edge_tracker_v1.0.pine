@@ -1,4 +1,4 @@
-//@version=5
+//@version=6
 indicator("Hiranya SPY Edge Tracker v1.0", overlay=true, max_bars_back=500)
 
 // ═══════════════════════════════════════════════════════════════════════
