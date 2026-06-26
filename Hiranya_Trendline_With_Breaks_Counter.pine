@@ -79,11 +79,11 @@ break_dn = dnos > dnos[1]
 var uptl = line.new(na,na,na,na, color=upCss, style=line.style_dashed, extend=extend.right)
 var dntl = line.new(na,na,na,na, color=dnCss, style=line.style_dashed, extend=extend.right)
 
-if ph and showExt
+if not na(ph) and showExt
     uptl.set_xy1(n-offset, backpaint ? ph : upper - slope_ph * length)
     uptl.set_xy2(n-offset+1, backpaint ? ph - slope : upper - slope_ph * (length+1))
 
-if pl and showExt
+if not na(pl) and showExt
     dntl.set_xy1(n-offset, backpaint ? pl : lower + slope_pl * length)
     dntl.set_xy2(n-offset+1, backpaint ? pl + slope : lower + slope_pl * (length+1))
 
