@@ -231,12 +231,7 @@ if entry_short
             break
 
 // ─── PLOTTING ────────────────────────────────────────────────────────
-plot(show_sl_tp and entry_long ? sl_long : na, "SL Long", color=color.red, linewidth=2, style=plot.style_line)
-plot(show_sl_tp and entry_long ? tp1_long : na, "TP1 Long", color=color.orange, linewidth=1, style=plot.style_line)
-plot(show_sl_tp and entry_long ? tp2_long : na, "TP2 Long", color=color.lime, linewidth=1, style=plot.style_line)
-plot(show_sl_tp and entry_short ? sl_short : na, "SL Short", color=color.red, linewidth=2, style=plot.style_line)
-plot(show_sl_tp and entry_short ? tp1_short : na, "TP1 Short", color=color.orange, linewidth=1, style=plot.style_line)
-plot(show_sl_tp and entry_short ? tp2_short : na, "TP2 Short", color=color.lime, linewidth=1, style=plot.style_line)
+// All plots disabled - only corner table shown
 
 // Chart overlays disabled - only corner table shown
 
