@@ -284,22 +284,23 @@ if show_table
 
     hard_stop_str = is_hard_stop ? "⏰ ACTIVE" : "—"
 
-    tbl_rows = array.from(
-        array.from("Signals today", str.tostring(signal_count)),
-        array.from("Last direction", last_direction),
-        array.from("Last time", last_time_str),
-        array.from("Confluence", str.tostring(last_confluence) + "/5"),
-        array.from("Exits fired", str.tostring(exit_count)),
-        array.from("ATR", str.format("{0:.2f}", atr)),
-        array.from("$ADD proxy", str.format("{0:.0f}", add_proxy)),
-        array.from("EXIT signal", exit_signal_str),
-        array.from("Hard stop", hard_stop_str)
+    // Build table data with separate arrays
+    tbl_labels = array.from("Signals today", "Last direction", "Last time", "Confluence", "Exits fired", "ATR", "$ADD proxy", "EXIT signal", "Hard stop")
+    tbl_values = array.from(
+        str.tostring(signal_count),
+        last_direction,
+        last_time_str,
+        str.tostring(last_confluence) + "/5",
+        str.tostring(exit_count),
+        str.format("{0:.2f}", atr),
+        str.format("{0:.0f}", add_proxy),
+        exit_signal_str,
+        hard_stop_str
     )
 
-    for i = 0 to array.size(tbl_rows) - 1
-        row = array.get(tbl_rows, i)
-        lbl = array.get(row, 0)
-        val = array.get(row, 1)
+    for i = 0 to array.size(tbl_labels) - 1
+        lbl = array.get(tbl_labels, i)
+        val = array.get(tbl_values, i)
 
         label_color = color.new(color.gray, 50)
         value_color = color.new(color.white, 80)
