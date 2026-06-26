@@ -23,15 +23,23 @@ atr = ta.atr(atr_len)
 ema9 = ta.ema(close, ema_fast)
 ema21 = ta.ema(close, ema_slow)
 
+// ─── TRENDLINE BREAK DETECTION (LuxAlgo style) ─────────────────────
+tl_lookback = input.int(20, "Trendline lookback bars")
+tl_high = ta.highest(high, tl_lookback)
+tl_low = ta.lowest(low, tl_lookback)
+
+break_long = ta.crossover(close, tl_high[1])
+break_short = ta.crossunder(close, tl_low[1])
+
 // ─── STATE ────────────────────────────────────────────────────────────
 var int signal_count = 0
 var string last_direction = "WAIT"
 
-// Random entry for demo
-if close > ema21 and close > ema9
+// Count ONLY trendline breaks
+if break_long
     last_direction := "LONG"
     signal_count += 1
-else if close < ema21 and close < ema9
+else if break_short
     last_direction := "SHORT"
     signal_count += 1
 
