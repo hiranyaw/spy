@@ -139,40 +139,34 @@ if dayofweek == dayofweek.monday or (hour == 0 and minute == 0)
     total_count := 0
 
 //-----------------------------------------------------------------------------}
-//Top Right Counter Box
+//Top Right Counter Box - SIMPLE
 //-----------------------------------------------------------------------------{
 var table counter_box = na
 
 if na(counter_box)
-    counter_box := table.new(position.top_right, 2, history_size + 2,
+    counter_box := table.new(position.top_right, 2, 2,
         bgcolor=color.new(color.black, 30),
         border_color=color.gray,
         border_width=2)
 
-// Header - Count
+// Row 0 - Label
 table.cell(counter_box, 0, 0, "B COUNT", text_size=size.small, text_color=color.white,
-    bgcolor=color.new(color.blue, 50), width=70, height=25)
+    bgcolor=color.new(color.blue, 50), width=70, height=30)
+
+// Row 0 - Value
 table.cell(counter_box, 1, 0, str.tostring(total_count), text_size=size.small, text_color=color.yellow,
-    bgcolor=color.new(color.blue, 70), width=70, height=25)
+    bgcolor=color.new(color.blue, 70), width=70, height=30)
 
-// Header - History
-table.cell(counter_box, 0, 1, "TIME", text_size=size.tiny, text_color=color.white,
-    bgcolor=color.new(color.gray, 50), width=70, height=20)
-table.cell(counter_box, 1, 1, "DIR", text_size=size.tiny, text_color=color.white,
-    bgcolor=color.new(color.gray, 50), width=70, height=20)
+// Row 1 - Last Break Info
+last_time = array.size(break_times) > 0 ? array.get(break_times, 0) : "—"
+last_dir = array.size(break_dirs) > 0 ? array.get(break_dirs, 0) : "—"
+last_color = last_dir == "LONG" ? color.new(color.green, 70) : (last_dir == "SHORT" ? color.new(color.red, 70) : color.new(color.gray, 70))
 
-// History rows
-for i = 0 to math.min(array.size(break_times) - 1, history_size - 1)
-    time_str = array.get(break_times, i)
-    dir_str = array.get(break_dirs, i)
+table.cell(counter_box, 0, 1, last_time, text_size=size.tiny, text_color=color.white,
+    bgcolor=color.new(color.gray, 50), width=70, height=25)
 
-    dir_color = dir_str == "LONG" ? color.new(color.green, 70) : color.new(color.red, 70)
-    dir_text = dir_str == "LONG" ? color.lime : color.red
-
-    table.cell(counter_box, 0, i + 2, time_str, text_size=size.tiny, text_color=color.white,
-        bgcolor=color.new(color.gray, 40), width=70, height=18)
-    table.cell(counter_box, 1, i + 2, dir_str, text_size=size.tiny, text_color=dir_text,
-        bgcolor=dir_color, width=70, height=18)
+table.cell(counter_box, 1, 1, last_dir, text_size=size.tiny, text_color=last_dir == "—" ? color.white : color.white,
+    bgcolor=last_color, width=70, height=25)
 
 //-----------------------------------------------------------------------------}
 //Alerts
