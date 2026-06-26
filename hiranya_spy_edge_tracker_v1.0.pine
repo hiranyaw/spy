@@ -1,0 +1,389 @@
+//@version=5
+indicator("Hiranya SPY Edge Tracker v1.0", overlay=true, max_bars_back=500)
+
+// ═══════════════════════════════════════════════════════════════════════
+// HIRANYA SPY EDGE TRACKER v1.0
+// Trendline break detection for SPY 1M 0DTE scalping (6:25–8:15 AM PT)
+// 5-indicator confluence + ATR SL/TP + Exit signals (2-of-3)
+// ═══════════════════════════════════════════════════════════════════════
+
+// ─── INPUTS ──────────────────────────────────────────────────────────
+group_confluence = "5-INDICATOR CONFLUENCE"
+macd_fast = input.int(12, "MACD fast", group=group_confluence)
+macd_slow = input.int(26, "MACD slow", group=group_confluence)
+macd_signal = input.int(9, "MACD signal", group=group_confluence)
+ema_filter = input.int(9, "SPY EMA filter", group=group_confluence)
+ema_long = input.int(21, "SPY EMA longterm", group=group_confluence)
+
+group_trendline = "TRENDLINE BREAK"
+tl_lookback = input.int(20, "Trendline lookback bars", group=group_trendline)
+confluence_min = input.int(3, "Min confluence (0-5)", group=group_trendline, minval=0, maxval=5)
+
+group_risk = "RISK MANAGEMENT"
+atr_len = input.int(14, "ATR length", group=group_risk)
+atr_mult = input.float(1.5, "ATR multiplier for SL", group=group_risk, minval=0.5, maxval=3.0, step=0.1)
+tp_ratio_1 = input.float(1.5, "TP1 R:R ratio", group=group_risk, minval=0.5, maxval=5.0)
+tp_ratio_2 = input.float(2.5, "TP2 R:R ratio", group=group_risk, minval=1.0, maxval=10.0)
+
+group_exit = "EXIT CONDITIONS"
+add_threshold = input.int(150, "$ADD swing threshold pts", group=group_exit)
+hard_stop_hour = input.int(8, "Hard close hour PT", group=group_exit, minval=0, maxval=23)
+hard_stop_min = input.int(10, "Hard close minute PT", group=group_exit, minval=0, maxval=59)
+
+group_display = "DISPLAY"
+show_confluence = input.bool(true, "Show confluence score", group=group_display)
+show_sl_tp = input.bool(true, "Show SL/TP lines", group=group_display)
+show_table = input.bool(true, "Show corner table", group=group_display)
+show_labels = input.bool(true, "Show bar outcome labels", group=group_display)
+label_lookback = input.int(5, "Bar outcome lookback", group=group_display, minval=1, maxval=20)
+
+// ─── HELPERS ──────────────────────────────────────────────────────────
+f_pt_to_time(pt) =>
+    h = math.floor(pt)
+    m = math.round((pt - h) * 60)
+    str.format("{0:02d}:{1:02d}", h, m)
+
+f_is_market_hours() =>
+    // EST trading hours: 9:30–16:00 ≈ 6:30–13:00 PT
+    hour_pt = hour - 3
+    minute_total = hour_pt * 60 + minute
+    start_min = 6 * 60 + 25  // 6:25 AM PT
+    end_min = 8 * 60 + 15    // 8:15 AM PT
+    minute_total >= start_min and minute_total <= end_min
+
+// ─── PRICE DATA ──────────────────────────────────────────────────────
+o = open
+h = high
+l = low
+c = close
+v = volume
+
+// ─── ATR ─────────────────────────────────────────────────────────────
+atr = ta.atr(atr_len)
+
+// ─── MACD (SPY 1M) ───────────────────────────────────────────────────
+[macd_line, signal_line, hist] = ta.macd(c, macd_fast, macd_slow, macd_signal)
+macd_bull = macd_line > signal_line
+macd_bear = macd_line < signal_line
+
+// ─── SPY 9 EMA & 21 EMA ──────────────────────────────────────────────
+ema9 = ta.ema(c, ema_filter)
+ema21 = ta.ema(c, ema_long)
+spy_ema_bull = c > ema9
+spy_ema_bear = c < ema9
+spy_trend_bull = c > ema21
+spy_trend_bear = c < ema21
+
+// ─── QQQ & $ADD (from request: simulate with crosses) ───────────────
+// In production, these require external data feeds or API calls
+// For now, we'll use ATR-based proxies to show the confluence mechanics
+add_proxy = close - open[1]  // Simplified proxy
+qqq_proxy = close > ta.ema(close, 9)  // QQQ 9 EMA proxy
+
+add_bull = add_proxy > 0
+add_bear = add_proxy < 0
+qqq_bull = qqq_proxy
+qqq_bear = not qqq_proxy
+
+// ─── CONFLUENCE SCORING ──────────────────────────────────────────────
+score_long = 0
+if macd_bull
+    score_long += 1
+if qqq_bull
+    score_long += 1
+if add_bull
+    score_long += 1
+if spy_trend_bull
+    score_long += 1
+if spy_ema_bull
+    score_long += 1
+
+score_short = 0
+if macd_bear
+    score_short += 1
+if qqq_bear
+    score_short += 1
+if add_bear
+    score_short += 1
+if spy_trend_bear
+    score_short += 1
+if spy_ema_bear
+    score_short += 1
+
+// ─── TRENDLINE BREAKS ────────────────────────────────────────────────
+tl_high = ta.highest(h, tl_lookback)
+tl_low = ta.lowest(l, tl_lookback)
+
+break_long = ta.crossover(c, tl_high[1]) and score_long >= confluence_min
+break_short = ta.crossunder(c, tl_low[1]) and score_short >= confluence_min
+
+// ─── ENTRY SIGNAL SETUP ──────────────────────────────────────────────
+entry_long = break_long and f_is_market_hours()
+entry_short = break_short and f_is_market_hours()
+
+entry_price_long = c
+entry_price_short = c
+sl_long = entry_price_long - (atr * atr_mult)
+sl_short = entry_price_short + (atr * atr_mult)
+risk_long = entry_price_long - sl_long
+risk_short = sl_short - entry_price_short
+tp1_long = entry_price_long + (risk_long * tp_ratio_1)
+tp1_short = entry_price_short - (risk_short * tp_ratio_1)
+tp2_long = entry_price_long + (risk_long * tp_ratio_2)
+tp2_short = entry_price_short - (risk_short * tp_ratio_2)
+
+// ─── SIGNAL COUNTERS ─────────────────────────────────────────────────
+var int signal_count = 0
+var int exit_count = 0
+var string last_direction = "—"
+var float last_entry = 0
+var string last_time_str = "—"
+var int last_confluence = 0
+
+if entry_long or entry_short
+    signal_count += 1
+    last_direction := entry_long ? "LONG" : "SHORT"
+    last_entry := c
+    last_time_str := f_pt_to_time(hour - 3 + (minute / 60.0))
+    last_confluence := entry_long ? score_long : score_short
+
+// Daily reset at midnight
+if dayofweek == dayofweek.monday or (hour == 0 and minute == 0)
+    signal_count := 0
+    exit_count := 0
+
+// ─── EXIT SIGNAL DETECTION (2-of-3 fires) ────────────────────────────
+exit_add_long = add_proxy < 0 or add_proxy < -add_threshold
+exit_add_short = add_proxy > 0 or add_proxy > add_threshold
+exit_ema_long = c < ema9
+exit_ema_short = c > ema9
+exit_qqq_long = not qqq_bull
+exit_qqq_short = not qqq_bear
+
+exit_signals_long = 0
+if exit_add_long
+    exit_signals_long += 1
+if exit_ema_long
+    exit_signals_long += 1
+if exit_qqq_long
+    exit_signals_long += 1
+
+exit_signals_short = 0
+if exit_add_short
+    exit_signals_short += 1
+if exit_ema_short
+    exit_signals_short += 1
+if exit_qqq_short
+    exit_signals_short += 1
+
+exit_triggered_long = exit_signals_long >= 2
+exit_triggered_short = exit_signals_short >= 2
+
+// Hard time stop (8:10 AM PT)
+hour_pt = hour - 3
+is_hard_stop = hour_pt == hard_stop_hour and minute >= hard_stop_min
+hard_stop_triggered = (entry_long or entry_short) and is_hard_stop
+
+exit_signal = (exit_triggered_long or exit_triggered_short or hard_stop_triggered)
+if exit_signal
+    exit_count += 1
+
+// ─── DETERMINE EXIT REASON ──────────────────────────────────────────
+exit_reason = "NONE"
+if hard_stop_triggered
+    exit_reason := "HARD_STOP"
+else if exit_signals_long >= 2 or exit_signals_short >= 2
+    add_fired = (exit_add_long or exit_add_short) ? 1 : 0
+    ema_fired = (exit_ema_long or exit_ema_short) ? 1 : 0
+    qqq_fired = (exit_qqq_long or exit_qqq_short) ? 1 : 0
+
+    if add_fired == 1
+        if ema_fired == 1
+            exit_reason := "ADD+EMA"
+        else if qqq_fired == 1
+            exit_reason := "ADD+QQQ"
+    else if ema_fired == 1 and qqq_fired == 1
+        exit_reason := "EMA+QQQ"
+
+// ─── WIN/LOSS DETERMINATION ─────────────────────────────────────────
+// Check if entry was hit and if we reached TP or SL in past N bars
+bar_win_long = false
+bar_loss_long = false
+bar_win_short = false
+bar_loss_short = false
+
+if entry_long
+    for i = 1 to label_lookback
+        if high[i] >= tp2_long
+            bar_win_long := true
+            break
+        if low[i] <= sl_long
+            bar_loss_long := true
+            break
+
+if entry_short
+    for i = 1 to label_lookback
+        if low[i] <= tp2_short
+            bar_win_short := true
+            break
+        if high[i] >= sl_short
+            bar_loss_short := true
+            break
+
+// ─── PLOTTING ────────────────────────────────────────────────────────
+// SL/TP lines
+if show_sl_tp
+    if entry_long
+        plot(sl_long, "SL Long", color=color.red, linewidth=2, style=plot.style_dashed)
+        plot(tp1_long, "TP1 Long", color=color.orange, linewidth=1, style=plot.style_dashed)
+        plot(tp2_long, "TP2 Long", color=color.lime, linewidth=1, style=plot.style_dashed)
+    if entry_short
+        plot(sl_short, "SL Short", color=color.red, linewidth=2, style=plot.style_dashed)
+        plot(tp1_short, "TP1 Short", color=color.orange, linewidth=1, style=plot.style_dashed)
+        plot(tp2_short, "TP2 Short", color=color.lime, linewidth=1, style=plot.style_dashed)
+
+// EMA lines
+plot(ema9, "EMA 9", color=color.blue, linewidth=1)
+plot(ema21, "EMA 21", color=color.orange, linewidth=1)
+
+// Entry signal markers
+if entry_long
+    plotshape(c, "Entry Long", shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
+if entry_short
+    plotshape(c, "Entry Short", shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
+
+// Exit signal markers
+if exit_signal
+    y_pos = entry_long ? location.abovebar : location.belowbar
+    plotshape(c, "Exit Signal", shape.diamond, location=y_pos, color=color.orange, size=size.small)
+
+// ─── CONFLUENCE DISPLAY ──────────────────────────────────────────────
+if show_confluence
+    var table confluence_box = na
+    if na(confluence_box)
+        confluence_box := table.new(position.top_left, 1, 2, bgcolor=color.new(color.black, 80))
+
+    score_text = str.format("Long: {0}/5 | Short: {1}/5", score_long, score_short)
+    table.cell(confluence_box, 0, 0, "Confluence", text_color=color.white, bgcolor=color.new(color.navy, 50))
+    table.cell(confluence_box, 0, 1, score_text, text_color=color.white, bgcolor=color.new(color.gray, 80))
+
+// ─── CORNER TABLE ────────────────────────────────────────────────────
+if show_table
+    var table corner_tbl = na
+    if na(corner_tbl)
+        corner_tbl := table.new(position.top_right, 2, 10, bgcolor=color.new(color.black, 80), border_color=color.gray)
+
+    // Headers
+    table.cell(corner_tbl, 0, 0, "HIRANYA SPY EDGE TRACKER v1.0", text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.maroon, 50))
+    table.cell(corner_tbl, 1, 0, "", text_size=size.tiny)
+
+    // Content rows
+    exit_signal_str = "—"
+    if exit_add_long or exit_add_short
+        exit_signal_str := "ADD ✓"
+    else if exit_ema_long or exit_ema_short
+        exit_signal_str := "EMA ✓"
+    else if exit_qqq_long or exit_qqq_short
+        exit_signal_str := "QQQ ✓"
+
+    hard_stop_str = is_hard_stop ? "⏰ ACTIVE" : "—"
+
+    tbl_rows = array.from(
+        array.from("Signals today", str.tostring(signal_count)),
+        array.from("Last direction", last_direction),
+        array.from("Last time", last_time_str),
+        array.from("Confluence", str.tostring(last_confluence) + "/5"),
+        array.from("Exits fired", str.tostring(exit_count)),
+        array.from("ATR", str.format("{0:.2f}", atr)),
+        array.from("$ADD proxy", str.format("{0:.0f}", add_proxy)),
+        array.from("EXIT signal", exit_signal_str),
+        array.from("Hard stop", hard_stop_str)
+    )
+
+    for i = 0 to array.size(tbl_rows) - 1
+        row = array.get(tbl_rows, i)
+        lbl = array.get(row, 0)
+        val = array.get(row, 1)
+
+        label_color = color.new(color.gray, 50)
+        value_color = color.new(color.white, 80)
+
+        if i == 1  // Direction row - color code
+            if last_direction == "LONG"
+                value_color := color.new(color.lime, 80)
+            else if last_direction == "SHORT"
+                value_color := color.new(color.red, 80)
+            else
+                value_color := color.new(color.gray, 80)
+
+        table.cell(corner_tbl, 0, i + 1, lbl, text_size=size.tiny, text_color=color.white, bgcolor=label_color)
+        table.cell(corner_tbl, 1, i + 1, val, text_size=size.tiny, text_color=color.white, bgcolor=value_color)
+
+// ─── BAR OUTCOME LABELS ──────────────────────────────────────────────
+if show_labels
+    if bar_win_long
+        label.new(bar_index, high * 1.001, "✓ WIN", textcolor=color.green, style=label.style_label_lower, size=size.small)
+    else if bar_loss_long
+        label.new(bar_index, low * 0.999, "✗ LOSS", textcolor=color.red, style=label.style_label_upper, size=size.small)
+
+    if bar_win_short
+        label.new(bar_index, low * 0.999, "✓ WIN", textcolor=color.green, style=label.style_label_upper, size=size.small)
+    else if bar_loss_short
+        label.new(bar_index, high * 1.001, "✗ LOSS", textcolor=color.red, style=label.style_label_lower, size=size.small)
+
+// ═══════════════════════════════════════════════════════════════════════
+// WEBHOOK JSON ALERT STRINGS (copy-paste into TradingView alerts)
+// ═══════════════════════════════════════════════════════════════════════
+
+// Entry signal JSON
+entry_json = entry_long ? str.format(
+    '{{"indicator":"Hiranya SPY Edge Tracker v1.0","symbol":"SPY","direction":"LONG","entry":{0},"sl":{1},"tp1":{2},"tp2":{3},"atr":{4},"confluence":{5},"add_value":{6},"time":"{7}"}}',
+    str.format("{0:.2f}", entry_price_long),
+    str.format("{0:.2f}", sl_long),
+    str.format("{0:.2f}", tp1_long),
+    str.format("{0:.2f}", tp2_long),
+    str.format("{0:.2f}", atr),
+    str.tostring(score_long),
+    str.format("{0:.0f}", add_proxy),
+    last_time_str
+) : (entry_short ? str.format(
+    '{{"indicator":"Hiranya SPY Edge Tracker v1.0","symbol":"SPY","direction":"SHORT","entry":{0},"sl":{1},"tp1":{2},"tp2":{3},"atr":{4},"confluence":{5},"add_value":{6},"time":"{7}"}}',
+    str.format("{0:.2f}", entry_price_short),
+    str.format("{0:.2f}", sl_short),
+    str.format("{0:.2f}", tp1_short),
+    str.format("{0:.2f}", tp2_short),
+    str.format("{0:.2f}", atr),
+    str.tostring(score_short),
+    str.format("{0:.0f}", add_proxy),
+    last_time_str
+) : "")
+
+// Exit signal JSON
+exit_event = last_direction == "LONG" ? "EXIT_LONG" : "EXIT_SHORT"
+exit_json = exit_signal ? str.format(
+    '{{"indicator":"Hiranya SPY Edge Tracker v1.0","symbol":"SPY","event":"{0}","reason":"{1}","price":{2},"time":"{3}"}}',
+    exit_event,
+    exit_reason,
+    str.format("{0:.2f}", c),
+    f_pt_to_time(hour - 3 + (minute / 60.0))
+) : ""
+
+// Alert messages
+alertmsg_entry = entry_json != "" ? entry_json : na
+alertmsg_exit = exit_json != "" ? exit_json : na
+
+if entry_long or entry_short
+    alert(entry_json, alert.freq_once_per_bar)
+
+if exit_signal
+    alert(exit_json, alert.freq_once_per_bar)
+
+// ─── TITLE/DEBUG ─────────────────────────────────────────────────────
+if barstate.islast
+    debug_text = str.format("SPY: L{0}/S{1} | Confluence: L{2}/S{3} | ATR: {4:.2f} | ADD: {5:.0f}",
+        entry_long ? "✓" : "—",
+        entry_short ? "✓" : "—",
+        score_long, score_short,
+        atr,
+        add_proxy
+    )
