@@ -41,7 +41,7 @@ label_lookback = input.int(5, "Bar outcome lookback", group=group_display, minva
 f_pt_to_time(pt) =>
     h = math.floor(pt)
     m = math.round((pt - h) * 60)
-    str.format("{0:02d}:{1:02d}", h, m)
+    str.tostring(int(h)) + ":" + str.tostring(int(m))
 
 f_is_market_hours() =>
     // EST trading hours: 9:30–16:00 ≈ 6:30–13:00 PT
@@ -233,13 +233,13 @@ if entry_short
 // ─── PLOTTING ────────────────────────────────────────────────────────
 if show_sl_tp
     if entry_long
-        plot(sl_long, "SL Long", color=color.red, linewidth=2, style=plot.style_dashed)
-        plot(tp1_long, "TP1 Long", color=color.orange, linewidth=1, style=plot.style_dashed)
-        plot(tp2_long, "TP2 Long", color=color.lime, linewidth=1, style=plot.style_dashed)
+        plot(sl_long, "SL Long", color=color.red, linewidth=2, style=plot.style_line)
+        plot(tp1_long, "TP1 Long", color=color.orange, linewidth=1, style=plot.style_line)
+        plot(tp2_long, "TP2 Long", color=color.lime, linewidth=1, style=plot.style_line)
     if entry_short
-        plot(sl_short, "SL Short", color=color.red, linewidth=2, style=plot.style_dashed)
-        plot(tp1_short, "TP1 Short", color=color.orange, linewidth=1, style=plot.style_dashed)
-        plot(tp2_short, "TP2 Short", color=color.lime, linewidth=1, style=plot.style_dashed)
+        plot(sl_short, "SL Short", color=color.red, linewidth=2, style=plot.style_line)
+        plot(tp1_short, "TP1 Short", color=color.orange, linewidth=1, style=plot.style_line)
+        plot(tp2_short, "TP2 Short", color=color.lime, linewidth=1, style=plot.style_line)
 
 plot(ema9, "EMA 9", color=color.blue, linewidth=1)
 plot(ema21, "EMA 21", color=color.orange, linewidth=1)
@@ -254,7 +254,7 @@ if show_confluence
     if na(confluence_box)
         confluence_box := table.new(position.top_left, 1, 2, bgcolor=color.new(color.black, 80))
 
-    score_text = str.format("Long: {0}/5 | Short: {1}/5", score_long, score_short)
+    score_text = "Long: " + str.tostring(score_long) + "/5 | Short: " + str.tostring(score_short) + "/5"
     table.cell(confluence_box, 0, 0, "Confluence", text_color=color.white, bgcolor=color.new(color.navy, 50))
     table.cell(confluence_box, 0, 1, score_text, text_color=color.white, bgcolor=color.new(color.gray, 80))
 
@@ -296,8 +296,8 @@ if show_table
     val3 = last_time_str
     val4 = str.tostring(last_confluence) + "/5"
     val5 = str.tostring(exit_count)
-    val6 = str.format("{0:.2f}", atr)
-    val7 = str.format("{0:.0f}", add_proxy)
+    val6 = str.tostring(math.round(atr * 100) / 100)
+    val7 = str.tostring(math.round(add_proxy))
     val8 = exit_signal_str
     val9 = hard_stop_str
 
