@@ -284,37 +284,64 @@ if show_table
 
     hard_stop_str = is_hard_stop ? "⏰ ACTIVE" : "—"
 
-    // Build table data with separate arrays
-    tbl_labels = array.from("Signals today", "Last direction", "Last time", "Confluence", "Exits fired", "ATR", "$ADD proxy", "EXIT signal", "Hard stop")
-    tbl_values = array.from(
-        str.tostring(signal_count),
-        last_direction,
-        last_time_str,
-        str.tostring(last_confluence) + "/5",
-        str.tostring(exit_count),
-        str.format("{0:.2f}", atr),
-        str.format("{0:.0f}", add_proxy),
-        exit_signal_str,
-        hard_stop_str
-    )
+    // Build table labels
+    row1 = "Signals today"
+    row2 = "Last direction"
+    row3 = "Last time"
+    row4 = "Confluence"
+    row5 = "Exits fired"
+    row6 = "ATR"
+    row7 = "$ADD proxy"
+    row8 = "EXIT signal"
+    row9 = "Hard stop"
 
-    for i = 0 to array.size(tbl_labels) - 1
-        lbl = array.get(tbl_labels, i)
-        val = array.get(tbl_values, i)
+    // Build table values
+    val1 = str.tostring(signal_count)
+    val2 = last_direction
+    val3 = last_time_str
+    val4 = str.tostring(last_confluence) + "/5"
+    val5 = str.tostring(exit_count)
+    val6 = str.format("{0:.2f}", atr)
+    val7 = str.format("{0:.0f}", add_proxy)
+    val8 = exit_signal_str
+    val9 = hard_stop_str
 
-        label_color = color.new(color.gray, 50)
-        value_color = color.new(color.white, 80)
+    // Row 1
+    table.cell(corner_tbl, 0, 1, row1, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
+    table.cell(corner_tbl, 1, 1, val1, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
 
-        if i == 1  // Direction row - color code
-            if last_direction == "LONG"
-                value_color := color.new(color.lime, 80)
-            else if last_direction == "SHORT"
-                value_color := color.new(color.red, 80)
-            else
-                value_color := color.new(color.gray, 80)
+    // Row 2 - direction (color coded)
+    dir_color = last_direction == "LONG" ? color.new(color.lime, 80) : (last_direction == "SHORT" ? color.new(color.red, 80) : color.new(color.gray, 80))
+    table.cell(corner_tbl, 0, 2, row2, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
+    table.cell(corner_tbl, 1, 2, val2, text_size=size.tiny, text_color=color.white, bgcolor=dir_color)
 
-        table.cell(corner_tbl, 0, i + 1, lbl, text_size=size.tiny, text_color=color.white, bgcolor=label_color)
-        table.cell(corner_tbl, 1, i + 1, val, text_size=size.tiny, text_color=color.white, bgcolor=value_color)
+    // Row 3
+    table.cell(corner_tbl, 0, 3, row3, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
+    table.cell(corner_tbl, 1, 3, val3, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
+
+    // Row 4
+    table.cell(corner_tbl, 0, 4, row4, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
+    table.cell(corner_tbl, 1, 4, val4, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
+
+    // Row 5
+    table.cell(corner_tbl, 0, 5, row5, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
+    table.cell(corner_tbl, 1, 5, val5, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
+
+    // Row 6
+    table.cell(corner_tbl, 0, 6, row6, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
+    table.cell(corner_tbl, 1, 6, val6, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
+
+    // Row 7
+    table.cell(corner_tbl, 0, 7, row7, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
+    table.cell(corner_tbl, 1, 7, val7, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
+
+    // Row 8
+    table.cell(corner_tbl, 0, 8, row8, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
+    table.cell(corner_tbl, 1, 8, val8, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
+
+    // Row 9
+    table.cell(corner_tbl, 0, 9, row9, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.gray, 50))
+    table.cell(corner_tbl, 1, 9, val9, text_size=size.tiny, text_color=color.white, bgcolor=color.new(color.white, 80))
 
 // ─── BAR OUTCOME LABELS ──────────────────────────────────────────────
 if show_labels
