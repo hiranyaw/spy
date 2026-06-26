@@ -18,8 +18,8 @@ showExt = input(true, 'Show Extended Lines')
 group_box = "BOX SETTINGS"
 show_box = input(true, "Show Counter Box", group=group_box)
 show_history = input(false, "Show Full History", group=group_box)
-box_width = input.int(70, "Box Cell Width", group=group_box, minval=50, maxval=150)
-box_height = input.int(30, "Box Cell Height", group=group_box, minval=20, maxval=60)
+box_width = input.int(70, "Box Cell Width", group=group_box, minval=10, maxval=150)
+box_height = input.int(30, "Box Cell Height", group=group_box, minval=5, maxval=60)
 box_color_bg = input.color(color.new(color.blue, 50), "Box Header Color", group=group_box)
 box_color_val = input.color(color.new(color.blue, 70), "Box Value Color", group=group_box)
 
