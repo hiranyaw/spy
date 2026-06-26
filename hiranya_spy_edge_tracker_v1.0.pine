@@ -346,14 +346,14 @@ if show_table
 // ─── BAR OUTCOME LABELS ──────────────────────────────────────────────
 if show_labels
     if bar_win_long
-        label.new(bar_index, high * 1.001, "✓ WIN", textcolor=color.green, style=label.style_label_lower, size=size.small)
+        label.new(bar_index, high * 1.001, "✓ WIN", textcolor=color.green, size=size.small)
     else if bar_loss_long
-        label.new(bar_index, low * 0.999, "✗ LOSS", textcolor=color.red, style=label.style_label_upper, size=size.small)
+        label.new(bar_index, low * 0.999, "✗ LOSS", textcolor=color.red, size=size.small)
 
     if bar_win_short
-        label.new(bar_index, low * 0.999, "✓ WIN", textcolor=color.green, style=label.style_label_upper, size=size.small)
+        label.new(bar_index, low * 0.999, "✓ WIN", textcolor=color.green, size=size.small)
     else if bar_loss_short
-        label.new(bar_index, high * 1.001, "✗ LOSS", textcolor=color.red, style=label.style_label_lower, size=size.small)
+        label.new(bar_index, high * 1.001, "✗ LOSS", textcolor=color.red, size=size.small)
 
 // Entry/Exit alerts
 if entry_long
