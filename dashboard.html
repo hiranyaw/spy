@@ -198,8 +198,14 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
             <div style="font-size:1.25rem;font-weight:800;color:#c9d1d9;margin-top:2px" id="market-direction-badge">NEUTRAL / SIDEWAYS</div>
           </div>
         </div>
-        <div style="text-align:right">
-          <div style="font-size:0.8rem;font-weight:700;color:#58a6ff" id="live-chart-title">SPY Live Chart (1m)</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:0.8rem;font-weight:700;color:#58a6ff" id="live-chart-title">SPY Live Chart (1m)</span>
+            <select id="live-data-source" onchange="onLiveSourceChange()" style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;font-size:0.72rem;padding:2px 6px;font-weight:bold;outline:none;cursor:pointer">
+              <option value="yahoo">Yahoo Finance (1m)</option>
+              <option value="alpaca">Alpaca Real-time</option>
+            </select>
+          </div>
           <div style="font-size:0.7rem;color:#8b949e" id="live-chart-status">Connecting to stream...</div>
         </div>
       </div>
@@ -1783,6 +1789,8 @@ async function initLiveChart() {
     console.error("Error loading live chart history:", err);
     document.getElementById('live-chart-status').textContent = 'Offline';
   }
+  
+  onLiveSourceChange();
 }
 
 function updateLiveChart(timeSec, price, vwap, ema9, ema21) {
@@ -1810,6 +1818,91 @@ function updateLiveChart(timeSec, price, vwap, ema9, ema21) {
   if (ema9 != null) liveEma9Series.update({ time: timeSec, value: Number(ema9) });
   if (ema21 != null) liveEma21Series.update({ time: timeSec, value: Number(ema21) });
 }
+
+let liveTickInterval = null;
+let currentLiveSource = 'yahoo';
+
+function onLiveSourceChange() {
+  const select = document.getElementById('live-data-source');
+  if (!select) return;
+  
+  currentLiveSource = select.value;
+  document.getElementById('live-chart-status').textContent = 'Switching source...';
+  
+  if (liveTickInterval) {
+    clearInterval(liveTickInterval);
+    liveTickInterval = null;
+  }
+  
+  if (currentLiveSource === 'alpaca') {
+    liveTickInterval = setInterval(fetchLiveTick, 1000);
+  } else {
+    liveTickInterval = setInterval(fetchLiveTick, 5000);
+  }
+  fetchLiveTick();
+}
+
+async function fetchLiveTick() {
+  try {
+    const res = await (await fetch(`/api/live-tick?source=${currentLiveSource}`)).json();
+    if (res.ok && res.price) {
+      if (currentLiveSource === 'alpaca' && res.source !== 'alpaca') {
+        document.getElementById('live-chart-status').textContent = 'Fallback: yfinance (no Alpaca API keys)';
+        document.getElementById('live-chart-status').style.color = '#ff9e2c';
+      } else {
+        document.getElementById('live-chart-status').textContent = currentLiveSource === 'alpaca' 
+          ? 'Connected (Alpaca Real-time)' 
+          : 'Connected (yfinance 1m)';
+        document.getElementById('live-chart-status').style.color = '#8b949e';
+      }
+      
+      const price = Number(res.price);
+      if (liveCandleSeries) {
+        const curTime = parseLocalISO(res.time || new Date().toISOString());
+        const tSec = Math.floor(curTime.getTime() / 1000);
+        const tMinSec = Math.floor(tSec / 60) * 60;
+        
+        const ianaTz = 'America/Los_Angeles';
+        function getZonedOffset(t, timeZone) {
+          try {
+            const date = new Date(t * 1000);
+            const formatter = new Intl.DateTimeFormat('en-US', {
+              timeZone: timeZone,
+              year: 'numeric', month: 'numeric', day: 'numeric',
+              hour: 'numeric', minute: 'numeric', second: 'numeric',
+              hour12: false
+            });
+            const parts = formatter.formatToParts(date);
+            const map = {};
+            parts.forEach(p => { map[p.type] = p.value; });
+            const hr = parseInt(map.hour);
+            const utcZoned = Date.UTC(
+              parseInt(map.year),
+              parseInt(map.month) - 1,
+              parseInt(map.day),
+              hr === 24 ? 0 : hr,
+              parseInt(map.minute),
+              parseInt(map.second)
+            );
+            return (utcZoned - date.getTime()) / 1000;
+          } catch (e) {
+            return 0;
+          }
+        }
+        
+        const targetOffset = getZonedOffset(tMinSec, ianaTz);
+        const browserOffset = -new Date(tMinSec * 1000).getTimezoneOffset() * 60;
+        const shiftedTime = tMinSec + targetOffset - browserOffset;
+        
+        // Update live chart candle
+        updateLiveChart(shiftedTime, price, null, null, null);
+      }
+    }
+  } catch (err) {
+    console.error("Error fetching live tick:", err);
+  }
+}
+
 
 async function loadMarketNews() {
   const newsBox = document.getElementById('live-news-box');

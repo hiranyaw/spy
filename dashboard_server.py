@@ -1671,7 +1671,69 @@ def get_live_chart_history():
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/live-tick")
+def get_live_tick():
+    """Fetch latest SPY real-time tick from Alpaca (if configured) or yfinance fallback"""
+    source = request.args.get("source", "yahoo")
+    alpaca_key = os.getenv("ALPACA_API_KEY")
+    alpaca_secret = os.getenv("ALPACA_SECRET_KEY")
+    
+    if source == "alpaca" and alpaca_key and alpaca_secret:
+        try:
+            import urllib.request
+            headers = {
+                "Apca-Api-Key-Id": alpaca_key,
+                "Apca-Api-Secret-Key": alpaca_secret
+            }
+            url = "https://data.alpaca.markets/v2/stocks/SPY/trades/latest"
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=2) as response:
+                data = json.loads(response.read().decode('utf-8'))
+            
+            trade = data.get("trade", {})
+            price = trade.get("p")
+            timestamp = trade.get("t")
+            
+            if price:
+                return jsonify({
+                    "ok": True,
+                    "source": "alpaca",
+                    "price": price,
+                    "time": timestamp
+                })
+        except Exception as e:
+            print(f"Alpaca live tick error: {e}")
+            
+    # Fallback to current signal details
+    try:
+        latest_price = None
+        if DB_AVAILABLE:
+            latest_sig = db.get_latest_signal()
+            if latest_sig:
+                raw = json.loads(latest_sig.get("raw_data", "{}"))
+                latest_price = raw.get("spy_price")
+        
+        if not latest_price:
+            try:
+                with open(SIGNALS) as f:
+                    sig_data = json.load(f)
+                    latest_price = sig_data.get("details", {}).get("spy_price")
+            except Exception:
+                pass
+                
+        if latest_price:
+            return jsonify({
+                "ok": True,
+                "source": "yahoo",
+                "price": float(latest_price),
+                "time": datetime.now().isoformat()
+            })
+    except Exception as e:
+        print(f"Yahoo fallback tick error: {e}")
+        
+    return jsonify({"ok": False, "error": "No price feed available"}), 500
+
 
 @app.route("/control/restart_server", methods=["POST"])
 def restart_server():
