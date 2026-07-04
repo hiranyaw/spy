@@ -1735,6 +1735,80 @@ def get_live_tick():
     return jsonify({"ok": False, "error": "No price feed available"}), 500
 
 
+@app.route("/api/analysis/high-confluence-history")
+def get_high_confluence_history():
+    """Aggregate daily success rate for trades taken at 4/5 or 5/5 confluence"""
+    try:
+        # Load manual trades
+        trades = []
+        if DB_AVAILABLE:
+            trades = [dict(t) for t in db.get_manual_trades(1000)]
+        else:
+            trades = load_manual_trades()
+            
+        # Group closed trades by entry_date
+        closed_trades = [t for t in trades if t.get("closed") and t.get("entry_date")]
+        
+        daily_groups = {}
+        for t in closed_trades:
+            date = t["entry_date"]
+            if date not in daily_groups:
+                daily_groups[date] = []
+            daily_groups[date].append(t)
+            
+        daily_stats = []
+        for date, day_trades in daily_groups.items():
+            # Calculate overall daily stats
+            all_total = len(day_trades)
+            all_wins = len([t for t in day_trades if t.get("win")])
+            all_losses = len([t for t in day_trades if not t.get("win")])
+            all_pnl = sum(t.get("pnl") or 0.0 for t in day_trades)
+            
+            # Filter for High Confluence trades (>= 4/5)
+            high_conf_trades = []
+            for t in day_trades:
+                conf = str(t.get("snapshot", {}).get("conf_tv") or "")
+                is_high = False
+                if conf:
+                    c = conf.strip()
+                    if c.startswith(('4', '5')) or c in ('4', '5'):
+                        is_high = True
+                if is_high:
+                    high_conf_trades.append(t)
+                    
+            high_total = len(high_conf_trades)
+            high_wins = len([t for t in high_conf_trades if t.get("win")])
+            high_losses = len([t for t in high_conf_trades if not t.get("win")])
+            high_pnl = sum(t.get("pnl") or 0.0 for t in high_conf_trades)
+            
+            daily_stats.append({
+                "date": date,
+                "all": {
+                    "total": all_total,
+                    "wins": all_wins,
+                    "losses": all_losses,
+                    "win_rate": round(all_wins / all_total * 100, 1) if all_total > 0 else 0.0,
+                    "pnl": round(all_pnl, 2)
+                },
+                "high_conf": {
+                    "total": high_total,
+                    "wins": high_wins,
+                    "losses": high_losses,
+                    "win_rate": round(high_wins / high_total * 100, 1) if high_total > 0 else 0.0,
+                    "pnl": round(high_pnl, 2)
+                }
+            })
+            
+        # Sort chronologically by date descending
+        daily_stats.sort(key=lambda x: x["date"], reverse=True)
+        return jsonify({"ok": True, "data": daily_stats})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+
 @app.route("/control/restart_server", methods=["POST"])
 def restart_server():
     """Restart the dashboard server process to pick up code changes."""

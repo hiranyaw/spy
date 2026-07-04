@@ -224,6 +224,33 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
           <div style="color:#8b949e;font-size:0.85rem;text-align:center;padding:20px">Loading market news...</div>
         </div>
       </div>
+
+      <!-- Daily High-Confluence Performance Tracker -->
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px">
+        <h3 style="margin-top:0;margin-bottom:15px;color:#e6edf3;font-size:0.95rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #21262d;padding-bottom:8px">
+          <span style="display:flex;align-items:center;gap:8px">
+            <span>🎯</span> Daily Confluence Tracker (&ge; 4/5)
+          </span>
+          <span style="font-size:0.7rem;color:#8b949e">Manual Trades Logs</span>
+        </h3>
+        <div style="max-height:200px;overflow-y:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
+            <thead>
+              <tr style="border-bottom:1px solid #30363d;color:#8b949e">
+                <th style="padding:6px 4px;text-align:left">Date</th>
+                <th style="padding:6px 4px;text-align:center">All Trades (Wins-Losses)</th>
+                <th style="padding:6px 4px;text-align:center;color:#3fb950;font-weight:700">High Conf &ge; 4/5 (Wins-Losses)</th>
+                <th style="padding:6px 4px;text-align:right">High P&amp;L</th>
+              </tr>
+            </thead>
+            <tbody id="live-high-conf-tracker-body">
+              <tr>
+                <td colspan="4" style="text-align:center;color:#8b949e;padding:15px">No trades logged yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- Right Column: Signal Cards, Metrics, Confluence, and History -->
@@ -1649,6 +1676,7 @@ async function refresh(){
     updateLive(d);
     updatePaper(d);
     updateManualTrading(d);
+    loadHighConfTracker();
   }catch(e){
     document.getElementById('dot').className='dot gr';
     document.getElementById('stxt').textContent='Bot offline — run launch_spy_trader.bat';
@@ -2015,6 +2043,40 @@ async function loadMarketNews() {
     newsBox.innerHTML = '<div style="color:#f85149;font-size:0.85rem;text-align:center;padding:20px">Failed to load news feed.</div>';
   }
 }
+
+async function loadHighConfTracker() {
+  const tbody = document.getElementById('live-high-conf-tracker-body');
+  if (!tbody) return;
+  
+  try {
+    const res = await (await fetch('/api/analysis/high-confluence-history')).json();
+    if (res.ok && res.data && res.data.length > 0) {
+      tbody.innerHTML = '';
+      res.data.forEach(day => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid #21262d';
+        
+        const allWR = day.all.total > 0 ? `${day.all.wins}W-${day.all.losses}L (${day.all.win_rate.toFixed(1)}%)` : '--';
+        const highWR = day.high_conf.total > 0 ? `${day.high_conf.wins}W-${day.high_conf.losses}L (${day.high_conf.win_rate.toFixed(1)}%)` : 'No Trades';
+        const pnlColor = day.high_conf.pnl >= 0 ? '#3fb950' : '#f85149';
+        const pnlText = day.high_conf.total > 0 ? `${day.high_conf.pnl >= 0 ? '+$' : '-$'}${Math.abs(day.high_conf.pnl).toFixed(2)}` : '--';
+        
+        tr.innerHTML = `
+          <td style="padding:6px 4px;font-weight:600;color:#c9d1d9">${day.date}</td>
+          <td style="padding:6px 4px;text-align:center;color:#8b949e">${allWR}</td>
+          <td style="padding:6px 4px;text-align:center;color:#3fb950;font-weight:700">${highWR}</td>
+          <td style="padding:6px 4px;text-align:right;font-weight:700;color:${pnlColor}">${pnlText}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } else {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#8b949e;padding:15px">No manual trades logged yet.</td></tr>`;
+    }
+  } catch (err) {
+    console.error("Error loading high confluence tracker:", err);
+  }
+}
+
 
 window.addEventListener('resize', () => {
   if (liveChart) {
