@@ -5,11 +5,17 @@ Handles all database operations for signals, trades, trendline breaks
 import os
 import json
 import logging
+import sys
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from psycopg2 import sql
 from dotenv import load_dotenv
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except:
+    pass
 
 load_dotenv()
 

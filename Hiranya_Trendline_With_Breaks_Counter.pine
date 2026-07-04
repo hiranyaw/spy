@@ -23,6 +23,10 @@ box_height = input.int(30, "Box Cell Height", group=group_box, minval=5, maxval=
 box_color_bg = input.color(color.new(color.blue, 50), "Box Header Color", group=group_box)
 box_color_val = input.color(color.new(color.blue, 70), "Box Value Color", group=group_box)
 
+//Reset Button (toggle ON to reset, then toggle OFF)
+group_reset = "RESET"
+manual_reset = input(false, "🔄 Reset B Count  (toggle ON → OFF)", group=group_reset, tooltip="Toggle this checkbox ON to instantly clear the B Count and history, then toggle it back OFF.")
+
 //History Settings
 group_hist = "HISTORY SETTINGS"
 history_size = input.int(15, "History Size", group=group_hist, minval=5, maxval=30)
@@ -122,12 +126,45 @@ plotshape(break_dn ? high : na, "Lower Break"
 //-----------------------------------------------------------------------------}
 //Counter Logic
 //-----------------------------------------------------------------------------{
+// Time window: 6:25 AM - 9:00 AM (in exchange timezone)
+// TradingView hour/minute use exchange time (ET for US markets)
+window_start_h = 6
+window_start_m = 25
+window_end_h   = 9
+window_end_m   = 0
+
+current_mins = hour * 60 + minute
+window_start_mins = window_start_h * 60 + window_start_m  // 385 mins = 6:25
+window_end_mins   = window_end_h   * 60 + window_end_m    // 540 mins = 9:00
+
+in_window = current_mins >= window_start_mins and current_mins < window_end_mins
+
 var int total_count = 0
 var array<string> break_times = array.new<string>()
 var array<string> break_dirs = array.new<string>()
 var array<float> break_prices = array.new<float>()
 
-if break_up or break_dn
+// Manual reset via toggle input
+if manual_reset
+    total_count := 0
+    array.clear(break_times)
+    array.clear(break_dirs)
+    array.clear(break_prices)
+
+// Daily reset at 6:25 AM
+var bool reset_done = false
+if current_mins == window_start_mins
+    if not reset_done
+        total_count := 0
+        array.clear(break_times)
+        array.clear(break_dirs)
+        array.clear(break_prices)
+        reset_done := true
+else
+    reset_done := false
+
+// Only count breaks inside the 6:25 AM - 9:00 AM window
+if (break_up or break_dn) and in_window
     total_count += 1
 
     // Get current time
@@ -146,10 +183,6 @@ if break_up or break_dn
         array.pop(break_times)
         array.pop(break_dirs)
         array.pop(break_prices)
-
-// Daily reset
-if dayofweek == dayofweek.monday or (hour == 0 and minute == 0)
-    total_count := 0
 
 //-----------------------------------------------------------------------------}
 //Counter Box - TOP RIGHT

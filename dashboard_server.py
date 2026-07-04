@@ -6,7 +6,16 @@ Open: http://localhost:5000
 from flask import Flask, jsonify, send_from_directory, request
 import json, os, subprocess, signal, sys, time, math
 import psutil
-from datetime import datetime
+from datetime import datetime, timedelta
+import pytz
+import pandas as pd
+import yfinance as yf
+import tos_parser
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except:
+    pass
 
 # Database support (with JSON fallback for local dev)
 try:
@@ -27,6 +36,12 @@ def sanitize(obj):
     return obj
 
 app = Flask(__name__)
+
+@app.after_request
+def disable_csp(response):
+    response.headers.pop('Content-Security-Policy', None)
+    return response
+
 BASE    = os.path.dirname(os.path.abspath(__file__))
 SIGNALS = os.path.join(BASE, "signals.json")
 PAPER   = os.path.join(BASE, "paper_trades.json")
@@ -39,6 +54,11 @@ TARGET_APP_FILE = os.path.join(BASE, "target_app.txt")
 UPDATE_INTERVAL_FILE = os.path.join(BASE, "update_interval.txt")
 MANUAL_TRADES = os.path.join(BASE, "manual_trades.json")
 TRENDLINE_BREAKS = os.path.join(BASE, "trendline_breaks.json")
+TRADE_JOURNAL = os.path.join(BASE, "trade_journal.json")
+TOS_DIR = os.path.join(BASE, "TOS")
+
+if not os.path.exists(TOS_DIR):
+    os.makedirs(TOS_DIR)
 
 def load_trendline_breaks():
     try:
@@ -50,6 +70,22 @@ def load_trendline_breaks():
 def save_trendline_breaks(data):
     with open(TRENDLINE_BREAKS, "w") as f:
         json.dump(data, f, indent=2)
+
+def load_journal():
+    try:
+        with open(TRADE_JOURNAL) as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_journal(entries):
+    with open(TRADE_JOURNAL, "w") as f:
+        json.dump(entries, f, indent=2)
+
+def get_today_journal_entry():
+    today = datetime.now().strftime("%Y-%m-%d")
+    entries = load_journal()
+    return next((e for e in entries if e.get("date") == today), None)
 
 def record_trendline_break(symbol, direction, price, time_str):
     """Record a trendline break event"""
@@ -118,6 +154,10 @@ def get_update_interval():
 @app.route("/")
 def index():
     return send_from_directory(BASE, "dashboard.html")
+
+@app.route("/lightweight-charts.js")
+def serve_lightweight_charts():
+    return send_from_directory(BASE, "lightweight-charts.js")
 
 @app.route("/data")
 def data():
@@ -259,6 +299,60 @@ def trendline_breaks_endpoint():
         return jsonify({"breaks": breaks, "by_date": by_date})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/webhook/trendline", methods=["POST"])
+def webhook_trendline():
+    """Receive trendline break alerts from TradingView via webhook"""
+    try:
+        data = request.get_json() or request.form.to_dict()
+
+        # Extract from TradingView alert message
+        # Format: "SPY B↑ 425.50" or "SPY B↓ 424.80" or custom format
+        message = data.get("message", "") or data.get("text", "")
+
+        # Parse direction from message
+        direction = None
+        if "B↑" in message or "UP" in message.upper() or "BREAKOUT" in message.upper():
+            direction = "UP"
+        elif "B↓" in message or "DN" in message.upper() or "BREAKDOWN" in message.upper():
+            direction = "DN"
+
+        if not direction:
+            return jsonify({"error": "Could not parse direction from message"}), 400
+
+        # Extract price if provided
+        price = data.get("price", "?")
+
+        # Record to JSON
+        try:
+            if os.path.exists(TRENDLINE_BREAKS):
+                with open(TRENDLINE_BREAKS, "r") as f:
+                    tl_data = json.load(f)
+            else:
+                tl_data = {"breaks": []}
+
+            from datetime import datetime
+            now = datetime.now()
+
+            tl_data["breaks"].append({
+                "date": now.strftime("%Y-%m-%d"),
+                "time": now.strftime("%H:%M:%S"),
+                "symbol": "SPY",
+                "direction": direction,
+                "price": str(price),
+                "source": "webhook"
+            })
+
+            with open(TRENDLINE_BREAKS, "w") as f:
+                json.dump(tl_data, f, indent=2)
+
+            print(f"[WEBHOOK] Recorded: SPY {direction} @ {price}")
+            return jsonify({"ok": True, "message": f"Recorded SPY {direction}"})
+        except Exception as e:
+            print(f"[WEBHOOK] Error recording: {e}")
+            return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route("/trendline-breaks/record", methods=["POST"])
 def record_trendline_break_manual():
@@ -655,6 +749,555 @@ def manual_trade_delete(trade_id):
         return jsonify({"ok": True, "messages": ["Trade deleted"]})
     except Exception as e:
         return jsonify({"ok": False, "messages": [str(e)]}), 500
+
+
+@app.route("/journal/get", methods=["GET"])
+def journal_get():
+    """Get all journal entries or today's entry"""
+    try:
+        today = request.args.get("date", datetime.now().strftime("%Y-%m-%d"))
+        entries = load_journal()
+
+        if today == "all":
+            return jsonify({"ok": True, "entries": entries})
+
+        entry = next((e for e in entries if e.get("date") == today), None)
+        if entry:
+            return jsonify({"ok": True, "entry": entry})
+        return jsonify({"ok": True, "entry": None})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/journal/save", methods=["POST"])
+def journal_save():
+    """Save or update today's journal entry"""
+    try:
+        req = request.get_json(force=True)
+        content = req.get("content", "")
+        pnl = req.get("pnl")
+        date = req.get("date", datetime.now().strftime("%Y-%m-%d"))
+
+        entries = load_journal()
+
+        # Find existing entry for this date
+        existing_idx = next((i for i, e in enumerate(entries) if e.get("date") == date), None)
+
+        entry = {
+            "date": date,
+            "content": content,
+            "pnl": pnl,
+            "created_at": datetime.now().isoformat()
+        }
+
+        if existing_idx is not None:
+            entries[existing_idx] = entry
+        else:
+            entries.append(entry)
+
+        save_journal(entries)
+        return jsonify({"ok": True, "message": "Journal entry saved"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/journal/delete", methods=["POST"])
+def journal_delete():
+    """Delete a journal entry by date"""
+    try:
+        req = request.get_json(force=True)
+        date = req.get("date")
+
+        if not date:
+            return jsonify({"ok": False, "error": "Date required"}), 400
+
+        entries = load_journal()
+        entries = [e for e in entries if e.get("date") != date]
+        save_journal(entries)
+
+        return jsonify({"ok": True, "message": "Journal entry deleted"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── Trade Analysis Endpoints ────────────────────────────────────
+@app.route("/api/analysis/files")
+def analysis_files():
+    """List all CSV files in the TOS folder"""
+    try:
+        if not os.path.exists(TOS_DIR):
+            os.makedirs(TOS_DIR)
+        files = [f for f in os.listdir(TOS_DIR) if f.endswith(".csv")]
+        files.sort(key=lambda x: os.path.getmtime(os.path.join(TOS_DIR, x)), reverse=True)
+        return jsonify({"ok": True, "files": files})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/analysis/upload", methods=["POST"])
+def analysis_upload():
+    """Upload a local TOS CSV file to the TOS directory"""
+    if 'file' not in request.files:
+        return jsonify({"ok": False, "error": "No file part"}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"ok": False, "error": "No selected file"}), 400
+        
+    if file and file.filename.endswith('.csv'):
+        filename = os.path.basename(file.filename)
+        filepath = os.path.join(TOS_DIR, filename)
+        try:
+            file.save(filepath)
+            return jsonify({"ok": True, "filename": filename, "message": f"Successfully uploaded {filename}"})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+    else:
+        return jsonify({"ok": False, "error": "Only CSV files are allowed"}), 400
+
+
+@app.route("/api/analysis/trades")
+def analysis_trades():
+    """Parse trades from a selected TOS CSV file"""
+    filename = request.args.get("filename")
+    if not filename:
+        return jsonify({"ok": False, "error": "Filename is required"}), 400
+    
+    filename = os.path.basename(filename)
+    filepath = os.path.join(TOS_DIR, filename)
+    
+    if not os.path.exists(filepath):
+        return jsonify({"ok": False, "error": f"File {filename} not found"}), 404
+        
+    try:
+        trades = tos_parser.load_and_parse_trades(filepath)
+        
+        serialized_trades = []
+        for t in trades:
+            t_copy = t.copy()
+            t_copy["entry_time"] = t["entry_time"].strftime("%Y-%m-%d %H:%M:%S")
+            if t.get("exit_time"):
+                t_copy["exit_time"] = t["exit_time"].strftime("%Y-%m-%d %H:%M:%S")
+            
+            t_copy["entries"] = [
+                {"time": e["time"].strftime("%Y-%m-%d %H:%M:%S"), "price": e["price"], "qty": e["qty"]}
+                for e in t["entries"]
+            ]
+            t_copy["exits"] = [
+                {"time": ex["time"].strftime("%Y-%m-%d %H:%M:%S"), "price": ex["price"], "qty": ex["qty"]}
+                for ex in t["exits"]
+            ]
+            serialized_trades.append(t_copy)
+            
+        return jsonify({"ok": True, "trades": serialized_trades})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/analysis/chart")
+def analysis_chart():
+    """Download SPY chart data and run stop loss analysis for a trade"""
+    date_str = request.args.get("date")          # format: "YYYY-MM-DD"
+    entry_time_str = request.args.get("entry_time")  # format: "YYYY-MM-DD HH:MM:SS"
+    exit_time_str = request.args.get("exit_time")    # format: "YYYY-MM-DD HH:MM:SS" (optional)
+    direction = request.args.get("direction", "LONG").upper()
+    option_type = request.args.get("option_type", "None").upper()
+    user_tz_str = request.args.get("timezone", "US/Eastern")
+    realized_pnl = request.args.get("pnl")
+    
+    if not date_str or not entry_time_str:
+        return jsonify({"ok": False, "error": "date and entry_time are required"}), 400
+        
+    try:
+        # Determine the predicted direction of the underlying stock SPY
+        if option_type == "PUT":
+            underlying_dir = "SHORT" if direction == "LONG" else "LONG"
+        else:
+            underlying_dir = direction
+
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        next_dt = dt + timedelta(days=1)
+        start_date = dt.strftime("%Y-%m-%d")
+        end_date = next_dt.strftime("%Y-%m-%d")
+        
+        df = yf.Ticker("SPY").history(start=start_date, end=end_date, interval="1m", prepost=True)
+        
+        if df.empty:
+            return jsonify({
+                "ok": False,
+                "error": f"No chart data found for SPY on {date_str}. (Note: Yahoo Finance only stores 1-minute data for the last 30 days)"
+            }), 404
+            
+        tz = pytz.timezone(user_tz_str)
+        try:
+            df.index = df.index.tz_convert(tz)
+        except Exception as e:
+            pass
+            
+        df['Typical_Price'] = (df['High'] + df['Low'] + df['Close']) / 3
+        df['TP_Vol'] = df['Typical_Price'] * df['Volume']
+        df['VWAP'] = df['TP_Vol'].cumsum() / df['Volume'].cumsum()
+        df['EMA9'] = df['Close'].ewm(span=9, adjust=False).mean()
+        df['EMA21'] = df['Close'].ewm(span=21, adjust=False).mean()
+        
+        entry_dt = datetime.strptime(entry_time_str, "%Y-%m-%d %H:%M:%S")
+        entry_dt = tz.localize(entry_dt)
+        
+        exit_dt = None
+        if exit_time_str and exit_time_str != "None":
+            exit_dt = datetime.strptime(exit_time_str, "%Y-%m-%d %H:%M:%S")
+            exit_dt = tz.localize(exit_dt)
+            
+        entry_idx = int(df.index.get_indexer([entry_dt], method='nearest')[0])
+        spy_entry_price = float(df.iloc[entry_idx]['Close'])
+        spy_entry_time_unix = int(df.index[entry_idx].timestamp())
+        
+        if exit_dt:
+            exit_idx = int(df.index.get_indexer([exit_dt], method='nearest')[0])
+            spy_exit_price = float(df.iloc[exit_idx]['Close'])
+            spy_exit_time_unix = int(df.index[exit_idx].timestamp())
+        else:
+            exit_idx = len(df) - 1
+            spy_exit_price = float(df.iloc[exit_idx]['Close'])
+            spy_exit_time_unix = int(df.index[exit_idx].timestamp())
+            
+        start_idx = min(entry_idx, exit_idx)
+        end_idx = max(entry_idx, exit_idx)
+        
+        trade_df = df.iloc[start_idx:end_idx+1]
+        
+        max_spy_price = float(trade_df['High'].max())
+        min_spy_price = float(trade_df['Low'].min())
+        
+        if underlying_dir == "LONG":
+            max_runup = max_spy_price - spy_entry_price
+            max_drawdown = spy_entry_price - min_spy_price
+        else:
+            max_runup = spy_entry_price - min_spy_price
+            max_drawdown = max_spy_price - spy_entry_price
+            
+        post_exit_dt = (exit_dt if exit_dt else entry_dt) + timedelta(minutes=60)
+        post_exit_idx = int(df.index.get_indexer([post_exit_dt], method='nearest')[0])
+        
+        post_df = df.iloc[exit_idx:post_exit_idx+1] if post_exit_idx > exit_idx else pd.DataFrame()
+        
+        if not post_df.empty:
+            max_spy_post = float(post_df['High'].max())
+            min_spy_post = float(post_df['Low'].min())
+            
+            if underlying_dir == "LONG":
+                max_post_runup = max_spy_post - spy_entry_price
+                max_post_drawdown = spy_entry_price - min_spy_post
+                favorable_post_exit_move = max_spy_post - spy_exit_price
+            else:
+                max_post_runup = spy_entry_price - min_spy_post
+                max_post_drawdown = max_spy_post - spy_entry_price
+                favorable_post_exit_move = spy_exit_price - min_spy_post
+        else:
+            max_post_runup = 0.0
+            max_post_drawdown = 0.0
+            favorable_post_exit_move = 0.0
+            
+        try:
+            pnl_val = float(realized_pnl) if realized_pnl is not None else 0.0
+        except:
+            pnl_val = 0.0
+            
+        is_win = pnl_val > 0 or (spy_exit_price > spy_entry_price if underlying_dir == "LONG" else spy_exit_price < spy_entry_price)
+        
+        MOVE_THRESHOLD = 0.50
+        
+        verdict = "UNKNOWN"
+        verdict_details = ""
+        
+        if is_win:
+            if favorable_post_exit_move >= MOVE_THRESHOLD:
+                verdict = "EARLY_EXIT"
+                verdict_details = f"You won this trade, but you exited early! SPY ran another ${favorable_post_exit_move:.2f} in your direction within 60 minutes after you exited."
+            else:
+                verdict = "GREAT_TRADE"
+                verdict_details = "Excellent trade execution! You captured the move and exited at the right time."
+        else:
+            overall_max_runup = max(max_runup, max_post_runup)
+            
+            if overall_max_runup >= MOVE_THRESHOLD:
+                verdict = "STOPPED_OUT_BUT_CORRECT"
+                verdict_details = f"Your direction was correct, but you were stopped out! SPY reached a max run-up of ${overall_max_runup:.2f} in your direction, but you were shaken out by a drawdown of ${max_drawdown:.2f} first."
+            else:
+                verdict = "WRONG_DIRECTION"
+                verdict_details = f"Wrong direction setup. SPY immediately went against you (drawdown: ${max_drawdown:.2f}) and never went in your direction (max run-up: ${overall_max_runup:.2f}). Good thing you had a stop loss!"
+                
+        candles = []
+        for idx, row in df.iterrows():
+            candles.append({
+                "time": int(idx.timestamp()),
+                "open": float(row['Open']),
+                "high": float(row['High']),
+                "low": float(row['Low']),
+                "close": float(row['Close']),
+                "volume": int(row['Volume']),
+                "vwap": float(row['VWAP']) if not pd.isna(row['VWAP']) else None,
+                "ema9": float(row['EMA9']) if not pd.isna(row['EMA9']) else None,
+                "ema21": float(row['EMA21']) if not pd.isna(row['EMA21']) else None
+            })
+            
+        analysis = {
+            "spy_entry_price": spy_entry_price,
+            "spy_exit_price": spy_exit_price,
+            "spy_entry_time_unix": spy_entry_time_unix,
+            "spy_exit_time_unix": spy_exit_time_unix,
+            "max_runup": round(max_runup, 2),
+            "max_drawdown": round(max_drawdown, 2),
+            "max_post_runup": round(max_post_runup, 2),
+            "max_post_drawdown": round(max_post_drawdown, 2),
+            "favorable_post_exit_move": round(favorable_post_exit_move, 2),
+            "verdict": verdict,
+            "verdict_details": verdict_details,
+            "spy_during_trade_min": min_spy_price,
+            "spy_during_trade_max": max_spy_price
+        }
+        
+        return jsonify(sanitize({
+            "ok": True,
+            "candles": candles,
+            "analysis": analysis
+        }))
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/analysis/summary")
+def analysis_summary():
+    """Generate daily summary and recommendations for a selected TOS CSV file"""
+    filename = request.args.get("filename")
+    if not filename:
+        return jsonify({"ok": False, "error": "Filename is required"}), 400
+        
+    filename = os.path.basename(filename)
+    filepath = os.path.join(TOS_DIR, filename)
+    if not os.path.exists(filepath):
+        return jsonify({"ok": False, "error": f"File {filename} not found"}), 404
+        
+    try:
+        executions = tos_parser.parse_tos_csv(filepath)
+        trades = tos_parser.pair_trades(executions)
+        
+        spy_trades = [t for t in trades if t.get("underlying") == "SPY" and t.get("closed")]
+        if not spy_trades:
+            return jsonify({
+                "ok": True,
+                "summary": {
+                    "total_trades": 0,
+                    "win_rate": 0.0,
+                    "total_pnl": 0.0,
+                    "wins_count": 0,
+                    "losses_count": 0,
+                    "stopped_out_correct": 0,
+                    "wrong_direction": 0,
+                    "early_exits": 0,
+                    "great_trades": 0,
+                    "avg_drawdown_stopped": 0.0,
+                    "right_direction_count": 0,
+                    "sim_3_total": 0,
+                    "sim_3_wins": 0,
+                    "sim_3_losses": 0,
+                    "sim_3_pnl": 0.0,
+                    "sim_2l_total": 0,
+                    "sim_2l_wins": 0,
+                    "sim_2l_losses": 0,
+                    "sim_2l_pnl": 0.0,
+                    "recommendations": ["No closed SPY trades found in this statement."],
+                    "donts": []
+                }
+            })
+            
+        # Sort chronologically (ascending) for simulation and timezone calculations
+        spy_trades.sort(key=lambda x: x["entry_time"])
+            
+        # Get unique entry dates
+        dates = set(t["entry_time"].strftime("%Y-%m-%d") for t in spy_trades)
+        spy_data = {}
+        for d_str in dates:
+            dt = datetime.strptime(d_str, "%Y-%m-%d")
+            next_dt = dt + timedelta(days=1)
+            ticker = yf.Ticker("SPY")
+            df = ticker.history(start=d_str, end=next_dt.strftime("%Y-%m-%d"), interval="1m", prepost=True)
+            if not df.empty:
+                tz = pytz.timezone("US/Pacific")
+                try:
+                    df.index = df.index.tz_convert(tz)
+                except Exception as e:
+                    print(f"Error converting timezone: {e}")
+                spy_data[d_str] = df
+                
+        stopped_out_correct_count = 0
+        wrong_direction_count = 0
+        early_exits_count = 0
+        great_trades_count = 0
+        
+        stopped_drawdowns = []
+        early_exit_moves = []
+        
+        MOVE_THRESHOLD = 0.50
+        
+        for t in spy_trades:
+            d_str = t["entry_time"].strftime("%Y-%m-%d")
+            if d_str not in spy_data:
+                continue
+            df = spy_data[d_str]
+            
+            tz = pytz.timezone("US/Pacific")
+            entry_dt = tz.localize(t["entry_time"])
+            exit_dt = tz.localize(t["exit_time"])
+            
+            try:
+                entry_idx = int(df.index.get_indexer([entry_dt], method='nearest')[0])
+                exit_idx = int(df.index.get_indexer([exit_dt], method='nearest')[0])
+            except Exception as e:
+                continue
+                
+            spy_entry_price = float(df.iloc[entry_idx]['Close'])
+            spy_exit_price = float(df.iloc[exit_idx]['Close'])
+            
+            start_idx = min(entry_idx, exit_idx)
+            end_idx = max(entry_idx, exit_idx)
+            trade_df = df.iloc[start_idx:end_idx+1]
+            
+            max_spy_price = float(trade_df['High'].max())
+            min_spy_price = float(trade_df['Low'].min())
+            
+            if t.get("option_type") == "PUT":
+                underlying_dir = "SHORT" if t["direction"] == "LONG" else "LONG"
+            else:
+                underlying_dir = t["direction"]
+                
+            if underlying_dir == "LONG":
+                max_runup = max_spy_price - spy_entry_price
+                max_drawdown = spy_entry_price - min_spy_price
+            else:
+                max_runup = spy_entry_price - min_spy_price
+                max_drawdown = max_spy_price - spy_entry_price
+                
+            # Post exit move (60 minutes)
+            post_exit_dt = exit_dt + timedelta(minutes=60)
+            post_exit_idx = int(df.index.get_indexer([post_exit_dt], method='nearest')[0])
+            post_df = df.iloc[exit_idx:post_exit_idx+1] if post_exit_idx > exit_idx else pd.DataFrame()
+            
+            if not post_df.empty:
+                max_spy_post = float(post_df['High'].max())
+                min_spy_post = float(post_df['Low'].min())
+                
+                if underlying_dir == "LONG":
+                    max_post_runup = max_spy_post - spy_entry_price
+                    favorable_post_exit_move = max_spy_post - spy_exit_price
+                else:
+                    max_post_runup = spy_entry_price - min_spy_post
+                    favorable_post_exit_move = spy_exit_price - min_spy_post
+            else:
+                max_post_runup = 0.0
+                favorable_post_exit_move = 0.0
+                
+            is_win = t["pnl"] > 0
+            if is_win:
+                if favorable_post_exit_move >= MOVE_THRESHOLD:
+                    early_exits_count += 1
+                    early_exit_moves.append(favorable_post_exit_move)
+                else:
+                    great_trades_count += 1
+            else:
+                overall_max_runup = max(max_runup, max_post_runup)
+                if overall_max_runup >= MOVE_THRESHOLD:
+                    stopped_out_correct_count += 1
+                    stopped_drawdowns.append(max_drawdown)
+                else:
+                    wrong_direction_count += 1
+                    
+        total_pnl = sum(t["pnl"] for t in spy_trades)
+        wins = [t for t in spy_trades if t["win"]]
+        losses = [t for t in spy_trades if not t["win"]]
+        win_rate = (len(wins) / len(spy_trades)) * 100 if spy_trades else 0.0
+        
+        avg_drawdown_stopped = sum(stopped_drawdowns) / len(stopped_drawdowns) if stopped_drawdowns else 0.0
+        max_early_move = max(early_exit_moves) if early_exit_moves else 0.0
+        
+        # 1. Stop after first 3 trades of the day
+        trades_3 = spy_trades[:3]
+        sim_3_total = len(trades_3)
+        sim_3_wins = len([t for t in trades_3 if t["win"]])
+        sim_3_losses = len([t for t in trades_3 if not t["win"]])
+        sim_3_pnl = sum(t["pnl"] for t in trades_3)
+        
+        # 2. Stop after 2 consecutive losses
+        trades_2l = []
+        consec_losses = 0
+        for t in spy_trades:
+            trades_2l.append(t)
+            if not t["win"]:
+                consec_losses += 1
+            else:
+                consec_losses = 0
+            if consec_losses >= 2:
+                break
+                
+        sim_2l_total = len(trades_2l)
+        sim_2l_wins = len([t for t in trades_2l if t["win"]])
+        sim_2l_losses = len([t for t in trades_2l if not t["win"]])
+        sim_2l_pnl = sum(t["pnl"] for t in trades_2l)
+        
+        recommendations = []
+        donts = []
+        
+        if stopped_out_correct_count > 0:
+            recommendations.append(f"Increase stop-loss buffer to ${avg_drawdown_stopped + 0.15:.2f} on SPY chart. Your average shakeout drawdown on correct entries was ${avg_drawdown_stopped:.2f}. Letting them breathe will turn losses into wins.")
+            donts.append(f"DO NOT use tight stops under ${avg_drawdown_stopped + 0.10:.2f} on SPY options, which trigger premature shakeouts.")
+        else:
+            recommendations.append("Your stop-losses are well-placed. Keep using technical indicators (like 9/21 EMAs or swing lows) for placement.")
+            
+        if early_exits_count > 0:
+            recommendations.append(f"Implement a 2-stage exit: sell 50% at your initial target, and trail the remainder using the 1-minute 9 EMA to capture extended runs (SPY ran up to +${max_early_move:.2f} post-exit today).")
+            donts.append("DO NOT panic sell 100% of your position at the first minor profit target; let your runners capture the main trend.")
+            
+        if len(spy_trades) > 5:
+            recommendations.append(f"Limit your trading frequency. You executed {len(spy_trades)} trades in a single session. Aim for 2-3 high-conviction A+ setups.")
+            donts.append(f"DO NOT trade more than 3 positions per session to avoid overtrading, emotional fatigue, and high commission costs.")
+            
+        early_entries = [t for t in spy_trades if t["entry_time"].time() < datetime.strptime("06:35:00", "%H:%M:%S").time()]
+        if early_entries:
+            donts.append("DO NOT enter trades during the first 5 minutes of market open (before 6:35 AM PT / 9:35 AM ET) when volatility and options spreads are widest.")
+            recommendations.append("Wait at least 5-15 minutes after market open for initial range discovery before taking a position.")
+            
+        summary = {
+            "total_trades": len(spy_trades),
+            "win_rate": round(win_rate, 1),
+            "total_pnl": round(total_pnl, 2),
+            "wins_count": len(wins),
+            "losses_count": len(losses),
+            "stopped_out_correct": stopped_out_correct_count,
+            "wrong_direction": wrong_direction_count,
+            "early_exits": early_exits_count,
+            "great_trades": great_trades_count,
+            "avg_drawdown_stopped": round(avg_drawdown_stopped, 2),
+            "right_direction_count": len(wins) + stopped_out_correct_count,
+            "sim_3_total": sim_3_total,
+            "sim_3_wins": sim_3_wins,
+            "sim_3_losses": sim_3_losses,
+            "sim_3_pnl": round(sim_3_pnl, 2),
+            "sim_2l_total": sim_2l_total,
+            "sim_2l_wins": sim_2l_wins,
+            "sim_2l_losses": sim_2l_losses,
+            "sim_2l_pnl": round(sim_2l_pnl, 2),
+            "recommendations": recommendations,
+            "donts": donts
+        }
+        
+        return jsonify({"ok": True, "summary": summary})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route("/control/restart_server", methods=["POST"])
