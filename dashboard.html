@@ -1842,18 +1842,58 @@ function onLiveSourceChange() {
   fetchLiveTick();
 }
 
+function isUSMarketHoliday(dateObj) {
+  const m = dateObj.getMonth();
+  const d = dateObj.getDate();
+  if (m === 0 && d === 1) return true;
+  if (m === 5 && d === 19) return true;
+  if (m === 6 && d === 4) return true;
+  if (m === 11 && d === 25) return true;
+  return false;
+}
+
+function getMarketHoursStatus() {
+  const laStr = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" });
+  const laDate = new Date(laStr);
+  
+  const day = laDate.getDay();
+  if (day === 0 || day === 6) return "Market Closed (Weekend) 💤";
+  if (isUSMarketHoliday(laDate)) return "Market Closed (Holiday) 💤";
+  
+  const hour = laDate.getHours();
+  const min = laDate.getMinutes();
+  const minutesSinceMidnight = hour * 60 + min;
+  
+  const regularStart = 6 * 60 + 30;
+  const regularEnd = 13 * 60;
+  const fullStart = 1 * 60;
+  const fullEnd = 17 * 60;
+  
+  if (minutesSinceMidnight >= regularStart && minutesSinceMidnight < regularEnd) {
+    return "Market Open 🟢";
+  } else if (minutesSinceMidnight >= fullStart && minutesSinceMidnight < fullEnd) {
+    return "Market Open (Extended Hours) 🟢";
+  } else {
+    return "Market Closed 💤";
+  }
+}
+
 async function fetchLiveTick() {
   try {
     const res = await (await fetch(`/api/live-tick?source=${currentLiveSource}`)).json();
     if (res.ok && res.price) {
+      const marketStatus = getMarketHoursStatus();
+      const isClosed = marketStatus.includes("Closed");
+      
       if (currentLiveSource === 'alpaca' && res.source !== 'alpaca') {
-        document.getElementById('live-chart-status').textContent = 'Fallback: yfinance (no Alpaca API keys)';
+        document.getElementById('live-chart-status').textContent = `Fallback: yfinance (no Alpaca API keys) — ${marketStatus}`;
         document.getElementById('live-chart-status').style.color = '#ff9e2c';
       } else {
-        document.getElementById('live-chart-status').textContent = currentLiveSource === 'alpaca' 
+        const baseStatus = currentLiveSource === 'alpaca' 
           ? 'Connected (Alpaca Real-time)' 
           : 'Connected (yfinance 1m)';
-        document.getElementById('live-chart-status').style.color = '#8b949e';
+        document.getElementById('live-chart-status').textContent = `${baseStatus} — ${marketStatus}`;
+        document.getElementById('live-chart-status').style.color = isClosed ? '#ff9e2c' : '#8b949e';
       }
       
       const price = Number(res.price);
