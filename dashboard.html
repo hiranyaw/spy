@@ -1014,7 +1014,19 @@ Only B Trades with FULL confirmation."></textarea>
 <!-- ══ TAB: TRADE ANALYSIS ══ -->
 <div class="tc" id="tab-analysis">
 <div style="padding:20px">
-  <!-- Top level stats cards -->
+  <!-- Analysis Sub-Tabs -->
+  <div style="display:flex;gap:10px;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:10px">
+    <div id="ana-subtab-daily" onclick="switchAnaSubTab('daily')" style="padding:6px 12px;background:#1f6feb;color:#ffffff;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+      <span>📅</span> Daily Review
+    </div>
+    <div id="ana-subtab-monthly" onclick="switchAnaSubTab('monthly')" style="padding:6px 12px;background:#21262d;color:#c9d1d9;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:background 0.2s">
+      <span>📈</span> Monthly Analytics
+    </div>
+  </div>
+
+  <!-- Daily View Section -->
+  <div id="ana-view-daily">
+    <!-- Top level stats cards -->
   <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:15px;margin-bottom:15px">
     <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
       <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Total Trades</div>
@@ -1215,6 +1227,70 @@ Only B Trades with FULL confirmation."></textarea>
       
     </div>
   </div>
+  
+  <!-- Monthly View Section -->
+  <div id="ana-view-monthly" style="display:none">
+    <!-- Monthly Stats Grid -->
+    <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:15px;margin-bottom:20px">
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
+        <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Total Days Analyzed</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-month-stat-days">0</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
+        <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Avg Direction Accuracy</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#3fb950" id="ana-month-stat-dir">0%</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
+        <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Rule 1 P&amp;L (Stop @ 3)</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-month-stat-sim3">$0.00</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
+        <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Rule 2 P&amp;L (Stop @ 2L)</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-month-stat-sim2l">$0.00</div>
+      </div>
+    </div>
+
+    <!-- Monthly Charts Grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+      <!-- P&L Comparison Chart -->
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px">
+        <h4 style="margin-top:0;margin-bottom:12px;color:#c9d1d9;font-size:0.9rem">📈 Cumulative P&amp;L Comparison ($)</h4>
+        <div style="position:relative;height:300px;width:100%">
+          <canvas id="ana-month-chart-pnl"></canvas>
+        </div>
+      </div>
+
+      <!-- Direction Accuracy Trend Chart -->
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px">
+        <h4 style="margin-top:0;margin-bottom:12px;color:#c9d1d9;font-size:0.9rem">🎯 Direction Accuracy Trend (%)</h4>
+        <div style="position:relative;height:300px;width:100%">
+          <canvas id="ana-month-chart-dir"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Trades Log Table -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px;overflow-x:auto">
+      <h4 style="margin-top:0;margin-bottom:12px;color:#c9d1d9;font-size:0.9rem;text-transform:uppercase;letter-spacing:.5px">Historical Logs</h4>
+      <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+        <thead>
+          <tr style="border-bottom:2px solid #30363d;color:#8b949e">
+            <th style="padding:8px;text-align:left">Date</th>
+            <th style="padding:8px;text-align:center">Total Trades</th>
+            <th style="padding:8px;text-align:center">Win / Loss Rate</th>
+            <th style="padding:8px;text-align:center">Direction Accuracy</th>
+            <th style="padding:8px;text-align:right">Actual P&amp;L</th>
+            <th style="padding:8px;text-align:right">Sim: Stop @ 3</th>
+            <th style="padding:8px;text-align:right">Sim: Stop @ 2L</th>
+          </tr>
+        </thead>
+        <tbody id="ana-month-table-body">
+          <!-- Rows will be injected here -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
 </div>
 </div>
 
@@ -2626,7 +2702,237 @@ let vwapSeries = null;
 let ema9Series = null;
 let ema21Series = null;
 
+let anaMonthPnlChart = null;
+let anaMonthDirChart = null;
+
+function switchAnaSubTab(tab) {
+  const dailyBtn = document.getElementById('ana-subtab-daily');
+  const monthlyBtn = document.getElementById('ana-subtab-monthly');
+  const dailyView = document.getElementById('ana-view-daily');
+  const monthlyView = document.getElementById('ana-view-monthly');
+  
+  if (tab === 'daily') {
+    dailyBtn.style.background = '#1f6feb';
+    dailyBtn.style.color = '#ffffff';
+    monthlyBtn.style.background = '#21262d';
+    monthlyBtn.style.color = '#c9d1d9';
+    
+    dailyView.style.display = 'block';
+    monthlyView.style.display = 'none';
+  } else {
+    monthlyBtn.style.background = '#1f6feb';
+    monthlyBtn.style.color = '#ffffff';
+    dailyBtn.style.background = '#21262d';
+    dailyBtn.style.color = '#c9d1d9';
+    
+    dailyView.style.display = 'none';
+    monthlyView.style.display = 'block';
+    
+    loadAnaMonthly();
+  }
+}
+
+async function loadAnaMonthly() {
+  const tableBody = document.getElementById('ana-month-table-body');
+  tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#8b949e;padding:20px">
+    <span class="ind ind-g" style="animation:pulse 1s infinite"></span> Aggregating monthly stats...
+  </td></tr>`;
+  
+  try {
+    // Dynamically load Chart.js if missing
+    if (typeof Chart === 'undefined') {
+      await new Promise((resolve, reject) => {
+        console.log("Loading Chart.js library dynamically...");
+        const script = document.createElement('script');
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js";
+        script.onload = () => {
+          console.log("Chart.js loaded successfully.");
+          resolve();
+        };
+        script.onerror = () => reject(new Error("Failed to load Chart.js"));
+        document.head.appendChild(script);
+      });
+    }
+    
+    const res = await (await fetch('/api/analysis/monthly')).json();
+    if (!res.ok || !res.data || res.data.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f85149;padding:20px">
+        ⚠️ No historical stats found. Upload TOS statements first.
+      </td></tr>`;
+      return;
+    }
+    
+    const data = res.data;
+    
+    // Calculate overall stats
+    const totalDays = data.length;
+    let sumDirAcc = 0;
+    let sumSim3 = 0;
+    let sumSim2l = 0;
+    
+    tableBody.innerHTML = '';
+    
+    const dates = [];
+    const actualPnlData = [];
+    const sim3PnlData = [];
+    const sim2lPnlData = [];
+    const dirAccData = [];
+    
+    let cumActual = 0;
+    let cumSim3 = 0;
+    let cumSim2l = 0;
+    
+    data.forEach(day => {
+      const dirAcc = day.total_trades > 0 ? (day.right_direction_count / day.total_trades * 100) : 0;
+      sumDirAcc += dirAcc;
+      sumSim3 += day.sim_3_pnl;
+      sumSim2l += day.sim_2l_pnl;
+      
+      dates.push(day.date);
+      cumActual += day.total_pnl;
+      cumSim3 += day.sim_3_pnl;
+      cumSim2l += day.sim_2l_pnl;
+      
+      actualPnlData.push(Number(cumActual.toFixed(2)));
+      sim3PnlData.push(Number(cumSim3.toFixed(2)));
+      sim2lPnlData.push(Number(cumSim2l.toFixed(2)));
+      dirAccData.push(Number(dirAcc.toFixed(1)));
+      
+      // Append table row
+      const winRateStr = `${day.wins_count}W / ${day.losses_count}L (${day.win_rate.toFixed(1)}%)`;
+      const dirAccStr = `${day.right_direction_count} / ${day.total_trades} (${dirAcc.toFixed(1)}%)`;
+      const pnlColor = day.total_pnl >= 0 ? '#3fb950' : '#f85149';
+      const sim3Color = day.sim_3_pnl >= 0 ? '#3fb950' : '#f85149';
+      const sim2lColor = day.sim_2l_pnl >= 0 ? '#3fb950' : '#f85149';
+      
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding:8px">${day.date}</td>
+        <td style="padding:8px;text-align:center;font-weight:700;color:#e6edf3">${day.total_trades}</td>
+        <td style="padding:8px;text-align:center">${winRateStr}</td>
+        <td style="padding:8px;text-align:center;color:#3fb950;font-weight:700">${dirAccStr}</td>
+        <td style="padding:8px;text-align:right;font-weight:700;color:${pnlColor}">${day.total_pnl >= 0 ? '+$' : '-$'}${Math.abs(day.total_pnl).toFixed(2)}</td>
+        <td style="padding:8px;text-align:right;font-weight:700;color:${sim3Color}">${day.sim_3_pnl >= 0 ? '+$' : '-$'}${Math.abs(day.sim_3_pnl).toFixed(2)}</td>
+        <td style="padding:8px;text-align:right;font-weight:700;color:${sim2lColor}">${day.sim_2l_pnl >= 0 ? '+$' : '-$'}${Math.abs(day.sim_2l_pnl).toFixed(2)}</td>
+      `;
+      tableBody.appendChild(tr);
+    });
+    
+    // Populate cards
+    document.getElementById('ana-month-stat-days').textContent = totalDays;
+    document.getElementById('ana-month-stat-dir').textContent = `${(sumDirAcc / totalDays).toFixed(1)}%`;
+    
+    const sim3Val = document.getElementById('ana-month-stat-sim3');
+    sim3Val.textContent = (sumSim3 >= 0 ? '+$' : '-$') + Math.abs(sumSim3).toFixed(2);
+    sim3Val.style.color = sumSim3 >= 0 ? '#3fb950' : '#f85149';
+    
+    const sim2lVal = document.getElementById('ana-month-stat-sim2l');
+    sim2lVal.textContent = (sumSim2l >= 0 ? '+$' : '-$') + Math.abs(sumSim2l).toFixed(2);
+    sim2lVal.style.color = sumSim2l >= 0 ? '#3fb950' : '#f85149';
+    
+    // Render PnL Comparison Chart
+    const pnlCtx = document.getElementById('ana-month-chart-pnl').getContext('2d');
+    if (anaMonthPnlChart) anaMonthPnlChart.destroy();
+    
+    anaMonthPnlChart = new Chart(pnlCtx, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [
+          {
+            label: 'Actual P&L',
+            data: actualPnlData,
+            borderColor: '#58a6ff',
+            borderWidth: 2,
+            pointRadius: 4,
+            tension: 0.1,
+            fill: false
+          },
+          {
+            label: 'Sim: Stop @ 3 Trades',
+            data: sim3PnlData,
+            borderColor: '#3fb950',
+            borderWidth: 2,
+            pointRadius: 4,
+            tension: 0.1,
+            fill: false
+          },
+          {
+            label: 'Sim: Stop @ 2 consec losses',
+            data: sim2lPnlData,
+            borderColor: '#ff9e2c',
+            borderWidth: 2,
+            pointRadius: 4,
+            tension: 0.1,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: '#c9d1d9', font: { size: 10 } }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
+          y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }
+        }
+      }
+    });
+    
+    // Render Direction Accuracy Trend Chart
+    const dirCtx = document.getElementById('ana-month-chart-dir').getContext('2d');
+    if (anaMonthDirChart) anaMonthDirChart.destroy();
+    
+    anaMonthDirChart = new Chart(dirCtx, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [
+          {
+            label: 'Direction Accuracy (%)',
+            data: dirAccData,
+            borderColor: '#3fb950',
+            backgroundColor: 'rgba(63, 185, 80, 0.1)',
+            borderWidth: 2,
+            pointRadius: 4,
+            tension: 0.1,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
+          y: { 
+            min: 0, 
+            max: 100, 
+            ticks: { color: '#8b949e', font: { size: 10 }, callback: v => v + '%' },
+            grid: { color: '#21262d' } 
+          }
+        }
+      }
+    });
+    
+  } catch (err) {
+    console.error("Error loading monthly analysis:", err);
+    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f85149;padding:20px">
+      ⚠️ Error aggregating monthly stats: ${err.message}
+    </td></tr>`;
+  }
+}
+
 async function initAnalysis() {
+  switchAnaSubTab('daily');
   if (typeof LightweightCharts === 'undefined') {
     console.log("Loading TradingView Lightweight Charts library...");
     const script = document.createElement('script');

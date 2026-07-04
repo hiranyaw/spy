@@ -1069,6 +1069,24 @@ def analysis_chart():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+CACHE_FILE = os.path.join(TOS_DIR, "trade_analysis_cache.json")
+
+def load_analysis_cache():
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading cache: {e}")
+    return {}
+
+def save_analysis_cache(cache):
+    try:
+        with open(CACHE_FILE, "w") as f:
+            json.dump(cache, f, indent=2)
+    except Exception as e:
+        print(f"Error saving cache: {e}")
+
 @app.route("/api/analysis/summary")
 def analysis_summary():
     """Generate daily summary and recommendations for a selected TOS CSV file"""
@@ -1082,37 +1100,46 @@ def analysis_summary():
         return jsonify({"ok": False, "error": f"File {filename} not found"}), 404
         
     try:
+        cache = load_analysis_cache()
+        mtime = os.path.getmtime(filepath)
+        if filename in cache and cache[filename].get("mtime") == mtime:
+            return jsonify({"ok": True, "summary": cache[filename]["summary"]})
+
         executions = tos_parser.parse_tos_csv(filepath)
         trades = tos_parser.pair_trades(executions)
         
         spy_trades = [t for t in trades if t.get("underlying") == "SPY" and t.get("closed")]
         if not spy_trades:
-            return jsonify({
-                "ok": True,
-                "summary": {
-                    "total_trades": 0,
-                    "win_rate": 0.0,
-                    "total_pnl": 0.0,
-                    "wins_count": 0,
-                    "losses_count": 0,
-                    "stopped_out_correct": 0,
-                    "wrong_direction": 0,
-                    "early_exits": 0,
-                    "great_trades": 0,
-                    "avg_drawdown_stopped": 0.0,
-                    "right_direction_count": 0,
-                    "sim_3_total": 0,
-                    "sim_3_wins": 0,
-                    "sim_3_losses": 0,
-                    "sim_3_pnl": 0.0,
-                    "sim_2l_total": 0,
-                    "sim_2l_wins": 0,
-                    "sim_2l_losses": 0,
-                    "sim_2l_pnl": 0.0,
-                    "recommendations": ["No closed SPY trades found in this statement."],
-                    "donts": []
-                }
-            })
+            summary = {
+                "total_trades": 0,
+                "win_rate": 0.0,
+                "total_pnl": 0.0,
+                "wins_count": 0,
+                "losses_count": 0,
+                "stopped_out_correct": 0,
+                "wrong_direction": 0,
+                "early_exits": 0,
+                "great_trades": 0,
+                "avg_drawdown_stopped": 0.0,
+                "right_direction_count": 0,
+                "sim_3_total": 0,
+                "sim_3_wins": 0,
+                "sim_3_losses": 0,
+                "sim_3_pnl": 0.0,
+                "sim_2l_total": 0,
+                "sim_2l_wins": 0,
+                "sim_2l_losses": 0,
+                "sim_2l_pnl": 0.0,
+                "recommendations": ["No closed SPY trades found in this statement."],
+                "donts": []
+            }
+            # Cache empty state
+            cache[filename] = {
+                "mtime": mtime,
+                "summary": summary
+            }
+            save_analysis_cache(cache)
+            return jsonify({"ok": True, "summary": summary})
             
         # Sort chronologically (ascending) for simulation and timezone calculations
         spy_trades.sort(key=lambda x: x["entry_time"])
@@ -1293,7 +1320,241 @@ def analysis_summary():
             "donts": donts
         }
         
+        # Save cache
+        cache[filename] = {
+            "mtime": mtime,
+            "summary": summary
+        }
+        save_analysis_cache(cache)
+        
         return jsonify({"ok": True, "summary": summary})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/analysis/monthly")
+def api_analysis_monthly():
+    """Aggregate cached daily summaries chronologically for monthly/historical charting"""
+    try:
+        cache = load_analysis_cache()
+        files = [f for f in os.listdir(TOS_DIR) if f.endswith(".csv")]
+        
+        monthly_data = []
+        cache_dirty = False
+        
+        for f in files:
+            filepath = os.path.join(TOS_DIR, f)
+            mtime = os.path.getmtime(filepath)
+            
+            if f in cache and cache[f].get("mtime") == mtime:
+                # If cached summary doesn't have right_direction_count or sim data, force recompute
+                summary = cache[f]["summary"]
+                if "right_direction_count" in summary and "sim_3_pnl" in summary:
+                    monthly_data.append(summary)
+                    continue
+            
+            # Recompute and cache if missing
+            try:
+                executions = tos_parser.parse_tos_csv(filepath)
+                trades = tos_parser.pair_trades(executions)
+                
+                spy_trades = [t for t in trades if t.get("underlying") == "SPY" and t.get("closed")]
+                if not spy_trades:
+                    continue
+                    
+                spy_trades.sort(key=lambda x: x["entry_time"])
+                
+                # Fetch yfinance price history
+                dates = set(t["entry_time"].strftime("%Y-%m-%d") for t in spy_trades)
+                spy_data = {}
+                for d_str in dates:
+                    dt = datetime.strptime(d_str, "%Y-%m-%d")
+                    next_dt = dt + timedelta(days=1)
+                    df = yf.Ticker("SPY").history(start=d_str, end=next_dt.strftime("%Y-%m-%d"), interval="1m", prepost=True)
+                    if not df.empty:
+                        tz = pytz.timezone("US/Pacific")
+                        try:
+                            df.index = df.index.tz_convert(tz)
+                        except:
+                            pass
+                        spy_data[d_str] = df
+                        
+                stopped_out_correct_count = 0
+                wrong_direction_count = 0
+                early_exits_count = 0
+                great_trades_count = 0
+                stopped_drawdowns = []
+                early_exit_moves = []
+                
+                MOVE_THRESHOLD = 0.50
+                
+                for t in spy_trades:
+                    d_str = t["entry_time"].strftime("%Y-%m-%d")
+                    if d_str not in spy_data:
+                        continue
+                    df = spy_data[d_str]
+                    
+                    tz = pytz.timezone("US/Pacific")
+                    entry_dt = tz.localize(t["entry_time"])
+                    exit_dt = tz.localize(t["exit_time"])
+                    
+                    try:
+                        entry_idx = int(df.index.get_indexer([entry_dt], method='nearest')[0])
+                        exit_idx = int(df.index.get_indexer([exit_dt], method='nearest')[0])
+                    except:
+                        continue
+                        
+                    spy_entry_price = float(df.iloc[entry_idx]['Close'])
+                    spy_exit_price = float(df.iloc[exit_idx]['Close'])
+                    
+                    start_idx = min(entry_idx, exit_idx)
+                    end_idx = max(entry_idx, exit_idx)
+                    trade_df = df.iloc[start_idx:end_idx+1]
+                    
+                    max_spy_price = float(trade_df['High'].max())
+                    min_spy_price = float(trade_df['Low'].min())
+                    
+                    if t.get("option_type") == "PUT":
+                        underlying_dir = "SHORT" if t["direction"] == "LONG" else "LONG"
+                    else:
+                        underlying_dir = t["direction"]
+                        
+                    if underlying_dir == "LONG":
+                        max_runup = max_spy_price - spy_entry_price
+                        max_drawdown = spy_entry_price - min_spy_price
+                    else:
+                        max_runup = spy_entry_price - min_spy_price
+                        max_drawdown = max_spy_price - spy_entry_price
+                        
+                    post_exit_dt = exit_dt + timedelta(minutes=60)
+                    post_exit_idx = int(df.index.get_indexer([post_exit_dt], method='nearest')[0])
+                    post_df = df.iloc[exit_idx:post_exit_idx+1] if post_exit_idx > exit_idx else pd.DataFrame()
+                    
+                    if not post_df.empty:
+                        max_spy_post = float(post_df['High'].max())
+                        min_spy_post = float(post_df['Low'].min())
+                        
+                        if underlying_dir == "LONG":
+                            max_post_runup = max_spy_post - spy_entry_price
+                            favorable_post_exit_move = max_spy_post - spy_exit_price
+                        else:
+                            max_post_runup = spy_entry_price - min_spy_post
+                            favorable_post_exit_move = spy_exit_price - min_spy_post
+                    else:
+                        max_post_runup = 0.0
+                        favorable_post_exit_move = 0.0
+                        
+                    is_win = t["pnl"] > 0
+                    if is_win:
+                        if favorable_post_exit_move >= MOVE_THRESHOLD:
+                            early_exits_count += 1
+                            early_exit_moves.append(favorable_post_exit_move)
+                        else:
+                            great_trades_count += 1
+                    else:
+                        overall_max_runup = max(max_runup, max_post_runup)
+                        if overall_max_runup >= MOVE_THRESHOLD:
+                            stopped_out_correct_count += 1
+                            stopped_drawdowns.append(max_drawdown)
+                        else:
+                            wrong_direction_count += 1
+                            
+                total_pnl = sum(t["pnl"] for t in spy_trades)
+                wins = [t for t in spy_trades if t["win"]]
+                losses = [t for t in spy_trades if not t["win"]]
+                win_rate = (len(wins) / len(spy_trades)) * 100 if spy_trades else 0.0
+                
+                avg_drawdown_stopped = sum(stopped_drawdowns) / len(stopped_drawdowns) if stopped_drawdowns else 0.0
+                max_early_move = max(early_exit_moves) if early_exit_moves else 0.0
+                
+                # 1. Stop after first 3 trades of the day
+                trades_3 = spy_trades[:3]
+                sim_3_total = len(trades_3)
+                sim_3_wins = len([t for t in trades_3 if t["win"]])
+                sim_3_losses = len([t for t in trades_3 if not t["win"]])
+                sim_3_pnl = sum(t["pnl"] for t in trades_3)
+                
+                # 2. Stop after 2 consecutive losses
+                trades_2l = []
+                consec_losses = 0
+                for t in spy_trades:
+                    trades_2l.append(t)
+                    if not t["win"]:
+                        consec_losses += 1
+                    else:
+                        consec_losses = 0
+                    if consec_losses >= 2:
+                        break
+                        
+                sim_2l_total = len(trades_2l)
+                sim_2l_wins = len([t for t in trades_2l if t["win"]])
+                sim_2l_losses = len([t for t in trades_2l if not t["win"]])
+                sim_2l_pnl = sum(t["pnl"] for t in trades_2l)
+                
+                recommendations = []
+                donts = []
+                
+                if stopped_out_correct_count > 0:
+                    recommendations.append(f"Increase stop-loss buffer to ${avg_drawdown_stopped + 0.15:.2f} on SPY chart. Your average shakeout drawdown on correct entries was ${avg_drawdown_stopped:.2f}. Letting them breathe will turn losses into wins.")
+                    donts.append(f"DO NOT use tight stops under ${avg_drawdown_stopped + 0.10:.2f} on SPY options, which trigger premature shakeouts.")
+                else:
+                    recommendations.append("Your stop-losses are well-placed. Keep using technical indicators (like 9/21 EMAs or swing lows) for placement.")
+                    
+                if early_exits_count > 0:
+                    recommendations.append(f"Implement a 2-stage exit: sell 50% at your initial target, and trail the remainder using the 1-minute 9 EMA to capture extended runs (SPY ran up to +${max_early_move:.2f} post-exit today).")
+                    donts.append("DO NOT panic sell 100% of your position at the first minor profit target; let your runners capture the main trend.")
+                    
+                if len(spy_trades) > 5:
+                    recommendations.append(f"Limit your trading frequency. You executed {len(spy_trades)} trades in a single session. Aim for 2-3 high-conviction A+ setups.")
+                    donts.append(f"DO NOT trade more than 3 positions per session to avoid overtrading, emotional fatigue, and high commission costs.")
+                    
+                early_entries = [t for t in spy_trades if t["entry_time"].time() < datetime.strptime("06:35:00", "%H:%M:%S").time()]
+                if early_entries:
+                    donts.append("DO NOT enter trades during the first 5 minutes of market open (before 6:35 AM PT / 9:35 AM ET) when volatility and options spreads are widest.")
+                    recommendations.append("Wait at least 5-15 minutes after market open for initial range discovery before taking a position.")
+                
+                summary = {
+                    "date": spy_trades[0]["entry_time"].strftime("%Y-%m-%d"),
+                    "total_trades": len(spy_trades),
+                    "win_rate": round(win_rate, 1),
+                    "total_pnl": round(total_pnl, 2),
+                    "wins_count": len(wins),
+                    "losses_count": len(losses),
+                    "stopped_out_correct": stopped_out_correct_count,
+                    "wrong_direction": wrong_direction_count,
+                    "early_exits": early_exits_count,
+                    "great_trades": great_trades_count,
+                    "avg_drawdown_stopped": round(avg_drawdown_stopped, 2),
+                    "right_direction_count": len(wins) + stopped_out_correct_count,
+                    "sim_3_total": sim_3_total,
+                    "sim_3_wins": sim_3_wins,
+                    "sim_3_losses": sim_3_losses,
+                    "sim_3_pnl": round(sim_3_pnl, 2),
+                    "sim_2l_total": sim_2l_total,
+                    "sim_2l_wins": sim_2l_wins,
+                    "sim_2l_losses": sim_2l_losses,
+                    "sim_2l_pnl": round(sim_2l_pnl, 2),
+                    "recommendations": recommendations,
+                    "donts": donts
+                }
+                
+                cache[f] = {
+                    "mtime": mtime,
+                    "summary": summary
+                }
+                cache_dirty = True
+                monthly_data.append(summary)
+            except Exception as e:
+                print(f"Error parsing file {f}: {e}")
+                continue
+                
+        if cache_dirty:
+            save_analysis_cache(cache)
+            
+        # Sort chronologically by date
+        monthly_data.sort(key=lambda x: x["date"])
+        return jsonify({"ok": True, "data": monthly_data})
     except Exception as e:
         import traceback
         traceback.print_exc()
