@@ -1560,6 +1560,118 @@ def api_analysis_monthly():
         traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
 
+import xml.etree.ElementTree as ET
+
+@app.route("/api/news")
+def get_market_news():
+    """Fetch live market news for SPY from Alpaca or Yahoo Finance RSS"""
+    alpaca_key = os.getenv("ALPACA_API_KEY")
+    alpaca_secret = os.getenv("ALPACA_SECRET_KEY")
+    
+    if alpaca_key and alpaca_secret:
+        try:
+            import urllib.request
+            headers = {
+                "Apca-Api-Key-Id": alpaca_key,
+                "Apca-Api-Secret-Key": alpaca_secret
+            }
+            url = "https://data.alpaca.markets/v1beta1/news?symbols=SPY&limit=10"
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=5) as response:
+                news_data = json.loads(response.read().decode('utf-8'))
+                
+            news_items = []
+            for item in news_data.get("news", []):
+                news_items.append({
+                    "title": item["headline"],
+                    "source": item.get("source", "Alpaca"),
+                    "link": item["url"],
+                    "time": item["updated_at"]
+                })
+            return jsonify({"ok": True, "news": news_items, "source": "Alpaca"})
+        except Exception as e:
+            print(f"Error fetching Alpaca news: {e}")
+            
+    # Fallback to Yahoo Finance RSS
+    try:
+        import urllib.request
+        url = "https://finance.yahoo.com/rss/headline?s=SPY"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            xml_data = response.read()
+            
+        root = ET.fromstring(xml_data)
+        news_items = []
+        for item in root.findall('.//item')[:10]:
+            title_el = item.find('title')
+            link_el = item.find('link')
+            pub_el = item.find('pubDate')
+            
+            title = title_el.text if title_el is not None else "No Title"
+            link = link_el.text if link_el is not None else "#"
+            pubDate = pub_el.text if pub_el is not None else "Just Now"
+            
+            news_items.append({
+                "title": title,
+                "source": "Yahoo Finance",
+                "link": link,
+                "time": pubDate
+            })
+        return jsonify({"ok": True, "news": news_items, "source": "Yahoo RSS"})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/live-chart-history")
+def get_live_chart_history():
+    """Fetch current day's 1-minute historical candles for SPY live chart"""
+    tz = pytz.timezone("US/Pacific")
+    try:
+        ticker = yf.Ticker("SPY")
+        df = ticker.history(period="3d", interval="1m", prepost=True)
+        if df.empty:
+            return jsonify({"ok": False, "error": "No price data found"}), 404
+            
+        df.index = df.index.tz_convert(tz)
+        
+        # Filter to the latest active day in the index
+        latest_date = df.index[-1].date()
+        df = df[df.index.date == latest_date]
+        
+        # Calculate VWAP, EMA 9, EMA 21
+        typical_price = (df['High'] + df['Low'] + df['Close']) / 3
+        df['TypicalVolume'] = typical_price * df['Volume']
+        df['CumTypicalVolume'] = df['TypicalVolume'].cumsum()
+        df['CumVolume'] = df['Volume'].cumsum()
+        df['VWAP'] = df['CumTypicalVolume'] / df['CumVolume'].replace(0, 1)
+        
+        df['EMA9'] = df['Close'].ewm(span=9, adjust=False).mean()
+        df['EMA21'] = df['Close'].ewm(span=21, adjust=False).mean()
+        
+        candles = []
+        for idx, row in df.iterrows():
+            candles.append({
+                "time": int(idx.timestamp()),
+                "open": round(float(row['Open']), 2),
+                "high": round(float(row['High']), 2),
+                "low": round(float(row['Low']), 2),
+                "close": round(float(row['Close']), 2),
+                "volume": int(row['Volume']),
+                "vwap": round(float(row['VWAP']), 2) if not pd.isna(row['VWAP']) else None,
+                "ema9": round(float(row['EMA9']), 2) if not pd.isna(row['EMA9']) else None,
+                "ema21": round(float(row['EMA21']), 2) if not pd.isna(row['EMA21']) else None
+            })
+            
+        return jsonify({
+            "ok": True, 
+            "candles": candles, 
+            "date": latest_date.strftime("%Y-%m-%d")
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 @app.route("/control/restart_server", methods=["POST"])
 def restart_server():

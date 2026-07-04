@@ -6,6 +6,7 @@
 <title>Hiranya — SPY Trader</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230d1117'/><rect width='64' height='64' rx='12' fill='%233fb950' opacity='0.15'/><text x='32' y='22' font-family='Segoe UI,sans-serif' font-size='11' font-weight='700' fill='%233fb950' text-anchor='middle' letter-spacing='0.5'>SPY</text><text x='32' y='44' font-family='Segoe UI,sans-serif' font-size='10' font-weight='500' fill='%238b949e' text-anchor='middle'>Hiranya</text><rect x='10' y='48' width='44' height='2' rx='1' fill='%233fb950' opacity='0.6'/></svg>">
 <style>
+.news-link-hover:hover{text-decoration:underline !important;color:#79c0ff !important;transition:color 0.2s;}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;padding:14px}
 h1{font-size:1.25rem;color:#58a6ff;margin-bottom:2px}
@@ -183,130 +184,169 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
 
 <!-- ══ TAB: LIVE ══ -->
 <div class="tc on" id="tab-live">
+  <div style="display:grid;grid-template-columns:1fr 400px;gap:20px;align-items:start">
+    
+    <!-- Left Column: Live Chart & Market News -->
+    <div style="display:flex;flex-direction:column;gap:15px">
+      
+      <!-- Market Direction & Live Chart Header -->
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="font-size:2rem" id="market-direction-icon">⚖️</div>
+          <div>
+            <h4 style="margin:0;font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Market Direction of the Day</h4>
+            <div style="font-size:1.25rem;font-weight:800;color:#c9d1d9;margin-top:2px" id="market-direction-badge">NEUTRAL / SIDEWAYS</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:0.8rem;font-weight:700;color:#58a6ff" id="live-chart-title">SPY Live Chart (1m)</div>
+          <div style="font-size:0.7rem;color:#8b949e" id="live-chart-status">Connecting to stream...</div>
+        </div>
+      </div>
 
-  <!-- Main signal card -->
-  <div class="sig-card WAIT" id="sig-card">
-    <div>
-      <div class="sig-lbl" id="sig-lbl">WAITING</div>
-      <div class="sig-sub" id="sig-sub">Waiting for first tick...</div>
-      <div id="sig-badge"></div>
-    </div>
-  </div>
+      <!-- Live Chart Mount Point -->
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;height:450px;position:relative" id="live-chart-container">
+        <!-- Live Lightweight Chart will mount here -->
+      </div>
 
-  <!-- Trend Line Breaks (SPY & QQQ) -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-    <!-- SPY Trend Line Break -->
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">SPY LuxAlgo Trend Break</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
-        <div style="font-size:1.8rem" id="spy-tl-icon">--</div>
-        <div>
-          <div style="font-size:1.2rem;font-weight:700" id="spy-tl-dir">--</div>
-          <div style="font-size:0.7rem;color:#8b949e" id="spy-tl-label">--</div>
+      <!-- Real-time Market News -->
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px">
+        <h3 style="margin-top:0;margin-bottom:15px;color:#e6edf3;font-size:0.95rem;display:flex;align-items:center;gap:8px;border-bottom:1px solid #21262d;padding-bottom:8px">
+          <span>📰</span> Live Market News (SPY &amp; Macro)
+        </h3>
+        <div style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:5px" id="live-news-box">
+          <div style="color:#8b949e;font-size:0.85rem;text-align:center;padding:20px">Loading market news...</div>
         </div>
       </div>
     </div>
 
-    <!-- QQQ Trend Line Break -->
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;text-align:center">
-      <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">QQQ LuxAlgo Trend Break</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:8px">
-        <div style="font-size:1.8rem" id="qqq-tl-icon">--</div>
+    <!-- Right Column: Signal Cards, Metrics, Confluence, and History -->
+    <div style="display:flex;flex-direction:column;gap:15px">
+      
+      <!-- Main signal card -->
+      <div class="sig-card WAIT" id="sig-card" style="margin-bottom:0">
         <div>
-          <div style="font-size:1.2rem;font-weight:700" id="qqq-tl-dir">--</div>
-          <div style="font-size:0.7rem;color:#8b949e" id="qqq-tl-label">--</div>
+          <div class="sig-lbl" id="sig-lbl">WAITING</div>
+          <div class="sig-sub" id="sig-sub">Waiting for first tick...</div>
+          <div id="sig-badge"></div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Market Context Bar: VIX + Events + Gap -->
-  <div id="ctx-bar" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
-    <!-- VIX -->
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px">
-      <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">VIX</div>
-      <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">
-        <span style="font-size:1.3rem;font-weight:700" id="ctx-vix">--</span>
-        <span style="font-size:0.72rem;padding:1px 7px;border-radius:8px" id="ctx-vix-badge">--</span>
+      <!-- Trend Line Breaks (SPY & QQQ) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">SPY LuxAlgo Trend Break</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+            <div style="font-size:1.8rem" id="spy-tl-icon">--</div>
+            <div>
+              <div style="font-size:1.2rem;font-weight:700" id="spy-tl-dir">--</div>
+              <div style="font-size:0.7rem;color:#8b949e" id="spy-tl-label">--</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;text-align:center">
+          <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">QQQ LuxAlgo Trend Break</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px">
+            <div style="font-size:1.8rem" id="qqq-tl-icon">--</div>
+            <div>
+              <div style="font-size:1.2rem;font-weight:700" id="qqq-tl-dir">--</div>
+              <div style="font-size:0.7rem;color:#8b949e" id="qqq-tl-label">--</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div style="font-size:0.7rem;color:#8b949e;margin-top:2px" id="ctx-vix-warn"></div>
-    </div>
-    <!-- Gap -->
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px">
-      <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Pre-market gap</div>
-      <div style="font-size:1.1rem;font-weight:700;margin-top:2px" id="ctx-gap">--</div>
-      <div style="font-size:0.7rem;color:#8b949e;margin-top:2px" id="ctx-gap-rule"></div>
-    </div>
-    <!-- Events -->
-    <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px" id="ctx-events-box">
-      <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Economic events today</div>
-      <div style="font-size:0.78rem;margin-top:4px" id="ctx-events">Loading...</div>
+
+      <!-- Market Context Bar: VIX + Events + Gap -->
+      <div id="ctx-bar" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px">
+          <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">VIX</div>
+          <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">
+            <span style="font-size:1.3rem;font-weight:700" id="ctx-vix">--</span>
+            <span style="font-size:0.72rem;padding:1px 7px;border-radius:8px" id="ctx-vix-badge">--</span>
+          </div>
+          <div style="font-size:0.7rem;color:#8b949e;margin-top:2px" id="ctx-vix-warn"></div>
+        </div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px">
+          <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Pre-market gap</div>
+          <div style="font-size:1.1rem;font-weight:700;margin-top:2px" id="ctx-gap">--</div>
+          <div style="font-size:0.7rem;color:#8b949e;margin-top:2px" id="ctx-gap-rule"></div>
+        </div>
+      </div>
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px" id="ctx-events-box">
+        <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Economic events today</div>
+        <div style="font-size:0.78rem" id="ctx-events">Loading...</div>
+      </div>
+
+      <!-- Trading paused banner -->
+      <div id="paused-banner" style="display:none;background:#4d2800;border:1.5px solid #f0883e;border-radius:8px;padding:10px 14px;font-size:0.85rem;color:#f0883e;font-weight:600;text-align:center"></div>
+
+      <!-- 5-Factor confluence -->
+      <div class="conf-box" style="margin-bottom:0">
+        <div class="conf-hdr">
+          <span>5-Factor Confluence Trend</span>
+          <span class="conf-score na" id="conf-score">--/5</span>
+        </div>
+        <div class="factors">
+          <div class="factor na" id="f-macd"><div class="fn">MACD BB</div><div class="fv" id="fv-macd">--</div><div class="fs">hist+BB</div></div>
+          <div class="factor na" id="f-qqq"> <div class="fn">QQQ 1m</div><div class="fv" id="fv-qqq">--</div><div class="fs" id="fs-qqq">--</div></div>
+          <div class="factor na" id="f-add"> <div class="fn">ADD 1m</div><div class="fv" id="fv-add">--</div><div class="fs" id="fs-add">--</div></div>
+          <div class="factor na" id="f-spy5"><div class="fn">SPY 5m</div><div class="fv" id="fv-spy5">--</div><div class="fs">Supertrend</div></div>
+          <div class="factor na" id="f-spy1"><div class="fn">SPY 1m</div><div class="fv" id="fv-spy1">--</div><div class="fs">Supertrend</div></div>
+        </div>
+        <div class="conf-banner" id="conf-banner">Waiting for data...</div>
+      </div>
+
+      <!-- Reversal box -->
+      <div class="rev-box" style="margin-bottom:0">
+        <div class="rev-hdr">
+          <span>6-Method Reversal Detection</span>
+          <span class="rev-score-lbl" id="rev-score-lbl" style="color:#8b949e">Score: --</span>
+        </div>
+        <div class="rev-grid">
+          <div class="rev-item" id="ri-div">   <div class="ri-lbl">MACD Divergence</div><div class="ri-val" id="rv-div">--</div></div>
+          <div class="rev-item" id="ri-add">   <div class="ri-lbl">ADD Extreme</div>    <div class="ri-val" id="rv-add">--</div></div>
+          <div class="rev-item" id="ri-stflip"><div class="ri-lbl">ST Flip</div>        <div class="ri-val" id="rv-stflip">--</div></div>
+          <div class="rev-item" id="ri-vwap">  <div class="ri-lbl">VWAP Distance</div> <div class="ri-val" id="rv-vwap">--</div></div>
+          <div class="rev-item" id="ri-engulf"><div class="ri-lbl">Engulfing</div>      <div class="ri-val" id="rv-engulf">--</div></div>
+          <div class="rev-item" id="ri-rev">   <div class="ri-lbl">REV Score</div>      <div class="ri-val" id="rv-rev" style="font-size:1.1rem;font-weight:800">--</div></div>
+        </div>
+      </div>
+
+      <!-- Prices -->
+      <div class="grid4" style="margin-bottom:0">
+        <div class="metric"><div class="ml">SPY Price</div><div class="mv bl" id="m-spy">--</div></div>
+        <div class="metric"><div class="ml">QQQ Price</div><div class="mv bl" id="m-qqq">--</div></div>
+        <div class="metric"><div class="ml">ADD Value</div><div class="mv" id="m-add">--</div></div>
+        <div class="metric"><div class="ml">TV Conf</div>  <div class="mv" id="m-conf">--</div></div>
+      </div>
+
+      <!-- Key levels -->
+      <div class="levels" style="margin-bottom:0">
+        <div class="lv"><div class="ll">Price</div>      <div class="lval bl" id="lv-price">--</div></div>
+        <div class="lv"><div class="ll">Resistance</div> <div class="lval rd" id="lv-resist">--</div></div>
+        <div class="lv"><div class="ll">Support</div>    <div class="lval gn" id="lv-support">--</div></div>
+        <div class="lv"><div class="ll">ST Level</div>   <div class="lval" id="lv-st">--</div></div>
+      </div>
+
+      <!-- Time bar -->
+      <div class="timebar t-n" id="tbar" style="margin-bottom:0">
+        <span>Time to candle close</span>
+        <span style="font-weight:700;font-size:0.95rem" id="tval">--</span>
+      </div>
+
+      <!-- Signal history -->
+      <div>
+        <div class="sec" style="margin-bottom:6px">Signal History (with Trendline Breaks)</div>
+        <div style="max-height:250px;overflow-y:auto;border:1px solid #30363d;border-radius:8px">
+          <table style="width:100%">
+            <thead><tr style="position:sticky;top:0;background:#161b22;z-index:1"><th>Time</th><th>Signal</th><th>Type</th><th>SPY</th><th>QQQ</th><th>Conf</th><th>Rev</th><th>ST Flip</th><th>TL Break</th></tr></thead>
+            <tbody id="sig-hist"><tr><td colspan="9" style="color:#555;text-align:center">No signals yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
-
-  <!-- Trading paused banner -->
-  <div id="paused-banner" style="display:none;background:#4d2800;border:1.5px solid #f0883e;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:0.85rem;color:#f0883e;font-weight:600;text-align:center"></div>
-
-  <!-- 5-Factor confluence -->
-  <div class="conf-box">
-    <div class="conf-hdr">
-      <span>5-Factor Confluence Trend</span>
-      <span class="conf-score na" id="conf-score">--/5</span>
-    </div>
-    <div class="factors">
-      <div class="factor na" id="f-macd"><div class="fn">MACD BB</div><div class="fv" id="fv-macd">--</div><div class="fs">hist+BB</div></div>
-      <div class="factor na" id="f-qqq"> <div class="fn">QQQ 1m</div><div class="fv" id="fv-qqq">--</div><div class="fs" id="fs-qqq">--</div></div>
-      <div class="factor na" id="f-add"> <div class="fn">ADD 1m</div><div class="fv" id="fv-add">--</div><div class="fs" id="fs-add">--</div></div>
-      <div class="factor na" id="f-spy5"><div class="fn">SPY 5m</div><div class="fv" id="fv-spy5">--</div><div class="fs">Supertrend</div></div>
-      <div class="factor na" id="f-spy1"><div class="fn">SPY 1m</div><div class="fv" id="fv-spy1">--</div><div class="fs">Supertrend</div></div>
-    </div>
-    <div class="conf-banner" id="conf-banner">Waiting for data...</div>
-  </div>
-
-  <!-- Reversal box -->
-  <div class="rev-box">
-    <div class="rev-hdr">
-      <span>6-Method Reversal Detection</span>
-      <span class="rev-score-lbl" id="rev-score-lbl" style="color:#8b949e">Score: --</span>
-    </div>
-    <div class="rev-grid">
-      <div class="rev-item" id="ri-div">   <div class="ri-lbl">MACD Divergence</div><div class="ri-val" id="rv-div">--</div></div>
-      <div class="rev-item" id="ri-add">   <div class="ri-lbl">ADD Extreme</div>    <div class="ri-val" id="rv-add">--</div></div>
-      <div class="rev-item" id="ri-stflip"><div class="ri-lbl">ST Flip</div>        <div class="ri-val" id="rv-stflip">--</div></div>
-      <div class="rev-item" id="ri-vwap">  <div class="ri-lbl">VWAP Distance</div> <div class="ri-val" id="rv-vwap">--</div></div>
-      <div class="rev-item" id="ri-engulf"><div class="ri-lbl">Engulfing</div>      <div class="ri-val" id="rv-engulf">--</div></div>
-      <div class="rev-item" id="ri-rev">   <div class="ri-lbl">REV Score</div>      <div class="ri-val" id="rv-rev" style="font-size:1.1rem;font-weight:800">--</div></div>
-    </div>
-  </div>
-
-  <!-- Prices -->
-  <div class="grid4">
-    <div class="metric"><div class="ml">SPY Price</div><div class="mv bl" id="m-spy">--</div></div>
-    <div class="metric"><div class="ml">QQQ Price</div><div class="mv bl" id="m-qqq">--</div></div>
-    <div class="metric"><div class="ml">ADD Value</div><div class="mv" id="m-add">--</div></div>
-    <div class="metric"><div class="ml">TV Conf</div>  <div class="mv" id="m-conf">--</div></div>
-  </div>
-
-  <!-- Key levels -->
-  <div class="levels">
-    <div class="lv"><div class="ll">Price</div>      <div class="lval bl" id="lv-price">--</div></div>
-    <div class="lv"><div class="ll">Resistance</div> <div class="lval rd" id="lv-resist">--</div></div>
-    <div class="lv"><div class="ll">Support</div>    <div class="lval gn" id="lv-support">--</div></div>
-    <div class="lv"><div class="ll">ST Level</div>   <div class="lval" id="lv-st">--</div></div>
-  </div>
-
-  <!-- Time bar -->
-  <div class="timebar t-n" id="tbar">
-    <span>Time to candle close</span>
-    <span style="font-weight:700;font-size:0.95rem" id="tval">--</span>
-  </div>
-
-  <!-- Signal history -->
-  <div class="sec">Signal History (with Trendline Breaks)</div>
-  <table>
-    <thead><tr><th>Time</th><th>Signal</th><th>Type</th><th>SPY</th><th>QQQ</th><th>Conf</th><th>Rev</th><th>ST Flip</th><th>TL Break</th></tr></thead>
-    <tbody id="sig-hist"><tr><td colspan="9" style="color:#555;text-align:center">No signals yet</td></tr></tbody>
-  </table>
 </div>
 
 <!-- ══ TAB: PAPER TRADING ══ -->
@@ -1326,6 +1366,16 @@ function sw(n){
   if(n==='ctrl') refreshStatus();
   if(n==='journal') loadJournal();
   if(n==='analysis') initAnalysis();
+  if(n==='live') {
+    if (liveChart) {
+      const container = document.getElementById('live-chart-container');
+      if (container) {
+        liveChart.resize(container.clientWidth, container.clientHeight);
+      }
+    } else {
+      initLiveChart();
+    }
+  }
 }
 
 // ── Controls ─────────────────────────────────────────────────
@@ -1564,6 +1614,246 @@ async function refresh(){
     updateTvStatusDisplay(tvStatus);
   }
 }
+
+let liveChart = null;
+let liveCandleSeries = null;
+let liveVwapSeries = null;
+let liveEma9Series = null;
+let liveEma21Series = null;
+let lastLiveCandleTime = 0;
+let lastLiveCandle = null;
+
+async function initLiveChart() {
+  const container = document.getElementById('live-chart-container');
+  if (!container || liveChart) return;
+  
+  if (typeof LightweightCharts === 'undefined') {
+    console.log("Loading Lightweight Charts library dynamically for live view...");
+    await new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = "/lightweight-charts.js";
+      script.onload = resolve;
+      script.onerror = () => reject(new Error("Failed to load Lightweight Charts"));
+      document.head.appendChild(script);
+    });
+  }
+  
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  
+  liveChart = LightweightCharts.createChart(container, {
+    width: width,
+    height: height,
+    layout: {
+      background: { type: 'solid', color: '#0d1117' },
+      textColor: '#c9d1d9',
+      fontSize: 11,
+      fontFamily: 'monospace'
+    },
+    grid: {
+      vertLines: { color: '#21262d' },
+      horzLines: { color: '#21262d' }
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: { color: '#58a6ff', width: 1, style: 3 },
+      horzLine: { color: '#58a6ff', width: 1, style: 3 }
+    },
+    localization: {
+      timeFormatter: (timestamp) => {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+    },
+    timeScale: {
+      borderColor: '#30363d',
+      timeVisible: true,
+      secondsVisible: false,
+      tickMarkFormatter: (time, tickMarkType, locale) => {
+        const date = new Date(time * 1000);
+        return date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+    },
+    rightPriceScale: {
+      borderColor: '#30363d',
+      alignLabels: true
+    }
+  });
+  
+  liveCandleSeries = liveChart.addCandlestickSeries({
+    upColor: '#2ea043',
+    downColor: '#f85149',
+    borderUpColor: '#2ea043',
+    borderDownColor: '#f85149',
+    wickUpColor: '#2ea043',
+    wickDownColor: '#f85149'
+  });
+  
+  liveVwapSeries = liveChart.addLineSeries({
+    color: '#ff9e2c',
+    lineWidth: 1,
+    lineStyle: LightweightCharts.LineStyle.Dashed,
+    title: 'VWAP'
+  });
+  
+  liveEma9Series = liveChart.addLineSeries({
+    color: '#58a6ff',
+    lineWidth: 1,
+    title: 'EMA 9'
+  });
+  
+  liveEma21Series = liveChart.addLineSeries({
+    color: '#ff5353',
+    lineWidth: 1,
+    title: 'EMA 21'
+  });
+  
+  try {
+    const res = await (await fetch('/api/live-chart-history')).json();
+    if (res.ok && res.candles && res.candles.length > 0) {
+      const candleData = [];
+      const vwapData = [];
+      const ema9Data = [];
+      const ema21Data = [];
+      
+      const ianaTz = 'America/Los_Angeles';
+      
+      function getZonedOffset(t, timeZone) {
+        try {
+          const date = new Date(t * 1000);
+          const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: timeZone,
+            year: 'numeric', month: 'numeric', day: 'numeric',
+            hour: 'numeric', minute: 'numeric', second: 'numeric',
+            hour12: false
+          });
+          const parts = formatter.formatToParts(date);
+          const map = {};
+          parts.forEach(p => { map[p.type] = p.value; });
+          const hr = parseInt(map.hour);
+          const utcZoned = Date.UTC(
+            parseInt(map.year),
+            parseInt(map.month) - 1,
+            parseInt(map.day),
+            hr === 24 ? 0 : hr,
+            parseInt(map.minute),
+            parseInt(map.second)
+          );
+          return (utcZoned - date.getTime()) / 1000;
+        } catch (e) {
+          return 0;
+        }
+      }
+      
+      res.candles.forEach(c => {
+        const targetOffset = getZonedOffset(c.time, ianaTz);
+        const browserOffset = -new Date(c.time * 1000).getTimezoneOffset() * 60;
+        const st = c.time + targetOffset - browserOffset;
+        
+        candleData.push({ time: st, open: c.open, high: c.high, low: c.low, close: c.close });
+        if (c.vwap !== null) vwapData.push({ time: st, value: c.vwap });
+        if (c.ema9 !== null) ema9Data.push({ time: st, value: c.ema9 });
+        if (c.ema21 !== null) ema21Data.push({ time: st, value: c.ema21 });
+      });
+      
+      liveCandleSeries.setData(candleData);
+      liveVwapSeries.setData(vwapData);
+      liveEma9Series.setData(ema9Data);
+      liveEma21Series.setData(ema21Data);
+      
+      if (candleData.length > 0) {
+        const lastCandle = candleData[candleData.length - 1];
+        lastLiveCandleTime = lastCandle.time;
+        lastLiveCandle = lastCandle;
+      }
+      
+      document.getElementById('live-chart-status').textContent = 'Connected (yfinance 1m)';
+    } else {
+      document.getElementById('live-chart-status').textContent = 'Live Data Unavailable';
+    }
+  } catch (err) {
+    console.error("Error loading live chart history:", err);
+    document.getElementById('live-chart-status').textContent = 'Offline';
+  }
+}
+
+function updateLiveChart(timeSec, price, vwap, ema9, ema21) {
+  if (!liveCandleSeries) return;
+  
+  if (timeSec > lastLiveCandleTime) {
+    lastLiveCandle = {
+      time: timeSec,
+      open: price,
+      high: price,
+      low: price,
+      close: price
+    };
+    lastLiveCandleTime = timeSec;
+  } else if (timeSec === lastLiveCandleTime && lastLiveCandle) {
+    lastLiveCandle.close = price;
+    lastLiveCandle.high = Math.max(lastLiveCandle.high, price);
+    lastLiveCandle.low = Math.min(lastLiveCandle.low, price);
+  } else {
+    return;
+  }
+  
+  liveCandleSeries.update(lastLiveCandle);
+  if (vwap != null) liveVwapSeries.update({ time: timeSec, value: Number(vwap) });
+  if (ema9 != null) liveEma9Series.update({ time: timeSec, value: Number(ema9) });
+  if (ema21 != null) liveEma21Series.update({ time: timeSec, value: Number(ema21) });
+}
+
+async function loadMarketNews() {
+  const newsBox = document.getElementById('live-news-box');
+  if (!newsBox) return;
+  try {
+    const res = await (await fetch('/api/news')).json();
+    if (res.ok && res.news && res.news.length > 0) {
+      newsBox.innerHTML = '';
+      res.news.forEach(item => {
+        const div = document.createElement('div');
+        div.style.cssText = 'border-bottom:1px solid #21262d;padding-bottom:10px;display:flex;flex-direction:column;gap:4px';
+        
+        let timeStr = item.time;
+        try {
+          const d = new Date(item.time);
+          timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) + ' — ' + d.toLocaleDateString();
+        } catch(e) {}
+        
+        div.innerHTML = `
+          <a href="${item.link}" target="_blank" style="color:#58a6ff;font-weight:700;font-size:0.85rem;text-decoration:none;line-height:1.45" class="news-link-hover">${item.title}</a>
+          <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#8b949e">
+            <span>Source: ${item.source}</span>
+            <span>${timeStr}</span>
+          </div>
+        `;
+        newsBox.appendChild(div);
+      });
+    } else {
+      newsBox.innerHTML = '<div style="color:#8b949e;font-size:0.85rem;text-align:center;padding:20px">No news articles found today.</div>';
+    }
+  } catch (err) {
+    console.error("Error loading news:", err);
+    newsBox.innerHTML = '<div style="color:#f85149;font-size:0.85rem;text-align:center;padding:20px">Failed to load news feed.</div>';
+  }
+}
+
+window.addEventListener('resize', () => {
+  if (liveChart) {
+    const container = document.getElementById('live-chart-container');
+    if (container) {
+      liveChart.resize(container.clientWidth, container.clientHeight);
+    }
+  }
+});
 
 function updateLive(d){
   const sig=d.signal||'WAITING', det=d.details||{}, stype=d.signal_type||'none';
@@ -1804,6 +2094,74 @@ function updateLive(d){
       <td>${fmt(h.spy)}</td><td>${fmt(h.qqq)}</td><td>${h.conf_tv||'--'}</td>
       <td>${h.rev_score!=null?h.rev_score+' '+h.rev_dir:'--'}</td><td>${h.st_flip||'--'}</td><td>${tlBreak}</td></tr>`;
   }).join(''):'<tr><td colspan="9" style="color:#555;text-align:center">No signals yet</td></tr>';
+
+  // Live chart update
+  if (det.spy_price != null && liveCandleSeries) {
+    const curTime = parseLocalISO(d.last_update || new Date().toISOString());
+    const tSec = Math.floor(curTime.getTime() / 1000);
+    const tMinSec = Math.floor(tSec / 60) * 60;
+    
+    const ianaTz = 'America/Los_Angeles';
+    function getZonedOffset(t, timeZone) {
+      try {
+        const date = new Date(t * 1000);
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone: timeZone,
+          year: 'numeric', month: 'numeric', day: 'numeric',
+          hour: 'numeric', minute: 'numeric', second: 'numeric',
+          hour12: false
+        });
+        const parts = formatter.formatToParts(date);
+        const map = {};
+        parts.forEach(p => { map[p.type] = p.value; });
+        const hr = parseInt(map.hour);
+        const utcZoned = Date.UTC(
+          parseInt(map.year),
+          parseInt(map.month) - 1,
+          parseInt(map.day),
+          hr === 24 ? 0 : hr,
+          parseInt(map.minute),
+          parseInt(map.second)
+        );
+        return (utcZoned - date.getTime()) / 1000;
+      } catch (e) {
+        return 0;
+      }
+    }
+    
+    const targetOffset = getZonedOffset(tMinSec, ianaTz);
+    const browserOffset = -new Date(tMinSec * 1000).getTimezoneOffset() * 60;
+    const shiftedTime = tMinSec + targetOffset - browserOffset;
+    
+    updateLiveChart(shiftedTime, Number(det.spy_price), det.vwap_1m, det.ema9_1m, det.ema21_1m);
+  }
+
+  // Market Direction calculation
+  const directionBadge = document.getElementById('market-direction-badge');
+  const directionIcon = document.getElementById('market-direction-icon');
+  if (directionBadge && directionIcon) {
+    if (confNum >= 4) {
+      directionBadge.textContent = 'STRONG BULLISH';
+      directionBadge.style.color = '#3fb950';
+      directionIcon.textContent = '🐂';
+    } else if (confNum === 3) {
+      directionBadge.textContent = 'MILD BULLISH';
+      directionBadge.style.color = '#58a6ff';
+      directionIcon.textContent = '📈';
+    } else if (confNum === 2) {
+      directionBadge.textContent = 'MILD BEARISH';
+      directionBadge.style.color = '#ff9e2c';
+      directionIcon.textContent = '📉';
+    } else if (confNum <= 1) {
+      directionBadge.textContent = 'STRONG BEARISH';
+      directionBadge.style.color = '#f85149';
+      directionIcon.textContent = '🐻';
+    } else {
+      directionBadge.textContent = 'NEUTRAL / SIDEWAYS';
+      directionBadge.style.color = '#8b949e';
+      directionIcon.textContent = '⚖️';
+    }
+  }
 }
 
 function updatePaper(d){
@@ -3522,6 +3880,11 @@ document.addEventListener('DOMContentLoaded', function() {
       if(tabName) sw(tabName);
     });
   });
+  
+  // Initial live tab setup
+  initLiveChart();
+  loadMarketNews();
+  setInterval(loadMarketNews, 300000);
 });
 </script>
 
