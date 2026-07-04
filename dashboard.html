@@ -949,6 +949,43 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
   3. <span style="color:#00bcd4">Cyan/orange circles</span> — strong warning, confirm with other signals<br>
   4. <span style="color:#8b949e">D arrows / faint dots</span> — early warning only, do not trade alone
 </div>
+
+<div class="guide-section">Market Direction of the Day</div>
+
+<div style="margin-top:10px;padding:14px;background:#161b22;border:1px solid #30363d;border-radius:10px;font-size:12.5px;line-height:1.65;color:#e6edf3">
+  <div style="font-weight:700;color:#58a6ff;margin-bottom:8px;font-size:13px">How it is decided:</div>
+  The badge evaluates a <strong>5-Factor Confluence model</strong> in real-time, monitoring:
+  <ul style="margin:5px 0 10px 20px;color:#c9d1d9">
+    <li><strong>SPY 1m &amp; 5m Trends (Supertrend)</strong>: Price direction on quick and macro timeframes.</li>
+    <li><strong>QQQ 1m Trend</strong>: Tech correlation check (ensures QQQ is moving with SPY).</li>
+    <li><strong>MACD BB (1m)</strong>: Confirms expanding buying/selling momentum.</li>
+    <li><strong>NYSE ADD (Market Breadth)</strong>: Measures the number of advancing vs falling stocks. <em>(Acts as a filter to reject false, low-volume breakouts)</em>.</li>
+  </ul>
+  
+  <div style="font-weight:700;color:#58a6ff;margin-top:12px;margin-bottom:8px;font-size:13px">How to trade it:</div>
+  <table style="width:100%;font-size:12px;border-collapse:collapse;margin-top:5px">
+    <tr style="border-bottom:1px solid #21262d">
+      <td style="padding:6px 0;font-weight:700;color:#3fb950;width:150px">🐂 STRONG BULLISH</td>
+      <td style="padding:6px 0;color:#8b949e">Score &ge; 4/5. High-probability uptrend. <strong>Bias: Long / CALL setups only.</strong> Never short.</td>
+    </tr>
+    <tr style="border-bottom:1px solid #21262d">
+      <td style="padding:6px 0;font-weight:700;color:#58a6ff">📈 MILD BULLISH</td>
+      <td style="padding:6px 0;color:#8b949e">Score = 3/5. Moderate upward bias. Be selective, lock in profits quickly.</td>
+    </tr>
+    <tr style="border-bottom:1px solid #21262d">
+      <td style="padding:6px 0;font-weight:700;color:#8b949e">⚖️ NEUTRAL / SIDEWAYS</td>
+      <td style="padding:6px 0;color:#8b949e">Mixed indicators. Expect choppy channels. <strong>Reduce position sizes or stand aside.</strong></td>
+    </tr>
+    <tr style="border-bottom:1px solid #21262d">
+      <td style="padding:6px 0;font-weight:700;color:#ff9e2c">📉 MILD BEARISH</td>
+      <td style="padding:6px 0;color:#8b949e">Score = 2/5. Moderate downward bias. Watch for reversal triggers.</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0;font-weight:700;color:#f85149">🐻 STRONG BEARISH</td>
+      <td style="padding:6px 0;color:#8b949e">Score &le; 1/5. Heavy selling pressure. <strong>Bias: Short / PUT setups only.</strong> Never go long.</td>
+    </tr>
+  </table>
+</div>
 </div>
 
 <!-- ══ TAB: TRENDLINE BREAKS ══ -->
