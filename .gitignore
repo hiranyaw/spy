@@ -88,3 +88,7 @@ SETUP_GUIDE.md
 RAILWAY_DEPLOYMENT.md
 RAILWAY_QUICKSTART.md
 RUN_SETUP.bat
+
+# Exclude sensitive keys and personal trading statements
+.env
+TOS/
