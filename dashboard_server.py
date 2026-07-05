@@ -1808,6 +1808,73 @@ def get_high_confluence_history():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/webhook/signal", methods=["POST"])
+def tv_webhook_signal():
+    """Secure webhook endpoint for TradingView Alerts to post signals directly"""
+    token = request.args.get("token")
+    expected_token = os.getenv("WEBHOOK_TOKEN", "spy_secret_token")
+    if token != expected_token:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+        
+    try:
+        req = request.get_json(force=True)
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Invalid JSON body: {e}"}), 400
+        
+    sig_label = req.get("signal", "WAITING")
+    sig_type = req.get("signal_type", "none")
+    spy_price = req.get("spy") or req.get("price")
+    
+    if not spy_price:
+        return jsonify({"ok": False, "error": "Missing spy/price in payload"}), 400
+        
+    details = {
+        "spy_price":     float(spy_price),
+        "qqq_price":     float(req.get("qqq") or spy_price),
+        "add":           float(req.get("add") or 0.0),
+        "conf_tv":       str(req.get("conf_tv") or "0"),
+        "rev_score":     int(req.get("rev_score") or 0),
+        "rev_dir":       req.get("rev_dir", ""),
+        "signal_tv":     req.get("macd_dir", ""),
+        "vwap_pct":      float(req.get("vwap_pct") or 0.0),
+        "st_flip":       req.get("st_flip", ""),
+        "div_signal":    req.get("div_signal", ""),
+        "spy1_dir":      req.get("spy1_dir", ""),
+        "spy5_dir":      req.get("spy5_dir", ""),
+        "tl_break":      req.get("tl_break", ""),
+        "status_tv":     "READY",
+        "vix":           float(req.get("vix") or 15.0),
+        "vix_regime":    req.get("vix_regime", "NORMAL")
+    }
+    
+    payload = {
+        "signal":      sig_label,
+        "signal_type": sig_type,
+        "details":     details,
+        "last_update": datetime.now().isoformat()
+    }
+    
+    # Save to database or JSON
+    if DB_AVAILABLE:
+        try:
+            db.insert_signal(sig_label, sig_type, spy_price, json.dumps(payload))
+        except Exception as db_err:
+            print(f"Error saving webhook signal to DB: {db_err}")
+            save_signals_json(payload)
+    else:
+        save_signals_json(payload)
+        
+    return jsonify({"ok": True, "message": "Signal received successfully", "payload": payload})
+
+def save_signals_json(payload):
+    try:
+        with open(SIGNALS, "w") as f:
+            json.dump(payload, f, indent=2)
+    except Exception as e:
+        print(f"Error saving signals.json: {e}")
+
+
+
 
 @app.route("/control/restart_server", methods=["POST"])
 def restart_server():
