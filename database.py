@@ -38,6 +38,18 @@ def log_db_event(message, level="INFO"):
     except:
         pass
 
+def clean_int(val):
+    if val is None:
+        return 0
+    val_str = str(val).strip()
+    if "/" in val_str:
+        val_str = val_str.split("/")[0]
+    try:
+        return int(val_str)
+    except:
+        return 0
+
+
 class Database:
     def __init__(self):
         self.conn = None
@@ -98,7 +110,7 @@ class Database:
                     signal_data.get("signal"),
                     signal_data.get("signal_type"),
                     signal_data.get("status"),
-                    signal_data.get("conf_tv"),
+                    clean_int(signal_data.get("conf_tv")),
                     signal_data.get("spy_price"),
                     signal_data.get("qqq_price"),
                     signal_data.get("add_value"),
@@ -166,7 +178,7 @@ class Database:
                     trade_data.get("direction"),
                     trade_data.get("entry_price"),
                     trade_data.get("signal_type"),
-                    trade_data.get("conf_score")
+                    clean_int(trade_data.get("conf_score"))
                 ))
                 trade_id = cur.fetchone()[0]
                 self.conn.commit()
@@ -276,7 +288,7 @@ class Database:
                     trade_data.get("entry_price"),
                     trade_data.get("direction"),
                     trade_data.get("signal"),
-                    trade_data.get("conf_score"),
+                    clean_int(trade_data.get("conf_score")),
                     json.dumps(trade_data.get("snapshot", {}), default=str)
                 ))
                 self.conn.commit()
