@@ -171,6 +171,9 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
       </select>
       <span id="countdown-badge" style="background:#1f2937;color:#58a6ff;border:1px solid #30363d;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700;font-family:monospace;margin-left:2px;display:none">--s</span>
     </div>
+    <button onclick="runDiagnostics()" style="background:#21262d;border:1px solid #30363d;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;color:#c9d1d9;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all 0.2s;outline:none;margin-left:6px;hover:background:#30363d">
+      <span>🔧</span> Run Diagnostics
+    </button>
   </div>
   <span id="upd">--</span>
 </div>
@@ -4181,6 +4184,113 @@ function onTzChange() {
   }
 }
 
+function openDiagnosticsModal() {
+  const modal = document.getElementById('diagnostics-modal');
+  modal.style.display = 'flex';
+}
+
+function closeDiagnosticsModal() {
+  const modal = document.getElementById('diagnostics-modal');
+  modal.style.display = 'none';
+}
+
+async function runDiagnostics() {
+  openDiagnosticsModal();
+  
+  const resultsBox = document.getElementById('diag-results-box');
+  const overallBadge = document.getElementById('diag-overall-badge');
+  
+  // Set loading
+  resultsBox.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:12px">
+      <div style="border:4px solid #21262d;border-top:4px solid #58a6ff;border-radius:50%;width:32px;height:32px;animation:spin 1s linear infinite"></div>
+      <div style="color:#8b949e;font-size:13px;font-weight:600">Running diagnostic checks...</div>
+    </div>
+  `;
+  overallBadge.style.display = 'none';
+  
+  try {
+    const res = await fetch('/api/diagnostics/run');
+    const data = await res.json();
+    
+    if (!data.ok) {
+      throw new Error(data.error || 'Server error');
+    }
+    
+    let html = '';
+    const keys = Object.keys(data.results);
+    
+    keys.forEach(k => {
+      const item = data.results[k];
+      const isPass = item.status === 'PASS';
+      const statusIcon = isPass ? '✓' : '✗';
+      const statusColor = isPass ? '#3fb950' : '#f85149';
+      const statusBg = isPass ? 'rgba(56,139,253,0.1)' : 'rgba(248,81,73,0.1)';
+      
+      html += `
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;display:flex;gap:12px;align-items:start">
+          <div style="width:24px;height:24px;border-radius:50%;background:${statusBg};border:1.5px solid ${statusColor};color:${statusColor};display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;flex-shrink:0;margin-top:2px">
+            ${statusIcon}
+          </div>
+          <div style="flex:1">
+            <h4 style="margin:0;font-size:14px;color:#e6edf3;font-weight:600">${item.name}</h4>
+            <p style="margin:4px 0 0;font-size:12px;color:#8b949e;line-height:1.4">${item.description}</p>
+      `;
+      
+      // If table details exist, display them
+      if (item.details && item.details.tables) {
+        html += `<div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px;font-family:monospace;background:#0d1117;padding:8px;border-radius:6px;border:1px solid #21262d">`;
+        Object.keys(item.details.tables).forEach(tbl => {
+          const tVal = item.details.tables[tbl];
+          const isTblOk = !tVal.includes('Error');
+          const tCol = isTblOk ? '#3fb950' : '#f85149';
+          html += `<div><strong>${tbl}:</strong> <span style="color:${tCol}">${tVal}</span></div>`;
+        });
+        html += `</div>`;
+      }
+      
+      // If tv_tabs details exist, display them
+      if (item.details && item.details.tv_tabs) {
+        html += `<div style="margin-top:8px;font-size:10px;font-family:monospace;background:#0d1117;padding:8px;border-radius:6px;border:1px solid #21262d">`;
+        item.details.tv_tabs.forEach(tab => {
+          html += `<div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${tab.url}"><strong>Tab:</strong> ${tab.title}</div>`;
+        });
+        html += `</div>`;
+      }
+      
+      html += `
+          </div>
+        </div>
+      `;
+    });
+    
+    resultsBox.innerHTML = html;
+    
+    // Set overall status badge
+    overallBadge.style.display = 'inline-block';
+    if (data.all_passed) {
+      overallBadge.style.background = 'rgba(56,139,253,0.15)';
+      overallBadge.style.color = '#58a6ff';
+      overallBadge.textContent = 'ALL SYSTEMS GO ⚡';
+    } else {
+      overallBadge.style.background = 'rgba(248,81,73,0.15)';
+      overallBadge.style.color = '#f85149';
+      overallBadge.textContent = 'ACTION REQUIRED ⚡';
+    }
+    
+  } catch (err) {
+    resultsBox.innerHTML = `
+      <div style="background:rgba(248,81,73,0.1);border:1px solid #da3633;border-radius:8px;padding:16px;color:#f85149;font-size:13px;line-height:1.4">
+        <strong>Error running diagnostics test:</strong> ${err.message}
+      </div>
+    `;
+    overallBadge.style.display = 'inline-block';
+    overallBadge.style.background = 'rgba(248,81,73,0.15)';
+    overallBadge.style.color = '#f85149';
+    overallBadge.textContent = 'TEST ERROR ⚡';
+  }
+}
+
 // Tab event listeners (no inline onclick to bypass CSP)
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.tab').forEach(tab => {
@@ -4196,6 +4306,41 @@ document.addEventListener('DOMContentLoaded', function() {
   setInterval(loadMarketNews, 300000);
 });
 </script>
+
+<!-- Diagnostics Modal -->
+<div id="diagnostics-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:24px;max-width:550px;width:90%;box-shadow:0 10px 25px rgba(0,0,0,0.5);position:relative;display:flex;flex-direction:column;max-height:85vh">
+    <button onclick="closeDiagnosticsModal()" style="position:absolute;top:15px;right:15px;background:none;border:none;color:#8b949e;cursor:pointer;font-size:22px;line-height:1;outline:none">&times;</button>
+    
+    <style>
+    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    </style>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;border-bottom:1px solid #21262d;padding-bottom:12px;flex-shrink:0">
+      <div style="font-size:24px">🔧</div>
+      <div>
+        <h3 style="margin:0;font-size:18px;font-weight:700;color:#e6edf3">System Diagnostics Test</h3>
+        <p style="margin:2px 0 0;font-size:12px;color:#8b949e">Verifying bot, database, APIs, and Chrome connection</p>
+      </div>
+    </div>
+    
+    <div id="diag-results-box" style="flex:1;overflow-y:auto;margin-bottom:20px;display:flex;flex-direction:column;gap:14px;padding-right:5px">
+      <!-- Loading spinner initially -->
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:12px">
+        <div style="border:4px solid #21262d;border-top:4px solid #58a6ff;border-radius:50%;width:32px;height:32px;animation:spin 1s linear infinite"></div>
+        <div style="color:#8b949e;font-size:13px;font-weight:600">Running diagnostic checks...</div>
+      </div>
+    </div>
+    
+    <div style="flex-shrink:0;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #21262d;padding-top:14px">
+      <span id="diag-overall-badge" style="font-size:12px;font-weight:700;padding:4px 10px;border-radius:12px"></span>
+      <div style="display:flex;gap:8px">
+        <button onclick="runDiagnostics()" style="background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;outline:none;font-family:inherit;font-weight:600">Re-Run</button>
+        <button onclick="closeDiagnosticsModal()" style="background:#238636;border:1px solid #2ea44f;color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;outline:none;font-family:inherit;font-weight:600">Dismiss</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- TV Status Modal -->
 <div id="tv-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center">

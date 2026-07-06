@@ -1942,6 +1942,150 @@ def save_signals_json(payload):
         print(f"Error saving signals.json: {e}")
 
 
+@app.route("/api/diagnostics/run")
+def diagnostics_run():
+    import requests
+    import socket
+    results = {}
+    
+    # 1. Database Connection & Schema Test
+    db_ok = False
+    db_reason = "Not attempted"
+    db_details = {}
+    if DB_AVAILABLE:
+        try:
+            # Check simple query
+            with db.conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                res = cur.fetchone()[0]
+                if res == 1:
+                    db_ok = True
+                    db_reason = "Successfully connected & queried database"
+            
+            # Check table existence by querying count
+            tables = ["signals", "paper_trades", "manual_trades", "trendline_breaks"]
+            table_status = {}
+            for t in tables:
+                try:
+                    with db.conn.cursor() as cur:
+                        cur.execute(f"SELECT COUNT(*) FROM {t}")
+                        count = cur.fetchone()[0]
+                        table_status[t] = f"OK ({count} rows)"
+                except Exception as table_err:
+                    db.conn.rollback()
+                    table_status[t] = f"Error: {str(table_err)}"
+            db_details["tables"] = table_status
+        except Exception as e:
+            db_reason = f"Database query failed: {e}"
+    else:
+        db_reason = "PostgreSQL connection not active (using JSON fallback)"
+        
+    results["database"] = {
+        "status": "PASS" if db_ok else "FAIL",
+        "name": "PostgreSQL Connection & Schema Health",
+        "description": db_reason,
+        "details": db_details
+    }
+    
+    # 2. Alpaca API connection
+    alpaca_ok = False
+    alpaca_reason = "Alpaca API Keys not set"
+    alpaca_key = os.getenv("ALPACA_API_KEY")
+    alpaca_secret = os.getenv("ALPACA_SECRET_KEY")
+    
+    if alpaca_key and alpaca_secret:
+        try:
+            headers = {
+                "APCA-API-KEY-ID": alpaca_key,
+                "APCA-API-SECRET-KEY": alpaca_secret
+            }
+            # Query paper account status
+            r = requests.get("https://paper-api.alpaca.markets/v2/account", headers=headers, timeout=5)
+            if r.status_code == 200:
+                alpaca_ok = True
+                acct = r.json()
+                alpaca_reason = f"Alpaca API connected successfully. Account Status: {acct.get('status')} | Currency: {acct.get('currency')} | Buying Power: ${acct.get('buying_power')}"
+            else:
+                alpaca_reason = f"Alpaca API responded with status {r.status_code}: {r.text}"
+        except Exception as e:
+            alpaca_reason = f"Failed to connect to Alpaca API: {e}"
+            
+    results["alpaca"] = {
+        "status": "PASS" if alpaca_ok else "FAIL",
+        "name": "Alpaca API connection",
+        "description": alpaca_reason
+    }
+    
+    # 3. Chrome CDP / TradingView tab connection
+    chrome_ok = False
+    chrome_reason = "Chrome debug port 9222 is closed"
+    chrome_details = {}
+    
+    # Check if port 9222 is listening locally
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(1.0)
+    try:
+        s.connect(("127.0.0.1", 9222))
+        s.close()
+        chrome_port_listening = True
+    except:
+        chrome_port_listening = False
+        
+    if chrome_port_listening:
+        try:
+            # Query Chrome version/json endpoints
+            r = requests.get("http://127.0.0.1:9222/json", timeout=3)
+            tabs = r.json()
+            chrome_details["active_tabs_count"] = len(tabs)
+            
+            # Search for TradingView
+            tv_tabs = [t for t in tabs if "tradingview.com" in t.get("url", "")]
+            if tv_tabs:
+                chrome_ok = True
+                chrome_reason = f"Chrome CDP active on port 9222. Found {len(tv_tabs)} TradingView tab(s)!"
+                chrome_details["tv_tabs"] = [{"title": t.get("title"), "url": t.get("url")} for t in tv_tabs]
+            else:
+                chrome_reason = "Chrome debug port is open, but no active TradingView charts were found. Open tradingview.com/chart in Chrome."
+        except Exception as e:
+            chrome_reason = f"Chrome port 9222 is open, but failed to fetch tabs: {e}"
+            
+    results["chrome_cdp"] = {
+        "status": "PASS" if chrome_ok else "FAIL",
+        "name": "Google Chrome remote-debugging (CDP)",
+        "description": chrome_reason,
+        "details": chrome_details
+    }
+    
+    # 4. Market Context (Economic events calendar)
+    calendar_ok = False
+    calendar_reason = "Failed to load market context calendar"
+    calendar_details = {}
+    try:
+        from market_context import get_full_context
+        ctx = get_full_context()
+        if ctx:
+            calendar_ok = True
+            calendar_reason = f"Market calendar working. VIX: {ctx.get('vix')} | Regime: {ctx.get('vix_regime')} | Today's macro events count: {len(ctx.get('events', []))}"
+            calendar_details["events"] = ctx.get("events", [])
+            calendar_details["vix_regime"] = ctx.get("vix_regime")
+    except Exception as e:
+        calendar_reason = f"Error in market context module: {e}"
+        
+    results["market_context"] = {
+        "status": "PASS" if calendar_ok else "FAIL",
+        "name": "Market Context & Macro Calendar",
+        "description": calendar_reason,
+        "details": calendar_details
+    }
+    
+    # Determine overall status
+    all_ok = all(r["status"] == "PASS" for r in results.values())
+    
+    return jsonify({
+        "ok": True,
+        "all_passed": all_ok,
+        "results": results
+    })
 
 
 @app.route("/control/restart_server", methods=["POST"])

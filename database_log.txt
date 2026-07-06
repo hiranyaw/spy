@@ -225,3 +225,79 @@ LINE 5: ... 'WAIT', 3, 745.71, 745.7
 [21:58:31] [SUCCESS] ✓ Signal saved to DB (ID: 20)
 [21:58:46] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
 [21:58:46] [SUCCESS] ✓ Signal saved to DB (ID: 21)
+[21:59:02] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:59:02] [SUCCESS] ✓ Signal saved to DB (ID: 22)
+[21:59:17] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:59:17] [SUCCESS] ✓ Signal saved to DB (ID: 23)
+[21:59:32] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:59:32] [SUCCESS] ✓ Signal saved to DB (ID: 24)
+[21:59:48] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:59:48] [SUCCESS] ✓ Signal saved to DB (ID: 25)
+[22:00:03] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:00:03] [SUCCESS] ✓ Signal saved to DB (ID: 26)
+[22:00:18] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:00:18] [SUCCESS] ✓ Signal saved to DB (ID: 27)
+[22:00:34] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:00:34] [SUCCESS] ✓ Signal saved to DB (ID: 28)
+[22:00:49] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:00:49] [SUCCESS] ✓ Signal saved to DB (ID: 29)
+[22:01:04] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:01:04] [SUCCESS] ✓ Signal saved to DB (ID: 30)
+[22:01:20] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:01:20] [SUCCESS] ✓ Signal saved to DB (ID: 31)
+[22:01:35] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:01:35] [SUCCESS] ✓ Signal saved to DB (ID: 32)
+[22:01:51] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:01:51] [SUCCESS] ✓ Signal saved to DB (ID: 33)
+[22:02:06] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:02:06] [SUCCESS] ✓ Signal saved to DB (ID: 34)
+[22:02:21] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:02:21] [SUCCESS] ✓ Signal saved to DB (ID: 35)
+[22:02:37] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:02:37] [SUCCESS] ✓ Signal saved to DB (ID: 36)
+[22:02:52] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:02:52] [SUCCESS] ✓ Signal saved to DB (ID: 37)
+[22:03:07] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:03:07] [SUCCESS] ✓ Signal saved to DB (ID: 38)
+[22:03:23] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:03:23] [SUCCESS] ✓ Signal saved to DB (ID: 39)
+[22:03:38] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:03:38] [SUCCESS] ✓ Signal saved to DB (ID: 40)
+[22:03:53] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:03:53] [SUCCESS] ✓ Signal saved to DB (ID: 41)
+[22:04:09] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:04:09] [SUCCESS] ✓ Signal saved to DB (ID: 42)
+[22:04:24] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:04:24] [SUCCESS] ✓ Signal saved to DB (ID: 43)
+[22:04:39] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:04:39] [SUCCESS] ✓ Signal saved to DB (ID: 44)
+[22:04:55] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:04:55] [SUCCESS] ✓ Signal saved to DB (ID: 45)
+[22:05:10] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:05:10] [SUCCESS] ✓ Signal saved to DB (ID: 46)
+[22:05:30] [INFO] Attempting to connect to PostgreSQL...
+[22:05:30] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[22:05:30] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[22:05:30] [INFO] Attempting to connect to PostgreSQL...
+[22:05:30] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[22:05:30] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[22:05:43] [INFO] Attempting to connect to PostgreSQL...
+[22:05:43] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[22:05:43] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[22:05:43] [INFO] Attempting to connect to PostgreSQL...
+[22:05:43] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[22:05:43] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[22:05:47] [INFO] Attempting to connect to PostgreSQL...
+[22:05:47] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[22:05:48] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[22:05:48] [INFO] Attempting to connect to PostgreSQL...
+[22:05:48] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[22:05:48] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[22:05:58] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:05:58] [SUCCESS] ✓ Signal saved to DB (ID: 47)
+[22:05:59] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:05:59] [SUCCESS] ✓ Signal saved to DB (ID: 48)
+[22:06:13] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:06:13] [SUCCESS] ✓ Signal saved to DB (ID: 49)
+[22:06:14] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[22:06:14] [SUCCESS] ✓ Signal saved to DB (ID: 50)
