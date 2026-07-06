@@ -66,6 +66,7 @@ class Database:
 
             log_db_event(f"DATABASE_URL: {DATABASE_URL[:50]}...", "DEBUG")
             self.conn = psycopg2.connect(DATABASE_URL)
+            self.conn.autocommit = True
             self.is_connected = True
             log_db_event("✓ Successfully connected to PostgreSQL database!", "SUCCESS")
             return True
