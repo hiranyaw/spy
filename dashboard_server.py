@@ -26,9 +26,23 @@ except:
     print("⚠️  Database not available, using JSON fallback")
 
 def sanitize(obj):
-    """Recursively replace NaN/Infinity with None so JSON serialization is valid."""
+    """Recursively replace NaN/Infinity with None, and convert date/time/Decimal to JSON-serializable types."""
+    import datetime as dt
+    from decimal import Decimal
+    
     if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
         return None
+    if isinstance(obj, Decimal):
+        return float(obj)
+    # Check datetime first as datetime is a subclass of date
+    if isinstance(obj, dt.datetime):
+        return obj.isoformat()
+    if isinstance(obj, dt.date):
+        return obj.strftime("%Y-%m-%d")
+    if isinstance(obj, dt.time):
+        return obj.strftime("%H:%M:%S")
+    if isinstance(obj, dt.timedelta):
+        return str(obj)
     if isinstance(obj, dict):
         return {k: sanitize(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -296,7 +310,7 @@ def trendline_breaks_endpoint():
                 by_date[date] = []
             by_date[date].append(br)
 
-        return jsonify({"breaks": breaks, "by_date": by_date})
+        return jsonify(sanitize({"breaks": breaks, "by_date": by_date}))
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
