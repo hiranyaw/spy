@@ -2344,12 +2344,30 @@ function updateLive(d){
   } else {
     evBox.style.borderColor = '#f0883e';
     evBox.style.background = '#2a1a00';
-    evEl.innerHTML = events.map(e =>
-      `<div style="color:${e.impact==='HIGH'?'#f85149':'#f0883e'};margin-bottom:2px">
-        ${e.impact==='HIGH'?'HALT':'SLOW'} ${e.name} at ${e.time_et} ET
-        ${e.minutes > 0 ? `(in ${e.minutes}m)` : `(${Math.abs(e.minutes)}m ago)`}
-      </div>`
-    ).join('');
+    evEl.innerHTML = events.map(e => {
+      let effectHtml = '';
+      const nameUpper = (e.name || '').toUpperCase();
+      if (nameUpper.includes('CPI') || nameUpper.includes('INFLATION') || nameUpper.includes('PPI')) {
+        effectHtml = `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#3d1515;color:#f85149;border:1px solid #f85149;margin-left:4px">Bearish if Hot</span>
+                      <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#0d3320;color:#3fb950;border:1px solid #3fb950;margin-left:4px">Bullish if Cool</span>`;
+      } else if (nameUpper.includes('FOMC') || nameUpper.includes('RATE')) {
+        effectHtml = `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#3d2200;color:#f0883e;border:1px solid #f0883e;margin-left:4px">High Volatility (Rate decision)</span>`;
+      } else if (nameUpper.includes('PAYROLL') || nameUpper.includes('NFP') || nameUpper.includes('EMPLOYMENT')) {
+        effectHtml = `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#0d2a3d;color:#58a6ff;border:1px solid #58a6ff;margin-left:4px">Jobs: Bullish if Steady</span>`;
+      } else if (nameUpper.includes('GDP')) {
+        effectHtml = `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#0d3320;color:#3fb950;border:1px solid #3fb950;margin-left:4px">Bullish if Strong</span>`;
+      } else {
+        effectHtml = `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#161b22;color:#8b949e;border:1px solid #30363d;margin-left:4px">Volatility Spike</span>`;
+      }
+      
+      const timeStr = e.time_et || e.time || '--:--';
+      const minStr = e.minutes !== undefined ? (e.minutes > 0 ? `(in ${e.minutes}m)` : `(${Math.abs(e.minutes)}m ago)`) : '';
+      
+      return `<div style="color:${e.impact==='HIGH'?'#f85149':'#f0883e'};margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #21262d">
+        <div style="font-weight:600">${e.impact==='HIGH'?'🔴 HALT':'🟡 SLOW'} ${e.name} at ${timeStr} ET ${minStr}</div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:4px">${effectHtml}</div>
+      </div>`;
+    }).join('');
   }
 
   // Paused banner
