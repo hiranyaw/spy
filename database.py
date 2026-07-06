@@ -92,6 +92,31 @@ class Database:
             self.connect()
 
     # ── SIGNALS TABLE ──
+    def insert_signal(self, signal, signal_type, spy_price, raw_data_json):
+        """Insert a signal directly (called by webhook in dashboard_server)"""
+        self.ensure_connected()
+        try:
+            raw_data = json.loads(raw_data_json)
+            details = raw_data.get("details", {})
+        except:
+            details = {}
+            
+        signal_data = {
+            "signal": signal,
+            "signal_type": signal_type,
+            "spy_price": spy_price,
+            "qqq_price": details.get("qqq_price") or details.get("qqq") or spy_price,
+            "add_value": details.get("add") or details.get("add_value") or 0.0,
+            "conf_tv": details.get("conf_tv") or details.get("confidence") or "0",
+            "status": details.get("status_tv") or details.get("status") or "READY",
+            "macd_dir": details.get("signal_tv") or details.get("macd_dir") or "",
+            "rev_score": details.get("rev_score") or 0,
+            "rev_dir": details.get("rev_dir") or "",
+            "st_flip": details.get("st_flip") or "",
+            "tl_break": details.get("tl_break") or "",
+        }
+        return self.save_signal(signal_data)
+
     def save_signal(self, signal_data):
         """Save trading signal to database"""
         self.ensure_connected()
@@ -99,6 +124,15 @@ class Database:
             signal = signal_data.get("signal", "UNKNOWN")
             spy_price = signal_data.get("spy_price", "?")
             log_db_event(f"📊 Saving signal: {signal} @ SPY ${spy_price}")
+
+            # Safely convert st_flip to boolean
+            st_flip_raw = signal_data.get("st_flip")
+            st_flip_bool = False
+            if st_flip_raw:
+                if isinstance(st_flip_raw, str):
+                    st_flip_bool = "FLIPPED" in st_flip_raw.upper()
+                else:
+                    st_flip_bool = bool(st_flip_raw)
 
             with self.conn.cursor() as cur:
                 cur.execute("""
@@ -118,7 +152,7 @@ class Database:
                     signal_data.get("macd_dir"),
                     signal_data.get("rev_score"),
                     signal_data.get("rev_dir"),
-                    signal_data.get("st_flip"),
+                    st_flip_bool,
                     signal_data.get("tl_break"),
                     json.dumps(signal_data, default=str)
                 ))

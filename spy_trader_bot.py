@@ -20,6 +20,14 @@ def la_now():
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+# Database integration
+DB_AVAILABLE = False
+try:
+    from database import db
+    DB_AVAILABLE = db.connect()
+except Exception as db_err:
+    pass
+
 # Market context (VIX, calendar, gap)
 try:
     from market_context import get_full_context
@@ -520,6 +528,12 @@ class PaperTrader:
                 self.trades.append(trade)
                 self._save()
                 logger.info(f"[PAPER] CLOSED {pos_dir} @ {spy_price:.2f} | PnL: {pnl:+.3f} | {'WIN' if pnl>0 else 'LOSS'} [{self.position.get('signal_type','')}]")
+                
+                if DB_AVAILABLE and self.position.get("db_id"):
+                    try:
+                        db.close_paper_trade(self.position["db_id"], round(spy_price, 2))
+                    except Exception as db_err:
+                        logger.warning(f"Failed to close paper trade in database: {db_err}")
                 self.position = None
 
         # Open new position
@@ -536,6 +550,20 @@ class PaperTrader:
                 "sl_price":    sl,
                 "atr":         atr,
             }
+            db_trade = {
+                "entry_time":  datetime.now(),
+                "direction":   new_dir,
+                "entry_price": spy_price,
+                "signal_type": signal_type,
+                "conf_score":  None
+            }
+            if DB_AVAILABLE:
+                try:
+                    trade_id = db.save_paper_trade(db_trade)
+                    self.position["db_id"] = trade_id
+                except Exception as db_err:
+                    logger.warning(f"Failed to save paper trade to database: {db_err}")
+
             atr_str = f"ATR={atr:.4f}" if atr else "ATR=fallback"
             logger.info(f"[PAPER] OPENED {new_dir} @ {spy_price:.2f} | TP={tp} SL={sl} [{atr_str}] [{signal_type}]")
 
@@ -715,17 +743,25 @@ def record_trendline_break(details):
                     pass
 
         # Record the break
-        data["breaks"].append({
+        break_item = {
             "date": date_str,
             "time": time_str,
             "symbol": "SPY",
             "direction": tl_break,
-            "price": str(spy_price) if spy_price else "?"
-        })
+            "price": str(spy_price) if spy_price else "?",
+            "is_manual": False
+        }
+        data["breaks"].append(break_item)
 
         with open(TRENDLINE_BREAKS_FILE, "w") as f:
             json.dump(data, f, indent=2)
         logger.info(f"✓ RECORDED: SPY Trendline {tl_break} @ {spy_price} [{time_str}]")
+
+        if DB_AVAILABLE:
+            try:
+                db.save_trendline_break(break_item)
+            except Exception as db_err:
+                logger.warning(f"Failed to save trendline break to database: {db_err}")
     except Exception as e:
         logger.warning(f"Failed to record trendline break: {e}")
 
@@ -763,6 +799,26 @@ def save_signal(signal, signal_type, details, history, paper):
             json.dump(_clean(payload), f, indent=2, default=str)
     except Exception as e:
         logger.warning(f"signals.json write failed: {e}")
+
+    if DB_AVAILABLE:
+        try:
+            db_payload = {
+                "signal":        signal,
+                "signal_type":   signal_type,
+                "status":        details.get("status_tv") or details.get("status") or "READY",
+                "conf_tv":       details.get("conf_tv") or details.get("confidence") or "0",
+                "spy_price":     spy_f,
+                "qqq_price":     float(details.get("qqq_price") or details.get("qqq") or spy_f or 0.0),
+                "add_value":     float(details.get("add") or details.get("add_value") or 0.0),
+                "macd_dir":      details.get("signal_tv") or details.get("macd_dir") or "",
+                "rev_score":     int(details.get("rev_score") or 0),
+                "rev_dir":       details.get("rev_dir") or "",
+                "st_flip":       details.get("st_flip") or "",
+                "tl_break":      details.get("tl_break") or "",
+            }
+            db.save_signal(db_payload)
+        except Exception as db_err:
+            logger.warning(f"Failed to save signal to database: {db_err}")
 
 
 # ── Main Bot ──────────────────────────────────────────────────

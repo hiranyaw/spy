@@ -151,3 +151,77 @@
 [17:38:54] [INFO] Attempting to connect to PostgreSQL...
 [17:38:54] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
 [17:38:54] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[21:52:42] [INFO] Attempting to connect to PostgreSQL...
+[21:52:42] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[21:52:43] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[21:52:43] [INFO] Attempting to connect to PostgreSQL...
+[21:52:43] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[21:52:43] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[21:52:53] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:52:53] [ERROR] ❌ Error saving signal: invalid input syntax for type boolean: "--"
+LINE 5: ... 'WAIT', 3, 745.71, 745.7
+[21:53:09] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:53:09] [ERROR] ❌ Error saving signal: invalid input syntax for type boolean: "--"
+LINE 5: ... 'WAIT', 3, 745.71, 745.7
+[21:53:24] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:53:24] [ERROR] ❌ Error saving signal: invalid input syntax for type boolean: "--"
+LINE 5: ... 'WAIT', 3, 745.71, 745.7
+[21:53:39] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:53:39] [ERROR] ❌ Error saving signal: invalid input syntax for type boolean: "--"
+LINE 5: ... 'WAIT', 3, 745.71, 745.7
+[21:53:42] [INFO] Attempting to connect to PostgreSQL...
+[21:53:42] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[21:53:42] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[21:53:42] [INFO] Attempting to connect to PostgreSQL...
+[21:53:42] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[21:53:42] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[21:53:54] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:53:54] [SUCCESS] ✓ Signal saved to DB (ID: 6)
+[21:53:55] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:53:55] [ERROR] ❌ Error saving signal: invalid input syntax for type boolean: "--"
+LINE 5: ... 'WAIT', 3, 745.71, 745.7
+[21:54:09] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:54:09] [SUCCESS] ✓ Signal saved to DB (ID: 7)
+[21:54:10] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:54:10] [ERROR] ❌ Error saving signal: invalid input syntax for type boolean: "--"
+LINE 5: ... 'WAIT', 3, 745.71, 745.7
+[21:55:03] [INFO] Attempting to connect to PostgreSQL...
+[21:55:03] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[21:55:03] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[21:55:03] [INFO] Attempting to connect to PostgreSQL...
+[21:55:03] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[21:55:04] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[21:55:18] [INFO] Attempting to connect to PostgreSQL...
+[21:55:18] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[21:55:19] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[21:55:19] [INFO] Attempting to connect to PostgreSQL...
+[21:55:19] [DEBUG] DATABASE_URL: postgresql://postgres:iRFGSAtaPslgDGxUrQboUOINJdeF...
+[21:55:19] [SUCCESS] ✓ Successfully connected to PostgreSQL database!
+[21:55:27] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:55:27] [SUCCESS] ✓ Signal saved to DB (ID: 8)
+[21:55:43] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:55:43] [SUCCESS] ✓ Signal saved to DB (ID: 9)
+[21:55:58] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:55:58] [SUCCESS] ✓ Signal saved to DB (ID: 10)
+[21:56:13] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:56:13] [SUCCESS] ✓ Signal saved to DB (ID: 11)
+[21:56:29] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:56:29] [SUCCESS] ✓ Signal saved to DB (ID: 12)
+[21:56:44] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:56:44] [SUCCESS] ✓ Signal saved to DB (ID: 13)
+[21:56:59] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:56:59] [SUCCESS] ✓ Signal saved to DB (ID: 14)
+[21:57:15] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:57:15] [SUCCESS] ✓ Signal saved to DB (ID: 15)
+[21:57:30] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:57:30] [SUCCESS] ✓ Signal saved to DB (ID: 16)
+[21:57:45] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:57:45] [SUCCESS] ✓ Signal saved to DB (ID: 17)
+[21:58:01] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:58:01] [SUCCESS] ✓ Signal saved to DB (ID: 18)
+[21:58:16] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:58:16] [SUCCESS] ✓ Signal saved to DB (ID: 19)
+[21:58:31] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:58:31] [SUCCESS] ✓ Signal saved to DB (ID: 20)
+[21:58:46] [INFO] 📊 Saving signal: HOLD (3/5 conf, status=WAIT) @ SPY $745.71
+[21:58:46] [SUCCESS] ✓ Signal saved to DB (ID: 21)
