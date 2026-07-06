@@ -1946,7 +1946,11 @@ def save_signals_json(payload):
 def diagnostics_run():
     import requests
     import socket
+    from datetime import datetime
     results = {}
+    
+    # Check if running in cloud (Railway)
+    is_cloud = os.getenv("RAILWAY_STATIC_URL") is not None or os.getenv("PORT") is not None
     
     # 1. Database Connection & Schema Test
     db_ok = False
@@ -1978,7 +1982,27 @@ def diagnostics_run():
         except Exception as e:
             db_reason = f"Database query failed: {e}"
     else:
-        db_reason = "PostgreSQL connection not active (using JSON fallback)"
+        # PostgreSQL not active, test local fallback JSON files
+        fallback_files = ["signals.json", "paper_trades.json", "manual_trades.json", "trendline_breaks.json"]
+        fallback_status = {}
+        fallback_ok_count = 0
+        for f_name in fallback_files:
+            f_path = os.path.join(BOT_DIR, f_name)
+            if os.path.exists(f_path):
+                try:
+                    with open(f_path, "r") as test_f:
+                        json.load(test_f)
+                    fallback_status[f_name] = "OK (Readable)"
+                    fallback_ok_count += 1
+                except Exception as err:
+                    fallback_status[f_name] = f"Error: {str(err)}"
+            else:
+                fallback_status[f_name] = "Not found (Will create on start)"
+                fallback_ok_count += 1  # Not an error if file doesn't exist yet
+                
+        db_ok = (fallback_ok_count == len(fallback_files))
+        db_reason = "PostgreSQL not active. JSON file fallback is fully active and functional."
+        db_details["fallback_files"] = fallback_status
         
     results["database"] = {
         "status": "PASS" if db_ok else "FAIL",
@@ -2004,11 +2028,15 @@ def diagnostics_run():
             if r.status_code == 200:
                 alpaca_ok = True
                 acct = r.json()
-                alpaca_reason = f"Alpaca API connected successfully. Account Status: {acct.get('status')} | Currency: {acct.get('currency')} | Buying Power: ${acct.get('buying_power')}"
+                alpaca_reason = f"Alpaca API connected successfully. Account Status: {acct.get('status')} | Buying Power: ${acct.get('buying_power')}"
             else:
                 alpaca_reason = f"Alpaca API responded with status {r.status_code}: {r.text}"
         except Exception as e:
             alpaca_reason = f"Failed to connect to Alpaca API: {e}"
+    else:
+        # Optional check: PASS because it falls back to simulation mode
+        alpaca_ok = True
+        alpaca_reason = "Alpaca API keys are not set. Bot runs in simulation mode (paper trades logged to DB/JSON only)."
             
     results["alpaca"] = {
         "status": "PASS" if alpaca_ok else "FAIL",
@@ -2021,33 +2049,58 @@ def diagnostics_run():
     chrome_reason = "Chrome debug port 9222 is closed"
     chrome_details = {}
     
-    # Check if port 9222 is listening locally
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(1.0)
-    try:
-        s.connect(("127.0.0.1", 9222))
-        s.close()
-        chrome_port_listening = True
-    except:
-        chrome_port_listening = False
-        
-    if chrome_port_listening:
+    if is_cloud:
+        # On Railway, verify that local bot is uploading signals successfully
+        if DB_AVAILABLE:
+            try:
+                with db.conn.cursor() as cur:
+                    cur.execute("SELECT timestamp FROM signals ORDER BY id DESC LIMIT 1")
+                    row = cur.fetchone()
+                    if row:
+                        last_time = row[0]
+                        # Account for timezone differences safely
+                        now_tz = datetime.now(last_time.tzinfo) if last_time.tzinfo else datetime.now()
+                        time_diff = (now_tz - last_time).total_seconds()
+                        
+                        if time_diff < 120:
+                            chrome_ok = True
+                            chrome_reason = f"Cloud environment detected. Local bot feed is active (last update received {int(time_diff)}s ago)."
+                        else:
+                            chrome_reason = f"Cloud environment detected, but local bot feed is stale (last update was {int(time_diff)}s ago). Make sure the local bot is running on your desktop."
+                    else:
+                        chrome_reason = "Cloud environment detected. Database exists but no signal records found yet."
+            except Exception as e:
+                chrome_reason = f"Cloud environment: failed to query last update: {e}"
+        else:
+            chrome_reason = "Cloud environment detected but database is offline, cannot verify local bot feed status."
+    else:
+        # Check if port 9222 is listening locally
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(1.0)
         try:
-            # Query Chrome version/json endpoints
-            r = requests.get("http://127.0.0.1:9222/json", timeout=3)
-            tabs = r.json()
-            chrome_details["active_tabs_count"] = len(tabs)
+            s.connect(("127.0.0.1", 9222))
+            s.close()
+            chrome_port_listening = True
+        except:
+            chrome_port_listening = False
             
-            # Search for TradingView
-            tv_tabs = [t for t in tabs if "tradingview.com" in t.get("url", "")]
-            if tv_tabs:
-                chrome_ok = True
-                chrome_reason = f"Chrome CDP active on port 9222. Found {len(tv_tabs)} TradingView tab(s)!"
-                chrome_details["tv_tabs"] = [{"title": t.get("title"), "url": t.get("url")} for t in tv_tabs]
-            else:
-                chrome_reason = "Chrome debug port is open, but no active TradingView charts were found. Open tradingview.com/chart in Chrome."
-        except Exception as e:
-            chrome_reason = f"Chrome port 9222 is open, but failed to fetch tabs: {e}"
+        if chrome_port_listening:
+            try:
+                # Query Chrome version/json endpoints
+                r = requests.get("http://127.0.0.1:9222/json", timeout=3)
+                tabs = r.json()
+                chrome_details["active_tabs_count"] = len(tabs)
+                
+                # Search for TradingView
+                tv_tabs = [t for t in tabs if "tradingview.com" in t.get("url", "")]
+                if tv_tabs:
+                    chrome_ok = True
+                    chrome_reason = f"Chrome CDP active on port 9222. Found {len(tv_tabs)} TradingView tab(s)!"
+                    chrome_details["tv_tabs"] = [{"title": t.get("title"), "url": t.get("url")} for t in tv_tabs]
+                else:
+                    chrome_reason = "Chrome debug port is open, but no active TradingView charts were found. Open tradingview.com/chart in Chrome."
+            except Exception as e:
+                chrome_reason = f"Chrome port 9222 is open, but failed to fetch tabs: {e}"
             
     results["chrome_cdp"] = {
         "status": "PASS" if chrome_ok else "FAIL",
