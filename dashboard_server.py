@@ -80,7 +80,10 @@ UPDATE_INTERVAL_FILE = os.path.join(BASE, "update_interval.txt")
 MANUAL_TRADES = os.path.join(BASE, "manual_trades.json")
 TRENDLINE_BREAKS = os.path.join(BASE, "trendline_breaks.json")
 TRADE_JOURNAL = os.path.join(BASE, "trade_journal.json")
-TOS_DIR = os.path.join(BASE, "TOS")
+TOS_DIR      = os.path.join(BASE, "TOS")
+SCREENSHOTS_DIR = os.path.join(BASE, "screenshots")
+os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
+BOT_DIR = BASE  # alias for diagnostics
 
 if not os.path.exists(TOS_DIR):
     os.makedirs(TOS_DIR)
@@ -2139,6 +2142,37 @@ def diagnostics_run():
         "all_passed": all_ok,
         "results": results
     })
+
+
+@app.route("/api/screenshots")
+def list_screenshots():
+    """Return the most recent signal screenshots (newest first)."""
+    try:
+        files = sorted(
+            [f for f in os.listdir(SCREENSHOTS_DIR) if f.endswith('.png')],
+            reverse=True
+        )[:30]  # Return last 30 screenshots
+        result = []
+        for fname in files:
+            fpath = os.path.join(SCREENSHOTS_DIR, fname)
+            stat = os.stat(fpath)
+            # Parse metadata from filename: YYYYMMDD_HHMMSS_SIGNAL_sigtype.png
+            parts = fname.replace('.png', '').split('_')
+            result.append({
+                "filename": fname,
+                "url": f"/screenshots/{fname}",
+                "size_kb": round(stat.st_size / 1024, 1),
+                "modified": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+            })
+        return jsonify({"ok": True, "screenshots": result, "count": len(result)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
+
+
+@app.route("/screenshots/<path:filename>")
+def serve_screenshot(filename):
+    """Serve a screenshot file."""
+    return send_from_directory(SCREENSHOTS_DIR, filename)
 
 
 @app.route("/control/restart_server", methods=["POST"])

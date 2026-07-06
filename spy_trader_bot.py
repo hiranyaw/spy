@@ -50,9 +50,48 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-SIGNALS_FILE     = os.path.join(BOT_DIR, "signals.json")
-PAPER_FILE       = os.path.join(BOT_DIR, "paper_trades.json")
+SIGNALS_FILE          = os.path.join(BOT_DIR, "signals.json")
+PAPER_FILE            = os.path.join(BOT_DIR, "paper_trades.json")
 TRENDLINE_BREAKS_FILE = os.path.join(BOT_DIR, "trendline_breaks.json")
+SCREENSHOTS_DIR       = os.path.join(BOT_DIR, "screenshots")
+os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
+
+# ── Screenshot capture via Chrome CDP ─────────────────────────
+async def capture_signal_screenshot(session, signal, sig_type, spy_price):
+    """Capture a screenshot of the TradingView chart when a signal fires."""
+    try:
+        import base64
+        # Sanitize signal name for filename
+        safe_signal = re.sub(r'[^A-Za-z0-9_-]', '_', signal)
+        ts = la_now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{ts}_{safe_signal}_{sig_type}.png"
+        filepath = os.path.join(SCREENSHOTS_DIR, filename)
+
+        # Call Chrome CDP screenshot via MCP tool
+        result = await session.call_tool("screenshot", {})
+        if result and result.content:
+            for part in result.content:
+                if hasattr(part, 'data') and part.data:
+                    img_data = base64.b64decode(part.data)
+                    with open(filepath, 'wb') as f:
+                        f.write(img_data)
+                    logger.info(f"📸 Screenshot saved: {filename}")
+                    return filepath
+                elif hasattr(part, 'text') and part.text:
+                    # Some versions return base64 as text
+                    try:
+                        img_data = base64.b64decode(part.text)
+                        with open(filepath, 'wb') as f:
+                            f.write(img_data)
+                        logger.info(f"📸 Screenshot saved: {filename}")
+                        return filepath
+                    except Exception:
+                        pass
+        logger.warning("Screenshot: no image data returned from CDP")
+        return None
+    except Exception as e:
+        logger.warning(f"Screenshot capture failed: {e}")
+        return None
 
 # ── Windows Notification ──────────────────────────────────────
 def send_notification(title, message):
@@ -950,6 +989,11 @@ class SpyTradingBot:
                         send_notification(title, msg)
                         logger.info(f"*** ALERT SENT: {title} ***")
                         self.last_signal = signal
+
+                        # Auto-screenshot on every signal
+                        asyncio.ensure_future(
+                            capture_signal_screenshot(self.session, signal, sig_type, spy)
+                        )
 
                         # Paper trade
                         self.paper.on_signal(signal, spy, qqq, sig_type)

@@ -1,0 +1,32 @@
+{
+  "breaks": [
+    {
+      "date": "2026-06-24",
+      "time": "06:48:00",
+      "symbol": "SPY",
+      "direction": "UP",
+      "price": "425.50"
+    },
+    {
+      "date": "2026-06-24",
+      "time": "06:51:00",
+      "symbol": "SPY",
+      "direction": "UP",
+      "price": "425.55"
+    },
+    {
+      "date": "2026-06-24",
+      "time": "09:21:00",
+      "symbol": "SPY",
+      "direction": "DN",
+      "price": "424.80"
+    },
+    {
+      "date": "2026-06-24",
+      "time": "12:06:00",
+      "symbol": "SPY",
+      "direction": "DN",
+      "price": "423.95"
+    }
+  ]
+}

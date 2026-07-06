@@ -87,8 +87,10 @@ class Database:
             logger.info("Database disconnected")
 
     def ensure_connected(self):
-        """Reconnect if connection lost"""
-        if not self.is_connected:
+        """Reconnect if connection lost or dropped by server."""
+        # psycopg2: conn.closed == 0 means open, > 0 means closed
+        if not self.is_connected or self.conn is None or self.conn.closed != 0:
+            logger.info("DB connection lost — reconnecting...")
             self.connect()
 
     # ── SIGNALS TABLE ──
