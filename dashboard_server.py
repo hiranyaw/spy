@@ -36,7 +36,7 @@ def sanitize(obj):
         return float(obj)
     # Check datetime first as datetime is a subclass of date
     if isinstance(obj, dt.datetime):
-        return obj.isoformat()
+        return obj.isoformat() + "Z"
     if isinstance(obj, dt.date):
         return obj.strftime("%Y-%m-%d")
     if isinstance(obj, dt.time):
@@ -200,7 +200,7 @@ def data():
                     "signal": latest_signal.get("signal", "WAITING"),
                     "signal_type": latest_signal.get("signal_type"),
                     "details": load_raw_data(latest_signal.get("raw_data")),
-                    "last_update": latest_signal.get("timestamp").isoformat() if latest_signal.get("timestamp") else None,
+                    "last_update": latest_signal.get("timestamp").isoformat() + "Z" if latest_signal.get("timestamp") else None,
                     "history": [dict(h) for h in db.get_signal_history(60)]
                 }
             else:

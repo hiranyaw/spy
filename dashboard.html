@@ -1606,7 +1606,7 @@ async function updateDbStatus(){
     }
 
     const now = new Date();
-    statusTime.textContent = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    statusTime.textContent = now.toLocaleTimeString('en-US', {timeZone: 'America/Los_Angeles', hour:'2-digit', minute:'2-digit', second:'2-digit'}) + " PT";
 
   }catch(e){
     console.error('Error updating DB status:', e);
@@ -2166,7 +2166,7 @@ function updateLive(d){
   cs.className='conf-score '+(confNum===5?'f5':confNum>=4?'f4':'low');
 
   const tvSig=det.signal_tv||'';
-  const macdDir=tvSig==='BUY'?'UP':tvSig==='SELL'?'DN':'na';
+  const macdDir=det.macd_dir||(tvSig==='BUY'?'UP':tvSig==='SELL'?'DN':'na');
   setFactor('f-macd','fv-macd',null,macdDir,null,null);
   setFactor('f-qqq','fv-qqq','fs-qqq',det.qqq_dir||'na',null,fmt(det.qqq_price));
   const addNum=det.add?Number(det.add):null;

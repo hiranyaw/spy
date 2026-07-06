@@ -192,7 +192,7 @@ SCRAPE_JS = r"""
     let leg_lvl_r = null, leg_lvl_s = null, leg_lvl_st = null, leg_time = null;
 
     if (legendText) {
-        const parts = legendText.split(/v2\.0/i);
+        const parts = legendText.split(/v2(?:\.0)?/i);
         if (parts.length > 1) {
             const afterTitle = parts[1];
             const matches = afterTitle.match(/[-+]?(?:[0-9]*\.[0-9]+|[0-9]+)/g);
@@ -450,6 +450,7 @@ SCRAPE_JS = r"""
     return JSON.stringify({
         signal_tv, status_tv, conf_tv,
         adx_value,
+        macd_dir: leg_f_macd !== null ? (leg_f_macd > 0 ? "UP" : "DN") : null,
         qqq_dir,
         add_dir,
         spy5_dir,
@@ -676,7 +677,8 @@ class AKMACDBBStrategy:
             "add_dir":    data.get("add_dir"),
             "spy5_dir":   data.get("spy5_dir"),
             "spy1_dir":   data.get("spy1_dir"),
-            # Reversal fields
+            "macd_dir":   data.get("macd_dir"),
+            # Reversal v2.0fields
             "rev_score":  rev_score,
             "rev_dir":    rev_dir,
             "div_signal": data.get("div_signal"),
