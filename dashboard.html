@@ -409,9 +409,9 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
     <!-- Auto-Trade Controls -->
     <div style="margin-top:12px;padding:12px;background:#1a1a1a;border-radius:8px;border:1px solid #333">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <input type="checkbox" id="auto-trade-toggle" onchange="toggleAutoTrade()" style="cursor:pointer;width:18px;height:18px">
+        <input type="checkbox" id="auto-trade-toggle" onchange="toggleAutoTrade()" checked style="cursor:pointer;width:18px;height:18px">
         <label for="auto-trade-toggle" style="cursor:pointer;font-size:0.9rem;font-weight:600;color:#e6edf3">🤖 Auto-Trade on Trend Breaks</label>
-        <span id="auto-trade-status" style="font-size:0.7rem;color:#8b949e;margin-left:auto">OFF</span>
+        <span id="auto-trade-status" style="font-size:0.7rem;color:#3fb950;margin-left:auto">🟢 ON</span>
       </div>
       <div style="font-size:0.75rem;color:#8b949e;margin-bottom:8px">Auto-Exit Conditions:</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.75rem">
@@ -2804,7 +2804,7 @@ async function deleteManualTrade(tradeId) {
 }
 
 // ── Auto-Trading State ────────────────────────────────────────────────
-let autoTradeEnabled = false;
+let autoTradeEnabled = true;
 let lastTrendBreak = null;
 let openTradeStartTime = null;
 
