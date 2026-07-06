@@ -854,6 +854,7 @@ def save_signal(signal, signal_type, details, history, paper):
                 "rev_dir":       details.get("rev_dir") or "",
                 "st_flip":       details.get("st_flip") or "",
                 "tl_break":      details.get("tl_break") or "",
+                "details":       details,
             }
             db.save_signal(db_payload)
         except Exception as db_err:

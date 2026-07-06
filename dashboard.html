@@ -221,7 +221,7 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
             <span style="font-size:0.75rem;font-weight:700;color:#58a6ff" id="live-chart-title">SPY Live Chart (1m)</span>
             <select id="live-data-source" onchange="onLiveSourceChange()" style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;font-size:0.7rem;padding:2px 4px;font-weight:bold;outline:none;cursor:pointer">
               <option value="yahoo">Yahoo Finance (1m)</option>
-              <option value="alpaca">Alpaca Real-time</option>
+              <option value="alpaca" selected>Alpaca Real-time</option>
             </select>
           </div>
           <div style="font-size:0.65rem;color:#8b949e" id="live-chart-status">Connecting to stream...</div>
@@ -403,8 +403,8 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
         <div class="sec" style="margin-bottom:4px;font-size:11px">Signal History (with Trendline Breaks)</div>
         <div style="max-height:160px;overflow-y:auto;border:1px solid #30363d;border-radius:8px">
           <table style="width:100%;font-size:0.75rem">
-            <thead><tr style="position:sticky;top:0;background:#161b22;z-index:1"><th>Time</th><th>Signal</th><th>Type</th><th>SPY</th><th>QQQ</th><th>Conf</th><th>Rev</th><th>ST Flip</th><th>TL Break</th></tr></thead>
-            <tbody id="sig-hist"><tr><td colspan="9" style="color:#555;text-align:center;padding:10px">No signals yet</td></tr></tbody>
+            <thead><tr style="position:sticky;top:0;background:#161b22;z-index:1"><th>Time</th><th>Signal</th><th>Type</th><th>SPY</th><th>QQQ</th><th>ADD</th><th>Conf</th><th>Status</th><th>Rev</th><th>ST Flip</th><th>TL Break</th></tr></thead>
+            <tbody id="sig-hist"><tr><td colspan="11" style="color:#555;text-align:center;padding:10px">No signals yet</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1784,7 +1784,8 @@ async function initLiveChart() {
         return date.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
-          hour12: true
+          hour12: true,
+          timeZone: 'America/Los_Angeles'
         });
       }
     },
@@ -1797,7 +1798,8 @@ async function initLiveChart() {
         return date.toLocaleTimeString('en-US', {
           hour: 'numeric',
           minute: '2-digit',
-          hour12: true
+          hour12: true,
+          timeZone: 'America/Los_Angeles'
         });
       }
     },
@@ -1933,7 +1935,7 @@ function updateLiveChart(timeSec, price, vwap, ema9, ema21) {
 }
 
 let liveTickInterval = null;
-let currentLiveSource = 'yahoo';
+let currentLiveSource = 'alpaca';
 
 function onLiveSourceChange() {
   const select = document.getElementById('live-data-source');
@@ -2427,11 +2429,14 @@ function updateLive(d){
              h.signal?.startsWith('BUY')?'tb':h.signal?.startsWith('SELL')?'ts':
              h.signal?.startsWith('REV-BUY')?'ty':h.signal?.startsWith('REV-SELL')?'tm':'th';
     const tlBreak = h.tl_break ? (h.tl_break==='UP'?'<span style="color:#3fb950">▲ UP</span>':'<span style="color:#f85149">▼ DOWN</span>') : '--';
-    return `<tr><td style="white-space:nowrap">${fmtLA(h.time)||'--'}</td><td class="${sc}">${h.signal||'--'}</td>
+    return `<tr><td style="white-space:nowrap">${fmtLastUpdate(h.timestamp)||'--'}</td><td class="${sc}">${h.signal||'--'}</td>
       <td style="color:${h.signal_type==='trend'?'#3fb950':h.signal_type==='reversal'?'#f0d000':'#555'}">${h.signal_type||'--'}</td>
-      <td>${fmt(h.spy)}</td><td>${fmt(h.qqq)}</td><td>${h.conf_tv||'--'}</td>
+      <td>${fmt(h.spy_price)}</td><td>${fmt(h.qqq_price)}</td>
+      <td style="color:${h.add_value>0?'#3fb950':h.add_value<0?'#f85149':'#8b949e'}">${h.add_value>0?'+':''}${fmt(h.add_value,0)||'--'}</td>
+      <td>${h.conf_tv||'--'}</td>
+      <td style="color:${h.status==='TRADE_ENTERED'?'#3fb950':h.status==='PAUSED'?'#f0883e':'#555'}">${h.status||'--'}</td>
       <td>${h.rev_score!=null?h.rev_score+' '+h.rev_dir:'--'}</td><td>${h.st_flip||'--'}</td><td>${tlBreak}</td></tr>`;
-  }).join(''):'<tr><td colspan="9" style="color:#555;text-align:center">No signals yet</td></tr>';
+  }).join(''):'<tr><td colspan="11" style="color:#555;text-align:center">No signals yet</td></tr>';
 
   // Live chart update
   if (det.spy_price != null && liveCandleSeries) {

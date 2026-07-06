@@ -156,7 +156,7 @@ class Database:
                     signal_data.get("rev_dir"),
                     st_flip_bool,
                     signal_data.get("tl_break"),
-                    json.dumps(signal_data, default=str)
+                    json.dumps(signal_data.get("details", signal_data), default=str)
                 ))
                 signal_id = cur.fetchone()[0]
                 self.conn.commit()
@@ -188,8 +188,7 @@ class Database:
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
-                    SELECT id, timestamp, signal, signal_type, confidence,
-                           spy_price, qqq_price, tl_break
+                    SELECT *
                     FROM signals
                     ORDER BY timestamp DESC
                     LIMIT %s
