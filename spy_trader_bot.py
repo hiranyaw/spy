@@ -164,7 +164,7 @@ SCRAPE_JS = r"""
     // Only look for USI or $ADD — do NOT use generic "ADD" as it matches
     // other parts of the page and returns the SPY price by accident.
     let add_value = null;
-    const addRaw = ohlcClose("USI") || ohlcClose("$ADD");
+    const addRaw = ohlcClose("USI") || ohlcClose("$ADD") || ohlcClose("A ADD") || ohlcClose("ADD");
     if (addRaw !== null) {
         const addNum = parseFloat(addRaw);
         // Sanity check: ADD breadth values are never in stock-price territory
@@ -408,7 +408,7 @@ SCRAPE_JS = r"""
         body_len: bodyInner.length,
         extra_sample: extra.substring(0, 300),
         divs_with_keywords: found_in_divs.slice(0, 10),
-        all_legends: Array.from(document.querySelectorAll('[class*="legend"], [class*="pane-legend"], [data-name*="legend"]')).map(el => (el.innerText || el.textContent || '').replace(/\s+/g, ' ').substring(0, 150)).filter(t => t.includes('AK MACD') || t.includes('SIG_DIR')),
+        all_legends: Array.from(document.querySelectorAll('[class*="legend"], [class*="pane-legend"], [data-name*="legend"], [class*="wrap"]')).map(el => (el.innerText || el.textContent || '').replace(/\s+/g, ' ')).filter(t => t.length > 5 && t.length < 500),
     };
 
     // ── LUXAlgo Trendline Break detection ─────────────────────
