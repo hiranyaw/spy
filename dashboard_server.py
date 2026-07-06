@@ -694,7 +694,7 @@ def manual_trade_open():
         trades.append(trade)
         save_manual_trades(trades)
 
-    return jsonify({"ok": True, "trade": trade})
+    return jsonify(sanitize({"ok": True, "trade": trade}))
 
 
 @app.route("/manual_trade/close", methods=["POST"])
@@ -737,7 +737,7 @@ def manual_trade_close():
         closed_trade = open_trades[0]
         closed_trade["exit_price"] = exit_price
 
-        return jsonify({"ok": True, "trade": closed_trade, "pnl": closed_trade.get("pnl")})
+        return jsonify(sanitize({"ok": True, "trade": closed_trade, "pnl": closed_trade.get("pnl")}))
     else:
         trades = load_manual_trades()
         open_list = [t for t in trades if not t.get("closed")]
@@ -763,7 +763,7 @@ def manual_trade_close():
 
         save_manual_trades(trades)
         closed_trade = next(t for t in reversed(trades) if t.get("closed"))
-        return jsonify({"ok": True, "trade": closed_trade, "pnl": closed_trade["pnl"]})
+        return jsonify(sanitize({"ok": True, "trade": closed_trade, "pnl": closed_trade["pnl"]}))
 
 
 @app.route("/manual_trade/clear", methods=["POST"])
