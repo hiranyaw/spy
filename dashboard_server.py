@@ -49,6 +49,17 @@ def sanitize(obj):
         return [sanitize(v) for v in obj]
     return obj
 
+def load_raw_data(raw_val):
+    """Safely parse raw_data field which could be returned as a dict (JSONB) or string."""
+    if not raw_val:
+        return {}
+    if isinstance(raw_val, str):
+        try:
+            return json.loads(raw_val)
+        except Exception:
+            return {}
+    return raw_val
+
 app = Flask(__name__)
 
 @app.after_request
@@ -185,7 +196,7 @@ def data():
                 d = {
                     "signal": latest_signal.get("signal", "WAITING"),
                     "signal_type": latest_signal.get("signal_type"),
-                    "details": json.loads(latest_signal.get("raw_data", "{}")),
+                    "details": load_raw_data(latest_signal.get("raw_data")),
                     "last_update": latest_signal.get("timestamp").isoformat() if latest_signal.get("timestamp") else None,
                     "history": [dict(h) for h in db.get_signal_history(60)]
                 }
@@ -616,7 +627,7 @@ def manual_trade_open():
         try:
             latest_signal = db.get_latest_signal()
             if latest_signal:
-                sig = json.loads(latest_signal.get("raw_data", "{}"))
+                sig = load_raw_data(latest_signal.get("raw_data"))
                 det = sig.get("details", {}) if isinstance(sig, dict) else {}
                 spy_price = det.get("spy_price") or latest_signal.get("spy_price")
         except Exception as e:
@@ -1768,7 +1779,7 @@ def get_live_tick():
         if DB_AVAILABLE:
             latest_sig = db.get_latest_signal()
             if latest_sig:
-                raw = json.loads(latest_sig.get("raw_data", "{}"))
+                raw = load_raw_data(latest_sig.get("raw_data"))
                 latest_price = raw.get("spy_price")
         
         if not latest_price:
