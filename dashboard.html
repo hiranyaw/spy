@@ -8,14 +8,16 @@
 <style>
 .news-link-hover:hover{text-decoration:underline !important;color:#79c0ff !important;transition:color 0.2s;}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;padding:14px}
-h1{font-size:1.25rem;color:#58a6ff;margin-bottom:2px}
-.sub{font-size:0.73rem;color:#8b949e;margin-bottom:12px}
-.tabs{display:flex;gap:4px;border-bottom:1px solid #30363d;margin-bottom:14px}
-.tab{padding:6px 16px;cursor:pointer;font-size:0.82rem;color:#8b949e;border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:none}
+body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;padding:8px 12px;margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+h1{font-size:1.2rem;color:#58a6ff;margin-bottom:2px}
+.sub{font-size:0.7rem;color:#8b949e;margin-bottom:8px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid #30363d;margin-bottom:8px;flex-shrink:0}
+.tab{padding:5px 14px;cursor:pointer;font-size:0.78rem;color:#8b949e;border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:none}
 .tab.on{background:#161b22;color:#e6edf3;border-color:#30363d;border-bottom-color:#0d1117}
-.tc{display:none}.tc.on{display:block}
-.sbar{display:flex;justify-content:space-between;align-items:center;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:7px 14px;font-size:0.74rem;color:#8b949e;margin-bottom:12px}
+.tc{display:none;height:100%}.tc.on{display:block;height:100%;overflow-y:auto}
+#tab-live.tc.on{display:block;overflow:hidden}
+.main-content{flex:1;overflow:hidden;min-height:0;height:100%}
+.sbar{display:flex;justify-content:space-between;align-items:center;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:5px 12px;font-size:0.7rem;color:#8b949e;margin-bottom:8px;flex-shrink:0}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
 .dot.g{background:#3fb950;animation:pulse 1.5s infinite}.dot.gr{background:#555}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
@@ -137,6 +139,7 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
 </style>
 </head>
 <body>
+<div style="flex-shrink:0">
 <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
   <div style="width:34px;height:34px;border-radius:8px;background:#0d3320;border:1.5px solid #3fb950;display:flex;align-items:center;justify-content:center;flex-shrink:0">
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><polyline points="3,16 8,9 13,13 19,5" stroke="#3fb950" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="5" r="2" fill="#3fb950"/></svg>
@@ -181,109 +184,115 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
   <div class="tab"    data-tab="ctrl">Controls</div>
   <div class="tab"    data-tab="analysis">🔍 Trade Analysis</div>
 </div>
+</div>
+<div class="main-content">
 
 <!-- ══ TAB: LIVE ══ -->
-<div class="tc on" id="tab-live">
-  <div style="display:grid;grid-template-columns:1fr 400px;gap:20px;align-items:start">
+<div class="tc on" id="tab-live" style="height:100%;overflow:hidden">
+  <div style="display:grid;grid-template-columns:1fr 380px;gap:15px;align-items:stretch;height:100%;overflow:hidden">
     
     <!-- Left Column: Live Chart & Market News -->
-    <div style="display:flex;flex-direction:column;gap:15px">
+    <div style="display:flex;flex-direction:column;gap:10px;height:100%;overflow:hidden">
       
       <!-- Market Direction & Live Chart Header -->
-      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;display:flex;justify-content:space-between;align-items:center">
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:8px 15px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
         <div style="display:flex;align-items:center;gap:12px">
-          <div style="font-size:2rem" id="market-direction-icon">⚖️</div>
+          <div style="font-size:1.6rem" id="market-direction-icon">⚖️</div>
           <div>
-            <h4 style="margin:0;font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Market Direction of the Day</h4>
-            <div style="font-size:1.25rem;font-weight:800;color:#c9d1d9;margin-top:2px" id="market-direction-badge">NEUTRAL / SIDEWAYS</div>
+            <h4 style="margin:0;font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Market Direction of the Day</h4>
+            <div style="font-size:1.1rem;font-weight:800;color:#c9d1d9;margin-top:2px" id="market-direction-badge">NEUTRAL / SIDEWAYS</div>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
           <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:0.8rem;font-weight:700;color:#58a6ff" id="live-chart-title">SPY Live Chart (1m)</span>
-            <select id="live-data-source" onchange="onLiveSourceChange()" style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;font-size:0.72rem;padding:2px 6px;font-weight:bold;outline:none;cursor:pointer">
+            <span style="font-size:0.75rem;font-weight:700;color:#58a6ff" id="live-chart-title">SPY Live Chart (1m)</span>
+            <select id="live-data-source" onchange="onLiveSourceChange()" style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;font-size:0.7rem;padding:2px 4px;font-weight:bold;outline:none;cursor:pointer">
               <option value="yahoo">Yahoo Finance (1m)</option>
               <option value="alpaca">Alpaca Real-time</option>
             </select>
           </div>
-          <div style="font-size:0.7rem;color:#8b949e" id="live-chart-status">Connecting to stream...</div>
+          <div style="font-size:0.65rem;color:#8b949e" id="live-chart-status">Connecting to stream...</div>
         </div>
       </div>
 
       <!-- Live Chart Mount Point -->
-      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;height:450px;position:relative" id="live-chart-container">
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px;flex:1;min-height:220px;position:relative" id="live-chart-container">
         <!-- Live Lightweight Chart will mount here -->
       </div>
 
-      <!-- Real-time Market News -->
-      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px">
-        <h3 style="margin-top:0;margin-bottom:15px;color:#e6edf3;font-size:0.95rem;display:flex;align-items:center;gap:8px;border-bottom:1px solid #21262d;padding-bottom:8px">
-          <span>📰</span> Live Market News (SPY &amp; Macro)
-        </h3>
-        <div style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:5px" id="live-news-box">
-          <div style="color:#8b949e;font-size:0.85rem;text-align:center;padding:20px">Loading market news...</div>
+      <!-- Bottom Row: News & Tracker side-by-side -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;height:165px;flex-shrink:0">
+        
+        <!-- Real-time Market News -->
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px 15px;display:flex;flex-direction:column;overflow:hidden">
+          <h3 style="margin-top:0;margin-bottom:8px;color:#e6edf3;font-size:0.8rem;display:flex;align-items:center;gap:6px;border-bottom:1px solid #21262d;padding-bottom:4px;flex-shrink:0">
+            <span>📰</span> Live Market News (SPY &amp; Macro)
+          </h3>
+          <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:5px;font-size:0.75rem" id="live-news-box">
+            <div style="color:#8b949e;text-align:center;padding:10px">Loading market news...</div>
+          </div>
         </div>
-      </div>
 
-      <!-- Daily High-Confluence Performance Tracker -->
-      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px">
-        <h3 style="margin-top:0;margin-bottom:15px;color:#e6edf3;font-size:0.95rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #21262d;padding-bottom:8px">
-          <span style="display:flex;align-items:center;gap:8px">
-            <span>🎯</span> Daily Confluence Tracker (&ge; 4/5)
-          </span>
-          <span style="font-size:0.7rem;color:#8b949e">Manual Trades Logs</span>
-        </h3>
-        <div style="max-height:200px;overflow-y:auto">
-          <table style="width:100%;border-collapse:collapse;font-size:0.8rem">
-            <thead>
-              <tr style="border-bottom:1px solid #30363d;color:#8b949e">
-                <th style="padding:6px 4px;text-align:left">Date</th>
-                <th style="padding:6px 4px;text-align:center">All Trades (Wins-Losses)</th>
-                <th style="padding:6px 4px;text-align:center;color:#3fb950;font-weight:700">High Conf &ge; 4/5 (Wins-Losses)</th>
-                <th style="padding:6px 4px;text-align:right">High P&amp;L</th>
-              </tr>
-            </thead>
-            <tbody id="live-high-conf-tracker-body">
-              <tr>
-                <td colspan="4" style="text-align:center;color:#8b949e;padding:15px">No trades logged yet.</td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- Daily High-Confluence Performance Tracker -->
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px 15px;display:flex;flex-direction:column;overflow:hidden">
+          <h3 style="margin-top:0;margin-bottom:8px;color:#e6edf3;font-size:0.8rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #21262d;padding-bottom:4px;flex-shrink:0">
+            <span style="display:flex;align-items:center;gap:6px">
+              <span>🎯</span> Daily Confluence Tracker (&ge; 4/5)
+            </span>
+          </h3>
+          <div style="flex:1;overflow-y:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:0.72rem">
+              <thead>
+                <tr style="border-bottom:1px solid #30363d;color:#8b949e">
+                  <th style="padding:4px;text-align:left">Date</th>
+                  <th style="padding:4px;text-align:center">All (W-L)</th>
+                  <th style="padding:4px;text-align:center;color:#3fb950;font-weight:700">&ge; 4/5 (W-L)</th>
+                  <th style="padding:4px;text-align:right">P&amp;L</th>
+                </tr>
+              </thead>
+              <tbody id="live-high-conf-tracker-body">
+                <tr>
+                  <td colspan="4" style="text-align:center;color:#8b949e;padding:10px">No trades logged yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
+
       </div>
     </div>
 
     <!-- Right Column: Signal Cards, Metrics, Confluence, and History -->
-    <div style="display:flex;flex-direction:column;gap:15px">
+    <div style="display:flex;flex-direction:column;gap:10px;height:100%;overflow-y:auto;padding-right:4px;flex-shrink:0">
       
       <!-- Main signal card -->
-      <div class="sig-card WAIT" id="sig-card" style="margin-bottom:0">
+      <div class="sig-card WAIT" id="sig-card" style="margin-bottom:0;padding:10px 15px">
         <div>
-          <div class="sig-lbl" id="sig-lbl">WAITING</div>
-          <div class="sig-sub" id="sig-sub">Waiting for first tick...</div>
+          <div class="sig-lbl" id="sig-lbl" style="font-size:1.6rem">WAITING</div>
+          <div class="sig-sub" id="sig-sub" style="font-size:0.75rem">Waiting for first tick...</div>
           <div id="sig-badge"></div>
         </div>
       </div>
 
       <!-- Trend Line Breaks (SPY & QQQ) -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;text-align:center">
-          <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">SPY LuxAlgo Trend Break</div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">SPY LuxAlgo Break</div>
           <div style="display:flex;align-items:center;justify-content:center;gap:8px">
-            <div style="font-size:1.8rem" id="spy-tl-icon">--</div>
+            <div style="font-size:1.4rem" id="spy-tl-icon">--</div>
             <div>
-              <div style="font-size:1.2rem;font-weight:700" id="spy-tl-dir">--</div>
-              <div style="font-size:0.7rem;color:#8b949e" id="spy-tl-label">--</div>
+              <div style="font-size:1rem;font-weight:700" id="spy-tl-dir">--</div>
+              <div style="font-size:0.65rem;color:#8b949e" id="spy-tl-label">--</div>
             </div>
           </div>
         </div>
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px;text-align:center">
-          <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">QQQ LuxAlgo Trend Break</div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">QQQ LuxAlgo Break</div>
           <div style="display:flex;align-items:center;justify-content:center;gap:8px">
-            <div style="font-size:1.8rem" id="qqq-tl-icon">--</div>
+            <div style="font-size:1.4rem" id="qqq-tl-icon">--</div>
             <div>
-              <div style="font-size:1.2rem;font-weight:700" id="qqq-tl-dir">--</div>
-              <div style="font-size:0.7rem;color:#8b949e" id="qqq-tl-label">--</div>
+              <div style="font-size:1rem;font-weight:700" id="qqq-tl-dir">--</div>
+              <div style="font-size:0.65rem;color:#8b949e" id="qqq-tl-label">--</div>
             </div>
           </div>
         </div>
@@ -291,65 +300,66 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
 
       <!-- Market Context Bar: VIX + Events + Gap + ADX -->
       <div id="ctx-bar" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px">
-          <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">VIX</div>
-          <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">
-            <span style="font-size:1.3rem;font-weight:700" id="ctx-vix">--</span>
-            <span style="font-size:0.72rem;padding:1px 7px;border-radius:8px" id="ctx-vix-badge">--</span>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">VIX</div>
+          <div style="display:flex;align-items:baseline;gap:4px;margin-top:2px">
+            <span style="font-size:1.1rem;font-weight:700" id="ctx-vix">--</span>
+            <span style="font-size:0.65rem;padding:1px 5px;border-radius:8px" id="ctx-vix-badge">--</span>
           </div>
-          <div style="font-size:0.7rem;color:#8b949e;margin-top:2px" id="ctx-vix-warn"></div>
+          <div style="font-size:0.65rem;color:#8b949e;margin-top:2px" id="ctx-vix-warn"></div>
         </div>
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px">
-          <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Pre-market gap</div>
-          <div style="font-size:1.1rem;font-weight:700;margin-top:2px" id="ctx-gap">--</div>
-          <div style="font-size:0.7rem;color:#8b949e;margin-top:2px" id="ctx-gap-rule"></div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Pre-market gap</div>
+          <div style="font-size:1rem;font-weight:700;margin-top:2px" id="ctx-gap">--</div>
+          <div style="font-size:0.65rem;color:#8b949e;margin-top:2px" id="ctx-gap-rule"></div>
         </div>
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px">
-          <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">ADX (14)</div>
-          <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">
-            <span style="font-size:1.3rem;font-weight:700" id="ctx-adx">--</span>
-            <span style="font-size:0.72rem;padding:1px 7px;border-radius:8px" id="ctx-adx-badge">--</span>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">ADX (14)</div>
+          <div style="display:flex;align-items:baseline;gap:4px;margin-top:2px">
+            <span style="font-size:1.1rem;font-weight:700" id="ctx-adx">--</span>
+            <span style="font-size:0.65rem;padding:1px 5px;border-radius:8px" id="ctx-adx-badge">--</span>
           </div>
-          <div style="font-size:0.7rem;color:#8b949e;margin-top:2px" id="ctx-adx-regime">Loading...</div>
+          <div style="font-size:0.65rem;color:#8b949e;margin-top:2px" id="ctx-adx-regime">Loading...</div>
         </div>
       </div>
-      <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px" id="ctx-events-box">
-        <div style="font-size:0.67rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Economic events today</div>
-        <div style="font-size:0.78rem" id="ctx-events">Loading...</div>
+      
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px" id="ctx-events-box">
+        <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Economic events today</div>
+        <div style="font-size:0.75rem" id="ctx-events">Loading...</div>
       </div>
 
       <!-- Trading paused banner -->
-      <div id="paused-banner" style="display:none;background:#4d2800;border:1.5px solid #f0883e;border-radius:8px;padding:10px 14px;font-size:0.85rem;color:#f0883e;font-weight:600;text-align:center"></div>
+      <div id="paused-banner" style="display:none;background:#4d2800;border:1.5px solid #f0883e;border-radius:8px;padding:8px 10px;font-size:0.8rem;color:#f0883e;font-weight:600;text-align:center"></div>
 
       <!-- 5-Factor confluence -->
-      <div class="conf-box" style="margin-bottom:0">
+      <div class="conf-box" style="margin-bottom:0;padding:10px">
         <div class="conf-hdr">
           <span>5-Factor Confluence Trend</span>
           <span class="conf-score na" id="conf-score">--/5</span>
         </div>
-        <div class="factors">
-          <div class="factor na" id="f-macd"><div class="fn">MACD BB</div><div class="fv" id="fv-macd">--</div><div class="fs">hist+BB</div></div>
-          <div class="factor na" id="f-qqq"> <div class="fn">QQQ 1m</div><div class="fv" id="fv-qqq">--</div><div class="fs" id="fs-qqq">--</div></div>
-          <div class="factor na" id="f-add"> <div class="fn">ADD 1m</div><div class="fv" id="fv-add">--</div><div class="fs" id="fs-add">--</div></div>
-          <div class="factor na" id="f-spy5"><div class="fn">SPY 5m</div><div class="fv" id="fv-spy5">--</div><div class="fs">Supertrend</div></div>
-          <div class="factor na" id="f-spy1"><div class="fn">SPY 1m</div><div class="fv" id="fv-spy1">--</div><div class="fs">Supertrend</div></div>
+        <div class="factors" style="gap:6px">
+          <div class="factor na" id="f-macd" style="padding:6px"><div class="fn" style="font-size:10px">MACD BB</div><div class="fv" id="fv-macd" style="font-size:11px">--</div><div class="fs" style="font-size:8px">hist+BB</div></div>
+          <div class="factor na" id="f-qqq" style="padding:6px"> <div class="fn" style="font-size:10px">QQQ 1m</div><div class="fv" id="fv-qqq" style="font-size:11px">--</div><div class="fs" id="fs-qqq" style="font-size:8px">--</div></div>
+          <div class="factor na" id="f-add" style="padding:6px"> <div class="fn" style="font-size:10px">ADD 1m</div><div class="fv" id="fv-add" style="font-size:11px">--</div><div class="fs" id="fs-add" style="font-size:8px">--</div></div>
+          <div class="factor na" id="f-spy5" style="padding:6px"><div class="fn" style="font-size:10px">SPY 5m</div><div class="fv" id="fv-spy5" style="font-size:11px">--</div><div class="fs" style="font-size:8px">Supertrend</div></div>
+          <div class="factor na" id="f-spy1" style="padding:6px"><div class="fn" style="font-size:10px">SPY 1m</div><div class="fv" id="fv-spy1" style="font-size:11px">--</div><div class="fs" style="font-size:8px">Supertrend</div></div>
         </div>
-        <div class="conf-banner" id="conf-banner">Waiting for data...</div>
+        <div class="conf-banner" id="conf-banner" style="margin-top:8px;font-size:11px;padding:6px">Waiting for data...</div>
       </div>
 
       <!-- Reversal box -->
-      <div class="rev-box" style="margin-bottom:0">
+      <div class="rev-box" style="margin-bottom:0;padding:10px">
         <div class="rev-hdr">
           <span>6-Method Reversal Detection</span>
           <span class="rev-score-lbl" id="rev-score-lbl" style="color:#8b949e">Score: --</span>
         </div>
-        <div class="rev-grid">
-          <div class="rev-item" id="ri-div">   <div class="ri-lbl">MACD Divergence</div><div class="ri-val" id="rv-div">--</div></div>
-          <div class="rev-item" id="ri-add">   <div class="ri-lbl">ADD Extreme</div>    <div class="ri-val" id="rv-add">--</div></div>
-          <div class="rev-item" id="ri-stflip"><div class="ri-lbl">ST Flip</div>        <div class="ri-val" id="rv-stflip">--</div></div>
-          <div class="rev-item" id="ri-vwap">  <div class="ri-lbl">VWAP Distance</div> <div class="ri-val" id="rv-vwap">--</div></div>
-          <div class="rev-item" id="ri-engulf"><div class="ri-lbl">Engulfing</div>      <div class="ri-val" id="rv-engulf">--</div></div>
-          <div class="rev-item" id="ri-rev">   <div class="ri-lbl">REV Score</div>      <div class="ri-val" id="rv-rev" style="font-size:1.1rem;font-weight:800">--</div></div>
+        <div class="rev-grid" style="gap:6px">
+          <div class="rev-item" id="ri-div" style="padding:4px">   <div class="ri-lbl" style="font-size:9px">MACD Divergence</div><div class="ri-val" id="rv-div" style="font-size:10px">--</div></div>
+          <div class="rev-item" id="ri-add" style="padding:4px">   <div class="ri-lbl" style="font-size:9px">ADD Extreme</div>    <div class="ri-val" id="rv-add" style="font-size:10px">--</div></div>
+          <div class="rev-item" id="ri-stflip" style="padding:4px"><div class="ri-lbl" style="font-size:9px">ST Flip</div>        <div class="ri-val" id="rv-stflip" style="font-size:10px">--</div></div>
+          <div class="rev-item" id="ri-vwap" style="padding:4px">  <div class="ri-lbl" style="font-size:9px">VWAP Distance</div> <div class="ri-val" id="rv-vwap" style="font-size:10px">--</div></div>
+          <div class="rev-item" id="ri-engulf" style="padding:4px"><div class="ri-lbl" style="font-size:9px">Engulfing</div>      <div class="ri-val" id="rv-engulf" style="font-size:10px">--</div></div>
+          <div class="rev-item" id="ri-rev" style="padding:4px">   <div class="ri-lbl" style="font-size:9px">REV Score</div>      <div class="ri-val" id="rv-rev" style="font-size:13px;font-weight:800">--</div></div>
         </div>
       </div>
 
@@ -370,18 +380,18 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
       </div>
 
       <!-- Time bar -->
-      <div class="timebar t-n" id="tbar" style="margin-bottom:0">
+      <div class="timebar t-n" id="tbar" style="margin-bottom:0;padding:8px 12px;font-size:11px">
         <span>Time to candle close</span>
-        <span style="font-weight:700;font-size:0.95rem" id="tval">--</span>
+        <span style="font-weight:700;font-size:0.9rem" id="tval">--</span>
       </div>
 
       <!-- Signal history -->
       <div>
-        <div class="sec" style="margin-bottom:6px">Signal History (with Trendline Breaks)</div>
-        <div style="max-height:250px;overflow-y:auto;border:1px solid #30363d;border-radius:8px">
-          <table style="width:100%">
+        <div class="sec" style="margin-bottom:4px;font-size:11px">Signal History (with Trendline Breaks)</div>
+        <div style="max-height:160px;overflow-y:auto;border:1px solid #30363d;border-radius:8px">
+          <table style="width:100%;font-size:0.75rem">
             <thead><tr style="position:sticky;top:0;background:#161b22;z-index:1"><th>Time</th><th>Signal</th><th>Type</th><th>SPY</th><th>QQQ</th><th>Conf</th><th>Rev</th><th>ST Flip</th><th>TL Break</th></tr></thead>
-            <tbody id="sig-hist"><tr><td colspan="9" style="color:#555;text-align:center">No signals yet</td></tr></tbody>
+            <tbody id="sig-hist"><tr><td colspan="9" style="color:#555;text-align:center;padding:10px">No signals yet</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1411,6 +1421,7 @@ Only B Trades with FULL confirmation."></textarea>
   
 </div>
 </div>
+</div> <!-- Close main-content wrapper -->
 
 <script>
 // Chart.js removed - using localStorage for journal instead
