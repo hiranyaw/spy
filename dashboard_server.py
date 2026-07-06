@@ -44,7 +44,7 @@ def sanitize(obj):
     if isinstance(obj, dt.timedelta):
         return str(obj)
     if isinstance(obj, dict):
-        return {k: sanitize(v) for k, v in obj.items()}
+        return {str(sanitize(k)): sanitize(v) for k, v in obj.items()}
     if isinstance(obj, list):
         return [sanitize(v) for v in obj]
     return obj
