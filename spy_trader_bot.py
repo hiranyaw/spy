@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import json
 import logging
 import math
@@ -390,8 +390,19 @@ SCRAPE_JS = r"""
         }
     }
 
+    // ── Read ADX from standard indicator legend ─────────────────
+    let adx_value = null;
+    document.querySelectorAll('[class*="legend"], [class*="pane-legend"], [data-name*="legend"]').forEach(el => {
+        const t = el.innerText || el.textContent || '';
+        const m = t.match(/ADX\s*(?:\(\d+\))?\s*([0-9.]+)/i);
+        if (m) {
+            adx_value = parseFloat(m[1]);
+        }
+    });
+
     return JSON.stringify({
         signal_tv, status_tv, conf_tv,
+        adx_value,
         qqq_dir,
         add_dir,
         spy5_dir,
@@ -613,6 +624,7 @@ class AKMACDBBStrategy:
             "support":    data.get("support"),
             "st_level":   data.get("st_level"),
             "time_left":  data.get("time_left"),
+            "adx_value":  data.get("adx_value"),
         }
 
         # 0. STRONG signal — Supertrend just FLIPPED + 4/5 or 5/5 confluence (HIGHEST priority)
