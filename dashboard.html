@@ -102,10 +102,20 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
 .pt-sub-item{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 12px}
 .pt-sub-lbl{font-size:0.65rem;color:#8b949e;text-transform:uppercase}
 .pt-sub-val{font-size:0.9rem;font-weight:600;margin-top:2px}
-.open-pos{border-radius:8px;padding:9px 14px;margin-bottom:10px;font-size:0.8rem;display:flex;justify-content:space-between;align-items:center}
-.op-long{background:#0d3320;border:1px solid #3fb950}
-.op-short{background:#3d1515;border:1px solid #f85149}
-.op-none{background:#161b22;border:1px solid #30363d;color:#555}
+.open-pos{border-radius:12px;margin-bottom:10px;overflow:hidden}
+.op-none{background:#161b22;border:1px solid #30363d;color:#555;padding:12px 16px;font-size:0.8rem;display:flex;align-items:center;gap:8px}
+.op-long{background:linear-gradient(135deg,#0d2a1a 0%,#0d1f14 100%);border:1px solid #2ea043}
+.op-short{background:linear-gradient(135deg,#2a0d0d 0%,#1f0d0d 100%);border:1px solid #da3633}
+.op-card-header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px 8px}
+.op-card-body{padding:0 14px 12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.op-card-metric{display:flex;flex-direction:column;gap:2px}
+.op-card-lbl{font-size:0.6rem;color:#8b949e;text-transform:uppercase;letter-spacing:.7px}
+.op-card-val{font-size:1.0rem;font-weight:700}
+.op-progress-wrap{padding:0 14px 12px}
+.op-progress-bar{height:5px;background:#21262d;border-radius:4px;position:relative;overflow:visible;margin-top:4px}
+.op-progress-fill{height:100%;border-radius:4px;transition:width .3s ease}
+.op-live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;animation:opPulse 1.5s ease-in-out infinite}
+@keyframes opPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(0.85)}}
 
 /* Manual paper trading */
 .mt-panel{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:14px 16px;margin-bottom:14px}
@@ -589,8 +599,11 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
     </div>
   </div>
 
-  <!-- Open position -->
-  <div class="open-pos op-none" id="op-banner">No open position</div>
+  <!-- Open Position Live P&L Card -->
+  <div id="op-banner" class="open-pos op-none">
+    <span style="font-size:18px">📭</span>
+    <span style="font-size:12px;font-weight:600">No open position — waiting for signal</span>
+  </div>
 
   <!-- Charts row 1 -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
@@ -2493,17 +2506,83 @@ function updatePaper(d){
 
   const banner=document.getElementById('op-banner');
   if(open){
-    const unr=Number(open.unrealized), isLong=open.direction==='LONG';
+    const unr=Number(open.unrealized||0);
+    const isLong=open.direction==='LONG';
+    const dirColor=isLong?'#3fb950':'#f85149';
+    const dirBg=isLong?'rgba(63,185,80,0.18)':'rgba(248,81,73,0.18)';
+    const unrColor=unr>=0?'#3fb950':'#f85149';
+    const unrSign=unr>=0?'+':'';
+    // Estimate dollar P&L (SPY ~ 100 shares equivalent per point)
+    const unrDollar=(unr*100).toFixed(0);
+    const typeLabel=open.signal_type==='reversal'?'REVERSAL':open.signal_type==='strong'?'⭐ STRONG':'TREND';
+    const tp=Number(open.tp_price||0), sl=Number(open.sl_price||0), entry=Number(open.entry_price||0);
+    const spy=Number(d.details&&d.details.spy_price||entry);
+    // Progress toward TP (0→100%) clamped
+    let progress=0, progressColor=dirColor;
+    if(tp && sl && entry){
+      const range=Math.abs(tp-sl);
+      const moved=isLong?(spy-sl):(sl-spy);
+      progress=Math.min(100,Math.max(0,(moved/range)*100));
+      progressColor=unr>=0?'#3fb950':'#f85149';
+    }
+    // Elapsed time
+    let elapsed='';
+    if(open.entry_time){
+      const parts=open.entry_time.split(':').map(Number);
+      if(parts.length===3){
+        const now=new Date(), entryD=new Date();
+        entryD.setHours(parts[0],parts[1],parts[2],0);
+        const diffS=Math.max(0,Math.floor((now-entryD)/1000));
+        const m=Math.floor(diffS/60), s=diffS%60;
+        elapsed=`${m}m ${s}s`;
+      }
+    }
     banner.className='open-pos '+(isLong?'op-long':'op-short');
-    const typeLabel=open.signal_type==='reversal'?'[REVERSAL]':'[TREND]';
-    const atrStr = open.atr ? ` | ATR=${Number(open.atr).toFixed(4)}` : '';
-    banner.innerHTML=`<span><b>${open.direction}</b> ${typeLabel} @ <b>$${fmt(open.entry_price)}</b> at ${fmtLA(open.entry_time)}${atrStr}</span>
-      <span style="display:flex;gap:12px;align-items:center">
-        <span style="color:#3fb950">TP $${fmt(open.tp_price)}</span>
-        <span style="color:#f85149">SL $${fmt(open.sl_price)}</span>
-        <span>Unrealized: <b style="color:${unr>=0?'#3fb950':'#f85149'}">${unr>=0?'+':''}${unr.toFixed(3)}</b></span>
-      </span>`;
-  } else {banner.className='open-pos op-none';banner.textContent='No open position';}
+    banner.innerHTML=`
+      <div class="op-card-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="op-live-dot" style="background:${dirColor}"></span>
+          <span style="font-size:13px;font-weight:800;color:${dirColor}">${open.direction}</span>
+          <span style="background:${dirBg};color:${dirColor};border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.6px">${typeLabel}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          ${elapsed?`<span style="font-size:10px;color:#8b949e">⏱ ${elapsed} in trade</span>`:''}
+          <span style="font-size:20px;font-weight:900;color:${unrColor}">${unrSign}$${Math.abs(unrDollar)}</span>
+          <span style="font-size:11px;color:${unrColor};font-weight:600">${unrSign}${unr.toFixed(3)} pts</span>
+        </div>
+      </div>
+      <div class="op-card-body">
+        <div class="op-card-metric">
+          <span class="op-card-lbl">Entry</span>
+          <span class="op-card-val" style="color:#e6edf3">$${fmt(open.entry_price)}</span>
+          <span style="font-size:10px;color:#8b949e">${fmtLA(open.entry_time)}</span>
+        </div>
+        <div class="op-card-metric">
+          <span class="op-card-lbl">Target TP</span>
+          <span class="op-card-val" style="color:#3fb950">$${fmt(open.tp_price)}</span>
+          ${open.atr?`<span style="font-size:10px;color:#8b949e">ATR ${Number(open.atr).toFixed(4)}</span>`:''}
+        </div>
+        <div class="op-card-metric">
+          <span class="op-card-lbl">Stop Loss</span>
+          <span class="op-card-val" style="color:#f85149">$${fmt(open.sl_price)}</span>
+          <span style="font-size:10px;color:#8b949e">Risk / ATR</span>
+        </div>
+      </div>
+      <div class="op-progress-wrap">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:#8b949e;margin-bottom:3px">
+          <span>SL $${fmt(open.sl_price)}</span>
+          <span style="color:${progressColor};font-weight:700">${progress.toFixed(0)}% to TP</span>
+          <span>TP $${fmt(open.tp_price)}</span>
+        </div>
+        <div class="op-progress-bar">
+          <div class="op-progress-fill" style="width:${progress}%;background:${progressColor}"></div>
+        </div>
+      </div>
+    `;
+  } else {
+    banner.className='open-pos op-none';
+    banner.innerHTML='<span style="font-size:18px">📭</span><span style="font-size:12px;font-weight:600">No open position — waiting for signal</span>';
+  }
 
   // Charts
   if(trades.length){
