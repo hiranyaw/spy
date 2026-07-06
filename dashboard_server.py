@@ -323,28 +323,40 @@ def webhook_trendline():
         # Extract price if provided
         price = data.get("price", "?")
 
-        # Record to JSON
+        # Record to database or JSON
         try:
-            if os.path.exists(TRENDLINE_BREAKS):
-                with open(TRENDLINE_BREAKS, "r") as f:
-                    tl_data = json.load(f)
-            else:
-                tl_data = {"breaks": []}
-
             from datetime import datetime
             now = datetime.now()
+            date_str = now.strftime("%Y-%m-%d")
+            time_str = now.strftime("%H:%M:%S")
 
-            tl_data["breaks"].append({
-                "date": now.strftime("%Y-%m-%d"),
-                "time": now.strftime("%H:%M:%S"),
-                "symbol": "SPY",
-                "direction": direction,
-                "price": str(price),
-                "source": "webhook"
-            })
+            if DB_AVAILABLE:
+                db.save_trendline_break({
+                    "date": date_str,
+                    "time": time_str,
+                    "symbol": "SPY",
+                    "direction": direction,
+                    "price": str(price),
+                    "is_manual": False
+                })
+            else:
+                if os.path.exists(TRENDLINE_BREAKS):
+                    with open(TRENDLINE_BREAKS, "r") as f:
+                        tl_data = json.load(f)
+                else:
+                    tl_data = {"breaks": []}
 
-            with open(TRENDLINE_BREAKS, "w") as f:
-                json.dump(tl_data, f, indent=2)
+                tl_data["breaks"].append({
+                    "date": date_str,
+                    "time": time_str,
+                    "symbol": "SPY",
+                    "direction": direction,
+                    "price": str(price),
+                    "source": "webhook"
+                })
+
+                with open(TRENDLINE_BREAKS, "w") as f:
+                    json.dump(tl_data, f, indent=2)
 
             print(f"[WEBHOOK] Recorded: SPY {direction} @ {price}")
             return jsonify({"ok": True, "message": f"Recorded SPY {direction}"})
