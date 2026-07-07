@@ -2013,8 +2013,7 @@ async function fetchLiveTick() {
       
       const price = Number(res.price);
       if (liveCandleSeries) {
-        const curTime = parseLocalISO(res.time || new Date().toISOString());
-        const tSec = Math.floor(curTime.getTime() / 1000);
+        const tSec = typeof res.time === 'number' ? res.time : Math.floor(new Date().getTime() / 1000);
         const tMinSec = Math.floor(tSec / 60) * 60;
         
         const ianaTz = 'America/Los_Angeles';

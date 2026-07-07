@@ -1769,11 +1769,19 @@ def get_live_tick():
             timestamp = trade.get("t")
             
             if price:
+                epoch_sec = int(time.time())
+                if timestamp:
+                    try:
+                        ts_clean = timestamp.replace("Z", "+00:00")
+                        dt_obj = datetime.fromisoformat(ts_clean)
+                        epoch_sec = int(dt_obj.timestamp())
+                    except Exception as ts_err:
+                        print(f"Error parsing Alpaca timestamp '{timestamp}': {ts_err}")
                 return jsonify({
                     "ok": True,
                     "source": "alpaca",
                     "price": price,
-                    "time": timestamp
+                    "time": epoch_sec
                 })
         except Exception as e:
             print(f"Alpaca live tick error: {e}")
@@ -1800,7 +1808,7 @@ def get_live_tick():
                 "ok": True,
                 "source": "yahoo",
                 "price": float(latest_price),
-                "time": datetime.now().isoformat()
+                "time": int(time.time())
             })
     except Exception as e:
         print(f"Yahoo fallback tick error: {e}")
