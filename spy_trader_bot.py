@@ -164,7 +164,7 @@ SCRAPE_JS = r"""
     // Only look for USI or $ADD — do NOT use generic "ADD" as it matches
     // other parts of the page and returns the SPY price by accident.
     let add_value = null;
-    const addRaw = ohlcClose("USI") || ohlcClose("$ADD") || ohlcClose("A ADD") || ohlcClose("ADD");
+    const addRaw = ohlcClose("USI") || ohlcClose("$ADD") || ohlcClose("A ADD");
     if (addRaw !== null) {
         const addNum = parseFloat(addRaw);
         // Sanity check: ADD breadth values are never in stock-price territory

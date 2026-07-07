@@ -332,11 +332,13 @@ def trendline_breaks_endpoint():
 def webhook_trendline():
     """Receive trendline break alerts from TradingView via webhook"""
     try:
-        data = request.get_json() or request.form.to_dict()
+        data = request.get_json(silent=True) or request.form.to_dict() or {}
 
         # Extract from TradingView alert message
         # Format: "SPY B↑ 425.50" or "SPY B↓ 424.80" or custom format
         message = data.get("message", "") or data.get("text", "")
+        if not message:
+            message = request.get_data(as_text=True)
 
         # Parse direction from message
         direction = None
@@ -1833,7 +1835,7 @@ def get_high_confluence_history():
             all_total = len(day_trades)
             all_wins = len([t for t in day_trades if t.get("win")])
             all_losses = len([t for t in day_trades if not t.get("win")])
-            all_pnl = sum(t.get("pnl") or 0.0 for t in day_trades)
+            all_pnl = sum(float(t.get("pnl") or 0.0) for t in day_trades)
             
             # Filter for High Confluence trades (>= 4/5)
             high_conf_trades = []
@@ -1850,7 +1852,7 @@ def get_high_confluence_history():
             high_total = len(high_conf_trades)
             high_wins = len([t for t in high_conf_trades if t.get("win")])
             high_losses = len([t for t in high_conf_trades if not t.get("win")])
-            high_pnl = sum(t.get("pnl") or 0.0 for t in high_conf_trades)
+            high_pnl = sum(float(t.get("pnl") or 0.0) for t in high_conf_trades)
             
             daily_stats.append({
                 "date": date,
