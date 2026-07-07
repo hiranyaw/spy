@@ -1460,6 +1460,13 @@ let updateIntervalSec = 60;
 
 function parseLocalISO(s) {
   if (!s || s === 'None' || s === 'N/A') return new Date();
+  
+  // If timezone-aware (ends with Z or has offset +/-HH:MM), parse natively
+  if (s.endsWith('Z') || s.match(/[+-]\d{2}:?\d{2}$/)) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+  
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
   let d;
   if (m) {
