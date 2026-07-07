@@ -161,15 +161,32 @@ SCRAPE_JS = r"""
 
     // ── ADD value (NYSE A-D line, exchange = USI) ──────────
     // ADD is a breadth indicator: valid range roughly -3000 to +3000.
-    // Only look for USI or $ADD — do NOT use generic "ADD" as it matches
-    // other parts of the page and returns the SPY price by accident.
     let add_value = null;
-    const addRaw = ohlcClose("USI") || ohlcClose("$ADD") || ohlcClose("A ADD");
-    if (addRaw !== null) {
-        const addNum = parseFloat(addRaw);
-        // Sanity check: ADD breadth values are never in stock-price territory
-        if (!isNaN(addNum) && addNum >= -4000 && addNum <= 4000) {
-            add_value = addRaw;
+    
+    // Approach 1: Scan all legend and wrap elements specifically (most reliable)
+    document.querySelectorAll('[class*="legend"], [class*="pane-legend"], [data-name*="legend"], [class*="wrap"]').forEach(el => {
+        const t = el.innerText || el.textContent || '';
+        const cleanText = t.replace(/\s+/g, ' ');
+        const m = cleanText.match(/(?:\$ADD|A ADD|USI:ADD|NYSE A-D)\s*([−-]?\d+)/i) || 
+                  cleanText.match(/\bADD\b\s*(?:Close|Open|High|Low)?\s*([−-]?\d+)/i) ||
+                  cleanText.match(/(?:\$ADD|A ADD|USI:ADD|ADD\b)[^\d−-]*([−-]?\d+)/i);
+        if (m) {
+            const numStr = m[1].replace(/−/g, '-');
+            const val = parseInt(numStr, 10);
+            if (!isNaN(val) && val >= -4000 && val <= 4000 && String(val) !== String(Math.round(parseFloat(spy_price)))) {
+                add_value = val;
+            }
+        }
+    });
+    
+    // Approach 2: Fall back to OHLC exchange search (with strict mismatch check)
+    if (add_value === null) {
+        const addRaw = ohlcClose("USI") || ohlcClose("$ADD") || ohlcClose("A ADD");
+        if (addRaw !== null && addRaw !== spy_price) {
+            const addNum = parseFloat(addRaw);
+            if (!isNaN(addNum) && addNum >= -4000 && addNum <= 4000) {
+                add_value = addNum;
+            }
         }
     }
 
