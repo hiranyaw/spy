@@ -431,6 +431,22 @@ class Database:
             logger.error(f"Error fetching trendline breaks: {e}")
             return []
 
+    def get_latest_trendline_break(self):
+        """Get most recent trendline break"""
+        self.ensure_connected()
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT * FROM trendline_breaks
+                    ORDER BY date DESC, time DESC, id DESC
+                    LIMIT 1
+                """)
+                return cur.fetchone()
+        except Exception as e:
+            logger.error(f"Error fetching latest trendline break: {e}")
+            return None
+
+
     def check_duplicate_break(self, symbol, direction, seconds=60):
         """Check if same break was recorded recently"""
         self.ensure_connected()

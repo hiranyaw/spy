@@ -201,22 +201,158 @@ def data():
                     "signal_type": latest_signal.get("signal_type"),
                     "details": load_raw_data(latest_signal.get("raw_data")),
                     "last_update": latest_signal.get("timestamp").isoformat() + "Z" if latest_signal.get("timestamp") else None,
-                    "history": [dict(h) for h in db.get_signal_history(60)]
+                    "history": []
                 }
             else:
-                d = {"signal":"WAITING","details":{},"history":[],"last_update":None}
+                d = {"signal": "WAITING", "details": {}, "history": [], "last_update": None}
+
+            # 1. Fetch and merge history
+            sig_history = db.get_signal_history(60) or []
+            tl_breaks = db.get_trendline_breaks(7) or []  # Last 7 days
+
+            combined = []
+            for h in sig_history:
+                combined.append(dict(h))
+
+            for br in tl_breaks:
+                br_dict = dict(br)
+                br_date = br_dict.get("date")
+                br_time = br_dict.get("time")
+                try:
+                    from datetime import date, time as dt_time
+                    if isinstance(br_date, str):
+                        br_date = datetime.strptime(br_date, "%Y-%m-%d").date()
+                    if isinstance(br_time, str):
+                        br_time = datetime.strptime(br_time, "%H:%M:%S").time()
+                    dt = datetime.combine(br_date, br_time)
+                except Exception:
+                    dt = br_dict.get("created_at") or datetime.now()
+
+                combined.append({
+                    "timestamp": dt,
+                    "signal": f"TL BREAK {br_dict.get('direction')}",
+                    "signal_type": "trend",
+                    "spy_price": float(br_dict.get("price")) if br_dict.get("price") != "?" else None,
+                    "qqq_price": None,
+                    "add_value": 0.0,
+                    "conf_tv": "1/5",
+                    "status": "ALERT",
+                    "rev_score": 0,
+                    "rev_dir": "",
+                    "st_flip": "",
+                    "tl_break": br_dict.get("direction")
+                })
+
+            def get_timestamp(x):
+                t = x.get("timestamp")
+                if isinstance(t, str):
+                    try:
+                        from dateutil import parser
+                        t = parser.parse(t)
+                    except:
+                        pass
+                if hasattr(t, "tzinfo") and t.tzinfo is not None:
+                    return t.replace(tzinfo=None)
+                return t or datetime.min
+
+            combined.sort(key=get_timestamp, reverse=True)
+            d["history"] = combined[:60]
+
+            # 2. Check if the latest trendline break is recent (within 15 minutes) to show on dashboard cards
+            latest_tl = db.get_latest_trendline_break()
+            if latest_tl:
+                latest_tl_dict = dict(latest_tl)
+                try:
+                    br_date = latest_tl_dict.get("date")
+                    br_time = latest_tl_dict.get("time")
+                    from datetime import date, time as dt_time
+                    if isinstance(br_date, str):
+                        br_date = datetime.strptime(br_date, "%Y-%m-%d").date()
+                    if isinstance(br_time, str):
+                        br_time = datetime.strptime(br_time, "%H:%M:%S").time()
+                    dt = datetime.combine(br_date, br_time)
+                except:
+                    dt = latest_tl_dict.get("created_at") or datetime.now()
+
+                created_at = latest_tl_dict.get("created_at") or dt
+                if created_at:
+                    if created_at.tzinfo is not None:
+                        created_at = created_at.replace(tzinfo=None)
+                    time_diff = (datetime.now() - created_at).total_seconds()
+                    if 0 <= time_diff <= 900:
+                        if "details" not in d:
+                            d["details"] = {}
+                        d["details"]["tl_break"] = latest_tl_dict.get("direction")
         except Exception as e:
             print(f"Database error in /data: {e}")
-            d = {"signal":"WAITING","details":{},"history":[],"last_update":None}
+            d = {"signal": "WAITING", "details": {}, "history": [], "last_update": None}
     else:
         # Fallback to JSON
         try:
             with open(SIGNALS) as f:
                 d = json.load(f)
+
+            # Fetch and merge from trendline_breaks.json
+            tl_breaks = []
+            if os.path.exists(TRENDLINE_BREAKS):
+                try:
+                    with open(TRENDLINE_BREAKS) as f:
+                        tl_data = json.load(f)
+                        tl_breaks = tl_data.get("breaks", [])
+                except:
+                    pass
+
+            combined = []
+            for h in d.get("history", []):
+                combined.append(dict(h))
+
+            for br in tl_breaks:
+                combined.append({
+                    "time": br.get("time"),
+                    "date": br.get("date"),
+                    "signal": f"TL BREAK {br.get('direction')}",
+                    "signal_type": "trend",
+                    "spy": float(br.get("price")) if br.get("price") != "?" else None,
+                    "qqq": None,
+                    "add": 0.0,
+                    "conf_tv": "1/5",
+                    "status_tv": "ALERT",
+                    "rev_score": 0,
+                    "rev_dir": "",
+                    "st_flip": "",
+                    "tl_break": br.get("direction")
+                })
+
+            def get_json_datetime(x):
+                from datetime import date
+                date_str = x.get("date") or date.today().strftime("%Y-%m-%d")
+                time_str = x.get("time") or "00:00:00"
+                try:
+                    return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M:%S")
+                except:
+                    return datetime.min
+
+            combined.sort(key=get_json_datetime, reverse=True)
+            d["history"] = combined[:60]
+
+            # Check if latest JSON break is recent
+            if tl_breaks:
+                latest_tl = tl_breaks[-1]
+                date_str = latest_tl.get("date")
+                time_str = latest_tl.get("time")
+                try:
+                    dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M:%S")
+                    time_diff = (datetime.now() - dt).total_seconds()
+                    if 0 <= time_diff <= 900:
+                        if "details" not in d:
+                            d["details"] = {}
+                        d["details"]["tl_break"] = latest_tl.get("direction")
+                except:
+                    pass
         except FileNotFoundError:
-            d = {"signal":"WAITING","details":{},"history":[],"last_update":None}
+            d = {"signal": "WAITING", "details": {}, "history": [], "last_update": None}
         except Exception as e:
-            return jsonify({"error":str(e)}), 500
+            return jsonify({"error": str(e)}), 500
 
     chrome_pid, tv_pid = find_cdp_status()
     d["chrome_running"] = chrome_pid is not None
