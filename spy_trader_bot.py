@@ -132,6 +132,7 @@ SCRAPE_JS = r"""
     let extra = '';
     document.querySelectorAll('table, [class*="overlay"], [class*="markup"], [class*="pane-legend"]').forEach(el => {
         const t = el.innerText || el.textContent || '';
+        if (t.includes("AK MACD") || t.includes("Reversal Edition")) return;
         if (t.length > 0 && t.length < 5000) extra += '\n' + t;
     });
     const body = bodyInner + '\n' + extra;
@@ -166,6 +167,7 @@ SCRAPE_JS = r"""
     // Approach 1: Scan all legend and wrap elements specifically (most reliable)
     document.querySelectorAll('[class*="legend"], [class*="pane-legend"], [data-name*="legend"], [class*="wrap"]').forEach(el => {
         const t = el.innerText || el.textContent || '';
+        if (t.includes("AK MACD") || t.includes("Reversal Edition") || t.includes("Hiranya")) return;
         const cleanText = t.replace(/\s+/g, ' ');
         const m = cleanText.match(/(?:\$ADD|A ADD|USI:ADD|NYSE A-D)\s*([−-]?\d+)/i) || 
                   cleanText.match(/\bADD\b\s*(?:Close|Open|High|Low)?\s*([−-]?\d+)/i) ||
@@ -197,7 +199,7 @@ SCRAPE_JS = r"""
     let legendText = '';
     document.querySelectorAll('[class*="legend"], [class*="pane-legend"], [data-name*="legend"]').forEach(el => {
         const t = el.innerText || el.textContent || '';
-        if (t.includes('AK MACD') && t.includes('v2.0')) {
+        if (t.includes('AK MACD') && (t.includes('v2.0') || t.includes('v2.'))) {
             legendText = t;
         }
     });
@@ -209,47 +211,63 @@ SCRAPE_JS = r"""
     let leg_lvl_r = null, leg_lvl_s = null, leg_lvl_st = null, leg_time = null;
 
     if (legendText) {
-        const parts = legendText.split(/v2(?:\.0)?/i);
-        if (parts.length > 1) {
-            const afterTitle = parts[1];
-            const matches = afterTitle.match(/[-+]?(?:[0-9]*\.[0-9]+|[0-9]+)/g);
-            if (matches && matches.length >= 12) {
-                const floatVals = matches.slice(0, 12).map(parseFloat);
-                hasLegend = true;
-
-                // Unpack trend factors from packed value
-                const trendVal = Math.round(floatVals[0]);
-                leg_f_macd = (trendVal & 16) ? 1.0 : -1.0;
-                leg_f_qqq  = (trendVal & 8)  ? 1.0 : -1.0;
-                leg_f_add  = (trendVal & 4)  ? 1.0 : -1.0;
-                leg_f_sp5  = (trendVal & 2)  ? 1.0 : -1.0;
-                leg_f_sp1  = (trendVal & 1)  ? 1.0 : -1.0;
-
-                // Calculate confluence score, direction, and readiness
-                const bullCount = ((leg_f_macd > 0) ? 1 : 0) +
-                                  ((leg_f_qqq > 0) ? 1 : 0) +
-                                  ((leg_f_add > 0) ? 1 : 0) +
-                                  ((leg_f_sp5 > 0) ? 1 : 0) +
-                                  ((leg_f_sp1 > 0) ? 1 : 0);
-                const bearCount = 5 - bullCount;
-                leg_sig_conf = Math.max(bullCount, bearCount);
-                leg_sig_dir  = (bullCount > bearCount) ? 1.0 : -1.0;
-                leg_sig_ready = (leg_sig_conf === 5) ? 1.0 : 0.0;
-
-                // Reversal and levels
-                leg_r_score = floatVals[1];
-                leg_r_dir   = floatVals[2];
-                leg_r_div   = floatVals[3];
-                leg_r_addx  = floatVals[4];
-                leg_r_stfl  = floatVals[5];
-                leg_r_vwap  = floatVals[6];
-                leg_r_engf  = floatVals[7];
-                leg_lvl_r   = floatVals[8];
-                leg_lvl_s   = floatVals[9];
-                leg_lvl_st  = floatVals[10];
-                leg_time    = floatVals[11];
-            }
+        // Robust key-value parser for indicators
+        function getVal(key) {
+            const regex = new RegExp(key + "[^0-9-]*([-+]?(?:\\d*\\.\\d+|\\d+))", "i");
+            const m = legendText.match(regex);
+            return m ? parseFloat(m[1]) : null;
         }
+
+        const valTrend = getVal("TREND_PACK") !== null ? getVal("TREND_PACK") : getVal("TRENDPACK");
+        if (valTrend !== null) {
+            hasLegend = true;
+            const trendVal = Math.round(valTrend);
+            leg_f_macd = (trendVal & 16) ? 1.0 : -1.0;
+            leg_f_qqq  = (trendVal & 8)  ? 1.0 : -1.0;
+            leg_f_add  = (trendVal & 4)  ? 1.0 : -1.0;
+            leg_f_sp5  = (trendVal & 2)  ? 1.0 : -1.0;
+            leg_f_sp1  = (trendVal & 1)  ? 1.0 : -1.0;
+
+            const bullCount = ((leg_f_macd > 0) ? 1 : 0) +
+                              ((leg_f_qqq > 0) ? 1 : 0) +
+                              ((leg_f_add > 0) ? 1 : 0) +
+                              ((leg_f_sp5 > 0) ? 1 : 0) +
+                              ((leg_f_sp1 > 0) ? 1 : 0);
+            const bearCount = 5 - bullCount;
+            leg_sig_conf = Math.max(bullCount, bearCount);
+            leg_sig_dir  = (bullCount > bearCount) ? 1.0 : -1.0;
+            leg_sig_ready = (leg_sig_conf === 5) ? 1.0 : 0.0;
+        }
+
+        const valRScore = getVal("R_SCORE") !== null ? getVal("R_SCORE") : getVal("RSCORE");
+        if (valRScore !== null) leg_r_score = valRScore;
+
+        const valRDir = getVal("R_DIR") !== null ? getVal("R_DIR") : getVal("RDIR");
+        if (valRDir !== null) leg_r_dir = valRDir;
+
+        const valRDiv = getVal("R_DIV") !== null ? getVal("R_DIV") : getVal("RDIV");
+        if (valRDiv !== null) leg_r_div = valRDiv;
+
+        const valRAddx = getVal("R_ADDX") !== null ? getVal("R_ADDX") : getVal("RADDX");
+        if (valRAddx !== null) leg_r_addx = valRAddx;
+
+        const valRStfl = getVal("R_STFL") !== null ? getVal("R_STFL") : getVal("RSTFL");
+        if (valRStfl !== null) leg_r_stfl = valRStfl;
+
+        const valREngf = getVal("R_ENGF") !== null ? getVal("R_ENGF") : getVal("RENGF");
+        if (valREngf !== null) leg_r_engf = valREngf;
+
+        const valLvlR = getVal("LVL_R") !== null ? getVal("LVL_R") : getVal("LVLR");
+        if (valLvlR !== null) leg_lvl_r = valLvlR;
+
+        const valLvlS = getVal("LVL_S") !== null ? getVal("LVL_S") : getVal("LVLS");
+        if (valLvlS !== null) leg_lvl_s = valLvlS;
+
+        const valLvlSt = getVal("LVL_ST") !== null ? getVal("LVL_ST") : getVal("LVLST");
+        if (valLvlSt !== null) leg_lvl_st = valLvlSt;
+
+        const valTimeLeft = getVal("TIME_LEFT") !== null ? getVal("TIME_LEFT") : getVal("TIMELEFT");
+        if (valTimeLeft !== null) leg_time = valTimeLeft;
     }
 
     // ── Helper functions ─────────────────────────────────────
@@ -379,7 +397,7 @@ SCRAPE_JS = r"""
         else if (leg_r_stfl === -0.1) st_flip = "DN trend";
         else st_flip = "--";
 
-        vwap_pct  = leg_r_vwap;
+        if (leg_r_vwap !== null) vwap_pct  = leg_r_vwap;
 
         if (leg_r_engf === 1.0) engulf = "BULL ENG";
         else if (leg_r_engf === -1.0) engulf = "BEAR ENG";
