@@ -68,6 +68,20 @@ class Database:
             self.conn = psycopg2.connect(DATABASE_URL)
             self.conn.autocommit = True
             self.is_connected = True
+            
+            # Auto-create uploaded_tos_files table if not exists
+            try:
+                with self.conn.cursor() as cur:
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS uploaded_tos_files (
+                            filename VARCHAR(255) PRIMARY KEY,
+                            file_content TEXT NOT NULL,
+                            uploaded_at TIMESTAMP DEFAULT NOW()
+                        );
+                    """)
+            except Exception as e:
+                log_db_event(f"Error creating uploaded_tos_files table: {e}", "WARNING")
+                
             log_db_event("✓ Successfully connected to PostgreSQL database!", "SUCCESS")
             return True
         except psycopg2.OperationalError as e:
@@ -463,7 +477,37 @@ class Database:
                 return cur.fetchone() is not None
         except Exception as e:
             logger.error(f"Error checking duplicate break: {e}")
+    # ── UPLOADED TOS CSV FILES ──
+    def save_uploaded_tos_file(self, filename, content):
+        """Save a TOS CSV file to the database to persist it across restarts"""
+        self.ensure_connected()
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO uploaded_tos_files (filename, file_content, uploaded_at)
+                    VALUES (%s, %s, NOW())
+                    ON CONFLICT (filename) DO UPDATE
+                    SET file_content = EXCLUDED.file_content, uploaded_at = NOW()
+                """, (filename, content))
+                self.conn.commit()
+                return True
+        except Exception as e:
+            self.conn.rollback()
+            logger.error(f"Error saving uploaded TOS file {filename}: {e}")
             return False
+
+    def get_all_uploaded_tos_files(self):
+        """Fetch all persistent TOS CSV files from database"""
+        self.ensure_connected()
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT filename, file_content FROM uploaded_tos_files
+                """)
+                return cur.fetchall() or []
+        except Exception as e:
+            logger.error(f"Error fetching uploaded TOS files: {e}")
+            return []
 
 # Global database instance
 db = Database()

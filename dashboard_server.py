@@ -85,8 +85,45 @@ SCREENSHOTS_DIR = os.path.join(BASE, "screenshots")
 os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 BOT_DIR = BASE  # alias for diagnostics
 
+def restore_tos_files_from_db():
+    if not DB_AVAILABLE:
+        return
+    try:
+        print("[STARTUP] Syncing TOS files with PostgreSQL database...")
+        db_files = db.get_all_uploaded_tos_files()
+        db_filenames = {f["filename"] for f in db_files}
+        
+        # 1. Restore files from DB that are missing locally
+        for f in db_files:
+            filename = f["filename"]
+            content = f["file_content"]
+            filepath = os.path.join(TOS_DIR, filename)
+            if not os.path.exists(filepath):
+                with open(filepath, "w", encoding="utf-8") as file_out:
+                    file_out.write(content)
+                print(f"[STARTUP] Restored missing local file from database: {filename}")
+                
+        # 2. Upload files that are present locally but missing in DB (e.g. from local dev)
+        local_files = [f for f in os.listdir(TOS_DIR) if f.endswith(".csv")]
+        for f in local_files:
+            if f not in db_filenames:
+                filepath = os.path.join(TOS_DIR, f)
+                try:
+                    with open(filepath, "r", encoding="utf-8", errors="replace") as f_in:
+                        content = f_in.read()
+                    db.save_uploaded_tos_file(f, content)
+                    print(f"[STARTUP] Uploaded local-only file to database: {f}")
+                except Exception as sync_err:
+                    print(f"[STARTUP] Error syncing local file {f} to DB: {sync_err}")
+                    
+        print("[STARTUP] TOS files sync complete.")
+    except Exception as e:
+        print(f"[STARTUP] Error syncing/restoring TOS files: {e}")
+
 if not os.path.exists(TOS_DIR):
     os.makedirs(TOS_DIR)
+
+restore_tos_files_from_db()
 
 def load_trendline_breaks():
     try:
@@ -1026,7 +1063,18 @@ def analysis_upload():
         filepath = os.path.join(TOS_DIR, filename)
         try:
             file.save(filepath)
-            return jsonify({"ok": True, "filename": filename, "message": f"Successfully uploaded {filename}"})
+            
+            # Persist to database
+            if DB_AVAILABLE:
+                try:
+                    with open(filepath, "r", encoding="utf-8", errors="replace") as f_in:
+                        content = f_in.read()
+                    db.save_uploaded_tos_file(filename, content)
+                    print(f"Persisted uploaded file {filename} to database.")
+                except Exception as db_err:
+                    print(f"Error persisting {filename} to database: {db_err}")
+                    
+            return jsonify({"ok": True, "filename": filename, "message": f"Successfully uploaded {filename} and saved to database"})
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
     else:
