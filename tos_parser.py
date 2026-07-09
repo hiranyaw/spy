@@ -283,6 +283,7 @@ def pair_trades(executions):
                 
             is_same_dir = (direction == "LONG" and side == "BUY") or (direction == "SHORT" and side == "SELL")
             
+            exits_qty = 0  # initialize here so it's always defined after the if/else
             if is_same_dir:
                 inventory.append({
                     "time": exec_time,
