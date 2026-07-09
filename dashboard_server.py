@@ -1038,13 +1038,29 @@ def journal_delete():
 # ── Trade Analysis Endpoints ────────────────────────────────────
 @app.route("/api/analysis/files")
 def analysis_files():
-    """List all CSV files in the TOS folder"""
+    """List all CSV files — from local disk OR PostgreSQL (Railway-safe)"""
     try:
         if not os.path.exists(TOS_DIR):
             os.makedirs(TOS_DIR)
-        files = [f for f in os.listdir(TOS_DIR) if f.endswith(".csv")]
-        files.sort(key=lambda x: os.path.getmtime(os.path.join(TOS_DIR, x)), reverse=True)
-        return jsonify({"ok": True, "files": files})
+        local_files = set(f for f in os.listdir(TOS_DIR) if f.endswith(".csv"))
+
+        # Also pull filenames from DB so files survive Railway redeploys
+        db_files = set()
+        if DB_AVAILABLE:
+            try:
+                db_rows = db.get_all_uploaded_tos_files()
+                db_files = {row["filename"] for row in db_rows}
+                # Restore any DB files missing from local disk
+                for row in db_rows:
+                    fp = os.path.join(TOS_DIR, row["filename"])
+                    if not os.path.exists(fp):
+                        with open(fp, "w", encoding="utf-8") as fout:
+                            fout.write(row["file_content"])
+            except Exception as db_err:
+                print(f"[files] DB fallback error: {db_err}")
+
+        all_files = sorted(local_files | db_files, reverse=True)
+        return jsonify({"ok": True, "files": all_files})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -1081,6 +1097,43 @@ def analysis_upload():
         return jsonify({"ok": False, "error": "Only CSV files are allowed"}), 400
 
 
+@app.route("/api/analysis/delete", methods=["DELETE"])
+def analysis_delete():
+    """Delete a TOS CSV file from disk and PostgreSQL"""
+    filename = request.args.get("filename")
+    if not filename:
+        return jsonify({"ok": False, "error": "Filename required"}), 400
+    filename = os.path.basename(filename)
+
+    # Remove from disk
+    filepath = os.path.join(TOS_DIR, filename)
+    if os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+        except Exception as e:
+            print(f"[delete] Could not remove {filepath}: {e}")
+
+    # Remove from PostgreSQL
+    if DB_AVAILABLE:
+        try:
+            with db.conn.cursor() as cur:
+                cur.execute("DELETE FROM uploaded_tos_files WHERE filename = %s", (filename,))
+            db.conn.commit()
+        except Exception as db_err:
+            db.conn.rollback()
+            print(f"[delete] DB delete error: {db_err}")
+
+    # Also invalidate analysis cache entry
+    try:
+        cache = load_analysis_cache()
+        if filename in cache:
+            del cache[filename]
+            save_analysis_cache(cache)
+    except Exception:
+        pass
+
+    return jsonify({"ok": True, "message": f"Deleted {filename}"})
+
 @app.route("/api/analysis/trades")
 def analysis_trades():
     """Parse trades from a selected TOS CSV file"""
@@ -1090,9 +1143,23 @@ def analysis_trades():
     
     filename = os.path.basename(filename)
     filepath = os.path.join(TOS_DIR, filename)
-    
+
+    # If not on local disk, try to restore from PostgreSQL
+    if not os.path.exists(filepath) and DB_AVAILABLE:
+        try:
+            db_rows = db.get_all_uploaded_tos_files()
+            for row in db_rows:
+                if row["filename"] == filename:
+                    os.makedirs(TOS_DIR, exist_ok=True)
+                    with open(filepath, "w", encoding="utf-8") as fout:
+                        fout.write(row["file_content"])
+                    print(f"[trades] Restored {filename} from DB to disk")
+                    break
+        except Exception as db_err:
+            print(f"[trades] DB restore error: {db_err}")
+
     if not os.path.exists(filepath):
-        return jsonify({"ok": False, "error": f"File {filename} not found"}), 404
+        return jsonify({"ok": False, "error": f"File {filename} not found in filesystem or database"}), 404
         
     try:
         trades = tos_parser.load_and_parse_trades(filepath)
@@ -1626,7 +1693,22 @@ def api_analysis_monthly():
     """Aggregate cached daily summaries chronologically for monthly/historical charting"""
     try:
         cache = load_analysis_cache()
-        files = [f for f in os.listdir(TOS_DIR) if f.endswith(".csv")]
+        local_files = set(f for f in os.listdir(TOS_DIR) if f.endswith(".csv"))
+
+        # Restore any DB files missing from disk (Railway ephemeral FS)
+        if DB_AVAILABLE:
+            try:
+                db_rows = db.get_all_uploaded_tos_files()
+                for row in db_rows:
+                    fp = os.path.join(TOS_DIR, row["filename"])
+                    if not os.path.exists(fp):
+                        with open(fp, "w", encoding="utf-8") as fout:
+                            fout.write(row["file_content"])
+                        local_files.add(row["filename"])
+            except Exception as db_err:
+                print(f"[monthly] DB restore error: {db_err}")
+
+        files = list(local_files)
         
         monthly_data = []
         cache_dirty = False

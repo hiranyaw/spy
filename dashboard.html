@@ -1338,10 +1338,15 @@ Only B Trades with FULL confirmation."></textarea>
           <input type="file" id="ana-file-upload" accept=".csv" style="display:none" onchange="uploadTOSFile(this)">
         </div>
 
-        <label for="ana-file-select" style="font-size:0.8rem;color:#8b949e;display:block;margin-bottom:6px">Select Active File</label>
-        <select id="ana-file-select" onchange="loadAnaTrades()" style="width:100%;background:#0d1117;border:1px solid #30363d;color:#c9d1d9;padding:8px;border-radius:6px;font-family:inherit;outline:none">
-          <option value="">No files found. Put CSVs in /TOS folder</option>
-        </select>
+        <label for="ana-file-select" style="font-size:0.8rem;color:#8b949e;display:block;margin-bottom:6px">
+          Select Active File <span id="ana-file-count" style="color:#3fb950;font-size:0.7rem"></span>
+        </label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="ana-file-select" onchange="loadAnaTrades()" style="flex:1;background:#0d1117;border:1px solid #30363d;color:#c9d1d9;padding:8px;border-radius:6px;font-family:inherit;outline:none">
+            <option value="">No files found — upload a CSV</option>
+          </select>
+          <button onclick="deleteCurrentFile()" title="Delete selected file from server" style="background:#3d1515;border:1px solid #f85149;color:#f85149;border-radius:6px;padding:7px 10px;font-size:0.85rem;cursor:pointer;font-family:inherit;white-space:nowrap" id="ana-delete-btn">🗑</button>
+        </div>
         
         <label for="ana-tz-select" style="font-size:0.8rem;color:#8b949e;display:block;margin-top:12px;margin-bottom:6px">TOS Timezone</label>
         <select id="ana-tz-select" onchange="onTzChange()" style="width:100%;background:#0d1117;border:1px solid #30363d;color:#c9d1d9;padding:8px;border-radius:6px;font-family:inherit;outline:none">
@@ -3925,9 +3930,11 @@ async function loadAnaFiles() {
   try {
     const res = await (await fetch('/api/analysis/files')).json();
     const select = document.getElementById('ana-file-select');
+    const countBadge = document.getElementById('ana-file-count');
     select.innerHTML = '';
-    
+
     if (res.ok && res.files && res.files.length > 0) {
+      if (countBadge) countBadge.textContent = `(${res.files.length} saved)`;
       res.files.forEach(f => {
         const opt = document.createElement('option');
         opt.value = f;
@@ -3936,18 +3943,37 @@ async function loadAnaFiles() {
       });
       loadAnaTrades();
     } else {
+      if (countBadge) countBadge.textContent = '';
       const opt = document.createElement('option');
       opt.value = '';
-      opt.textContent = 'No files found. Put CSVs in /TOS folder';
+      opt.textContent = 'No files saved yet — upload a CSV above';
       select.appendChild(opt);
       document.getElementById('ana-trade-list').innerHTML = `
         <div style="color:#8b949e;font-size:0.85rem;text-align:center;padding:20px 0">
-          No CSV files found in the <strong>TOS</strong> folder.<br>
-          Please place your ThinkOrSwim export CSVs there.
+          No CSV files saved yet.<br>
+          Click <strong>📤 Upload Local CSV</strong> to add your TOS export.<br>
+          <span style="font-size:0.75rem;color:#555">Files are saved to the database and persist across restarts.</span>
         </div>`;
     }
   } catch (err) {
     console.error("Error loading TOS files:", err);
+  }
+}
+
+async function deleteCurrentFile() {
+  const select = document.getElementById('ana-file-select');
+  const filename = select.value;
+  if (!filename) return;
+  if (!confirm(`Delete "${filename}" from the server permanently?`)) return;
+  try {
+    const res = await (await fetch(`/api/analysis/delete?filename=${encodeURIComponent(filename)}`, { method: 'DELETE' })).json();
+    if (res.ok) {
+      await loadAnaFiles();
+    } else {
+      alert('Delete failed: ' + (res.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
   }
 }
 
