@@ -4395,6 +4395,33 @@ function renderAnaVerdict(analysis, trade) {
     </div>
     
     <div style="font-size:0.8rem;color:#e6edf3;line-height:1.45;width:100%;text-align:left">${analysis.verdict_details}</div>
+    ${v === 'EARLY_EXIT' ? `
+    <div style="margin-top:12px;width:100%">
+      <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">📊 How far SPY ran after your exit</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div style="background:rgba(0,0,0,0.35);border:1px solid ${analysis.post_2min_move > 0 ? '#388bfd' : '#30363d'};border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">+2 min</div>
+          <div style="font-size:1.4rem;font-weight:800;color:${analysis.post_2min_move > 0 ? '#58a6ff' : '#555'}">
+            ${analysis.post_2min_move > 0 ? '+$' + analysis.post_2min_move.toFixed(2) : '—'}
+          </div>
+          <div style="font-size:0.65rem;color:#8b949e;margin-top:3px">SPY move</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.35);border:1px solid ${analysis.post_5min_move > 0 ? '#388bfd' : '#30363d'};border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">+5 min</div>
+          <div style="font-size:1.4rem;font-weight:800;color:${analysis.post_5min_move > 0 ? '#58a6ff' : '#555'}">
+            ${analysis.post_5min_move > 0 ? '+$' + analysis.post_5min_move.toFixed(2) : '—'}
+          </div>
+          <div style="font-size:0.65rem;color:#8b949e;margin-top:3px">SPY move</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.35);border:1px solid ${analysis.favorable_post_exit_move > 0 ? '#388bfd' : '#30363d'};border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">+60 min</div>
+          <div style="font-size:1.4rem;font-weight:800;color:${analysis.favorable_post_exit_move > 0 ? '#58a6ff' : '#555'}">
+            ${analysis.favorable_post_exit_move > 0 ? '+$' + analysis.favorable_post_exit_move.toFixed(2) : '—'}
+          </div>
+          <div style="font-size:0.65rem;color:#8b949e;margin-top:3px">SPY move</div>
+        </div>
+      </div>
+    </div>` : ''}
   `;
   
   document.getElementById('ana-metric-drawdown').textContent = `-$${analysis.max_drawdown.toFixed(2)}`;

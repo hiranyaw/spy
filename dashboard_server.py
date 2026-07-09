@@ -1237,7 +1237,24 @@ def analysis_chart():
         post_exit_idx = int(df.index.get_indexer([post_exit_dt], method='nearest')[0])
         
         post_df = df.iloc[exit_idx:post_exit_idx+1] if post_exit_idx > exit_idx else pd.DataFrame()
-        
+
+        # 2-min and 5-min post-exit windows
+        post_2min_dt  = (exit_dt if exit_dt else entry_dt) + timedelta(minutes=2)
+        post_5min_dt  = (exit_dt if exit_dt else entry_dt) + timedelta(minutes=5)
+        post_2min_idx = int(df.index.get_indexer([post_2min_dt], method='nearest')[0])
+        post_5min_idx = int(df.index.get_indexer([post_5min_dt], method='nearest')[0])
+
+        post_2min_df = df.iloc[exit_idx:post_2min_idx+1] if post_2min_idx > exit_idx else pd.DataFrame()
+        post_5min_df = df.iloc[exit_idx:post_5min_idx+1] if post_5min_idx > exit_idx else pd.DataFrame()
+
+        def calc_favorable(slice_df, direction, exit_price):
+            if slice_df.empty:
+                return 0.0
+            if direction == "LONG":
+                return max(float(slice_df['High'].max()) - exit_price, 0.0)
+            else:
+                return max(exit_price - float(slice_df['Low'].min()), 0.0)
+
         if not post_df.empty:
             max_spy_post = float(post_df['High'].max())
             min_spy_post = float(post_df['Low'].min())
@@ -1254,6 +1271,10 @@ def analysis_chart():
             max_post_runup = 0.0
             max_post_drawdown = 0.0
             favorable_post_exit_move = 0.0
+
+        post_2min_move = calc_favorable(post_2min_df, underlying_dir, spy_exit_price)
+        post_5min_move = calc_favorable(post_5min_df, underlying_dir, spy_exit_price)
+
             
         has_pnl = False
         pnl_val = 0.0
@@ -1315,6 +1336,8 @@ def analysis_chart():
             "max_post_runup": round(max_post_runup, 2),
             "max_post_drawdown": round(max_post_drawdown, 2),
             "favorable_post_exit_move": round(favorable_post_exit_move, 2),
+            "post_2min_move": round(post_2min_move, 2),
+            "post_5min_move": round(post_5min_move, 2),
             "verdict": verdict,
             "verdict_details": verdict_details,
             "spy_during_trade_min": min_spy_price,
