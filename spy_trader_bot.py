@@ -169,9 +169,14 @@ SCRAPE_JS = r"""
         const t = el.innerText || el.textContent || '';
         if (t.includes("AK MACD") || t.includes("Reversal Edition") || t.includes("Hiranya")) return;
         const cleanText = t.replace(/\s+/g, ' ');
-        const m = cleanText.match(/(?:\$ADD|A ADD|USI:ADD|NYSE A-D)\s*([−-]?\d+)/i) || 
-                  cleanText.match(/\bADD\b\s*(?:Close|Open|High|Low)?\s*([−-]?\d+)/i) ||
-                  cleanText.match(/(?:\$ADD|A ADD|USI:ADD|ADD\b)[^\d−-]*([−-]?\d+)/i);
+        let m = null;
+        if (/\bC\b|\bClose\b/i.test(cleanText)) {
+            m = cleanText.match(/(?:\$ADD|A\s+ADD|USI:ADD|NYSE\s+A-D)\b.*?C\s*([−-]?\d+)/i) ||
+                cleanText.match(/(?:\$ADD|A\s+ADD|USI:ADD|NYSE\s+A-D)\b.*?Close\s*([−-]?\d+)/i);
+        }
+        if (!m) {
+            m = cleanText.match(/(?:\$ADD|A\s+ADD|USI:ADD|NYSE\s+A-D)\b(?:\s+\d+[msdhd]?)?\s*([−-]?\d+)/i);
+        }
         if (m) {
             const numStr = m[1].replace(/−/g, '-');
             const val = parseInt(numStr, 10);

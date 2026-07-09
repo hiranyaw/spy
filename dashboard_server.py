@@ -1207,12 +1207,19 @@ def analysis_chart():
             max_post_drawdown = 0.0
             favorable_post_exit_move = 0.0
             
-        try:
-            pnl_val = float(realized_pnl) if realized_pnl is not None else 0.0
-        except:
-            pnl_val = 0.0
+        has_pnl = False
+        pnl_val = 0.0
+        if realized_pnl is not None and str(realized_pnl).strip() != "" and str(realized_pnl).strip().lower() != "none":
+            try:
+                pnl_val = float(realized_pnl)
+                has_pnl = True
+            except:
+                pass
             
-        is_win = pnl_val > 0 or (spy_exit_price > spy_entry_price if underlying_dir == "LONG" else spy_exit_price < spy_entry_price)
+        if has_pnl:
+            is_win = pnl_val > 0
+        else:
+            is_win = (spy_exit_price > spy_entry_price if underlying_dir == "LONG" else spy_exit_price < spy_entry_price)
         
         MOVE_THRESHOLD = 0.50
         
@@ -1263,7 +1270,8 @@ def analysis_chart():
             "verdict": verdict,
             "verdict_details": verdict_details,
             "spy_during_trade_min": min_spy_price,
-            "spy_during_trade_max": max_spy_price
+            "spy_during_trade_max": max_spy_price,
+            "is_win": is_win
         }
         
         return jsonify(sanitize({
@@ -2047,19 +2055,29 @@ def tv_webhook_signal():
         
     details = {
         "spy_price":     float(spy_price),
-        "qqq_price":     float(req.get("qqq") or spy_price),
-        "add":           float(req.get("add") or 0.0),
-        "conf_tv":       str(req.get("conf_tv") or "0"),
-        "rev_score":     int(req.get("rev_score") or 0),
-        "rev_dir":       req.get("rev_dir", ""),
-        "signal_tv":     req.get("macd_dir", ""),
-        "vwap_pct":      float(req.get("vwap_pct") or 0.0),
-        "st_flip":       req.get("st_flip", ""),
-        "div_signal":    req.get("div_signal", ""),
-        "spy1_dir":      req.get("spy1_dir", ""),
+        "qqq_price":     float(req.get("qqq_price") or req.get("qqq") or spy_price),
+        "add":           float(req.get("add") if req.get("add") is not None else (req.get("add_value") if req.get("add_value") is not None else 0.0)),
+        "signal_tv":     req.get("signal_tv") or req.get("macd_dir") or "N/A",
+        "status_tv":     req.get("status_tv") or "READY",
+        "conf_tv":       str(req.get("conf_tv") or req.get("confidence") or "0"),
+        "qqq_dir":       req.get("qqq_dir", ""),
+        "add_dir":       req.get("add_dir", ""),
         "spy5_dir":      req.get("spy5_dir", ""),
+        "spy1_dir":      req.get("spy1_dir", ""),
+        "macd_dir":      req.get("macd_dir") or req.get("signal_tv") or "",
+        "rev_score":     int(req.get("rev_score") if req.get("rev_score") is not None else 0),
+        "rev_dir":       req.get("rev_dir", ""),
+        "div_signal":    req.get("div_signal", ""),
+        "add_ext":       req.get("add_ext", ""),
+        "st_flip":       req.get("st_flip", ""),
+        "vwap_pct":      float(req.get("vwap_pct") if req.get("vwap_pct") is not None else 0.0),
+        "engulf":        req.get("engulf", ""),
         "tl_break":      req.get("tl_break", ""),
-        "status_tv":     "READY",
+        "resist":        req.get("resist") if req.get("resist") is not None else None,
+        "support":       req.get("support") if req.get("support") is not None else None,
+        "st_level":      req.get("st_level") if req.get("st_level") is not None else None,
+        "time_left":     req.get("time_left") if req.get("time_left") is not None else None,
+        "adx_value":     req.get("adx_value") if req.get("adx_value") is not None else None,
         "vix":           float(req.get("vix") or 15.0),
         "vix_regime":    req.get("vix_regime", "NORMAL")
     }

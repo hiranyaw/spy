@@ -2279,8 +2279,9 @@ function updateLive(d){
                   base==='BUY'?'▲ BUY':base==='SELL'?'▼ SELL':
                   base==='REV-BUY'?'◆ REVERSAL BUY':base==='REV-SELL'?'◆ REVERSAL SELL':
                   sig.length>28?sig.substring(0,26)+'…':sig;
+  const displayAdd = (det.add !== undefined && det.add !== null) ? det.add : (det.add_value !== undefined && det.add_value !== null ? det.add_value : '--');
   document.getElementById('sig-sub').textContent=
-    `SPY: ${fmt(det.spy_price)}  QQQ: ${fmt(det.qqq_price)}  ADD: ${det.add||'--'}`;
+    `SPY: ${fmt(det.spy_price)}  QQQ: ${fmt(det.qqq_price)}  ADD: ${displayAdd}`;
   const badgeEl=document.getElementById('sig-badge');
   if(stype==='strong')   badgeEl.innerHTML='<span class="sig-badge badge-strong">⭐ STRONG — ST FLIPPED + '+(det.conf_tv||'?')+' CONFLUENCE</span>';
   else if(stype==='trend')    badgeEl.innerHTML='<span class="sig-badge badge-trend">5/5 TREND SIGNAL</span>';
@@ -2297,7 +2298,7 @@ function updateLive(d){
   const macdDir=det.macd_dir||(tvSig==='BUY'?'UP':tvSig==='SELL'?'DN':'na');
   setFactor('f-macd','fv-macd',null,macdDir,null,null);
   setFactor('f-qqq','fv-qqq','fs-qqq',det.qqq_dir||'na',null,fmt(det.qqq_price));
-  const addNum=det.add?Number(det.add):null;
+  const addNum=(det.add !== undefined && det.add !== null) ? Number(det.add) : (det.add_value !== undefined && det.add_value !== null ? Number(det.add_value) : null);
   setFactor('f-add','fv-add','fs-add',det.add_dir||'na',null,addNum!=null?(addNum>0?'+':'')+Math.round(addNum):'--');
   setFactor('f-spy5','fv-spy5',null,det.spy5_dir||'na',null,null);
   setFactor('f-spy1','fv-spy1',null,det.spy1_dir||'na',null,null);
