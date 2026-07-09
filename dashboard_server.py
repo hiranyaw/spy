@@ -1629,107 +1629,92 @@ def api_analysis_monthly():
                     continue
                     
                 spy_trades.sort(key=lambda x: x["entry_time"])
-                
-                # Fetch yfinance price history
-                dates = set(t["entry_time"].strftime("%Y-%m-%d") for t in spy_trades)
-                spy_data = {}
-                for d_str in dates:
-                    dt = datetime.strptime(d_str, "%Y-%m-%d")
-                    next_dt = dt + timedelta(days=1)
-                    df = yf.Ticker("SPY").history(start=d_str, end=next_dt.strftime("%Y-%m-%d"), interval="1m", prepost=True)
-                    if not df.empty:
-                        tz = pytz.timezone("US/Pacific")
-                        try:
-                            df.index = df.index.tz_convert(tz)
-                        except:
-                            pass
-                        spy_data[d_str] = df
-                        
+
+                # Basic stats (always computed — no network needed)
+                total_pnl = sum(t["pnl"] for t in spy_trades)
+                wins   = [t for t in spy_trades if t["win"]]
+                losses = [t for t in spy_trades if not t["win"]]
+                win_rate = (len(wins) / len(spy_trades)) * 100 if spy_trades else 0.0
+
+                # Try yfinance for advanced direction-accuracy stats; degrade gracefully if unavailable
                 stopped_out_correct_count = 0
                 wrong_direction_count = 0
                 early_exits_count = 0
                 great_trades_count = 0
                 stopped_drawdowns = []
                 early_exit_moves = []
-                
-                MOVE_THRESHOLD = 0.50
-                
-                for t in spy_trades:
-                    d_str = t["entry_time"].strftime("%Y-%m-%d")
-                    if d_str not in spy_data:
-                        continue
-                    df = spy_data[d_str]
-                    
-                    tz = pytz.timezone("US/Pacific")
-                    entry_dt = tz.localize(t["entry_time"])
-                    exit_dt = tz.localize(t["exit_time"])
-                    
-                    try:
-                        entry_idx = int(df.index.get_indexer([entry_dt], method='nearest')[0])
-                        exit_idx = int(df.index.get_indexer([exit_dt], method='nearest')[0])
-                    except:
-                        continue
-                        
-                    spy_entry_price = float(df.iloc[entry_idx]['Close'])
-                    spy_exit_price = float(df.iloc[exit_idx]['Close'])
-                    
-                    start_idx = min(entry_idx, exit_idx)
-                    end_idx = max(entry_idx, exit_idx)
-                    trade_df = df.iloc[start_idx:end_idx+1]
-                    
-                    max_spy_price = float(trade_df['High'].max())
-                    min_spy_price = float(trade_df['Low'].min())
-                    
-                    if t.get("option_type") == "PUT":
-                        underlying_dir = "SHORT" if t["direction"] == "LONG" else "LONG"
-                    else:
-                        underlying_dir = t["direction"]
-                        
-                    if underlying_dir == "LONG":
-                        max_runup = max_spy_price - spy_entry_price
-                        max_drawdown = spy_entry_price - min_spy_price
-                    else:
-                        max_runup = spy_entry_price - min_spy_price
-                        max_drawdown = max_spy_price - spy_entry_price
-                        
-                    post_exit_dt = exit_dt + timedelta(minutes=60)
-                    post_exit_idx = int(df.index.get_indexer([post_exit_dt], method='nearest')[0])
-                    post_df = df.iloc[exit_idx:post_exit_idx+1] if post_exit_idx > exit_idx else pd.DataFrame()
-                    
-                    if not post_df.empty:
-                        max_spy_post = float(post_df['High'].max())
-                        min_spy_post = float(post_df['Low'].min())
-                        
+                yf_available = False
+
+                try:
+                    dates = set(t["entry_time"].strftime("%Y-%m-%d") for t in spy_trades)
+                    spy_data = {}
+                    for d_str in dates:
+                        dt = datetime.strptime(d_str, "%Y-%m-%d")
+                        next_dt = dt + timedelta(days=1)
+                        df = yf.Ticker("SPY").history(start=d_str, end=next_dt.strftime("%Y-%m-%d"), interval="1m", prepost=True)
+                        if not df.empty:
+                            tz = pytz.timezone("US/Pacific")
+                            try:
+                                df.index = df.index.tz_convert(tz)
+                            except:
+                                pass
+                            spy_data[d_str] = df
+
+                    MOVE_THRESHOLD = 0.50
+                    for t in spy_trades:
+                        d_str = t["entry_time"].strftime("%Y-%m-%d")
+                        if d_str not in spy_data:
+                            continue
+                        df = spy_data[d_str]
+                        tz = pytz.timezone("US/Pacific")
+                        entry_dt = tz.localize(t["entry_time"])
+                        exit_dt  = tz.localize(t["exit_time"])
+                        try:
+                            entry_idx = int(df.index.get_indexer([entry_dt], method='nearest')[0])
+                            exit_idx  = int(df.index.get_indexer([exit_dt],  method='nearest')[0])
+                        except:
+                            continue
+                        spy_entry_price = float(df.iloc[entry_idx]['Close'])
+                        spy_exit_price  = float(df.iloc[exit_idx]['Close'])
+                        start_idx = min(entry_idx, exit_idx)
+                        end_idx   = max(entry_idx, exit_idx)
+                        trade_df  = df.iloc[start_idx:end_idx+1]
+                        max_spy_price = float(trade_df['High'].max())
+                        min_spy_price = float(trade_df['Low'].min())
+                        underlying_dir = ("SHORT" if t["direction"] == "LONG" else "LONG") if t.get("option_type") == "PUT" else t["direction"]
                         if underlying_dir == "LONG":
-                            max_post_runup = max_spy_post - spy_entry_price
-                            favorable_post_exit_move = max_spy_post - spy_exit_price
+                            max_runup    = max_spy_price - spy_entry_price
+                            max_drawdown = spy_entry_price - min_spy_price
                         else:
-                            max_post_runup = spy_entry_price - min_spy_post
-                            favorable_post_exit_move = spy_exit_price - min_spy_post
-                    else:
-                        max_post_runup = 0.0
-                        favorable_post_exit_move = 0.0
-                        
-                    is_win = t["pnl"] > 0
-                    if is_win:
-                        if favorable_post_exit_move >= MOVE_THRESHOLD:
-                            early_exits_count += 1
-                            early_exit_moves.append(favorable_post_exit_move)
+                            max_runup    = spy_entry_price - min_spy_price
+                            max_drawdown = max_spy_price - spy_entry_price
+                        post_exit_dt  = exit_dt + timedelta(minutes=60)
+                        post_exit_idx = int(df.index.get_indexer([post_exit_dt], method='nearest')[0])
+                        post_df = df.iloc[exit_idx:post_exit_idx+1] if post_exit_idx > exit_idx else pd.DataFrame()
+                        if not post_df.empty:
+                            max_spy_post = float(post_df['High'].max())
+                            min_spy_post = float(post_df['Low'].min())
+                            favorable_post_exit_move = (max_spy_post - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - min_spy_post)
+                            max_post_runup = (max_spy_post - spy_entry_price) if underlying_dir == "LONG" else (spy_entry_price - min_spy_post)
                         else:
-                            great_trades_count += 1
-                    else:
-                        overall_max_runup = max(max_runup, max_post_runup)
-                        if overall_max_runup >= MOVE_THRESHOLD:
-                            stopped_out_correct_count += 1
-                            stopped_drawdowns.append(max_drawdown)
+                            max_post_runup = favorable_post_exit_move = 0.0
+                        is_win = t["pnl"] > 0
+                        if is_win:
+                            if favorable_post_exit_move >= MOVE_THRESHOLD:
+                                early_exits_count += 1
+                                early_exit_moves.append(favorable_post_exit_move)
+                            else:
+                                great_trades_count += 1
                         else:
-                            wrong_direction_count += 1
-                            
-                total_pnl = sum(t["pnl"] for t in spy_trades)
-                wins = [t for t in spy_trades if t["win"]]
-                losses = [t for t in spy_trades if not t["win"]]
-                win_rate = (len(wins) / len(spy_trades)) * 100 if spy_trades else 0.0
-                
+                            if max(max_runup, max_post_runup) >= MOVE_THRESHOLD:
+                                stopped_out_correct_count += 1
+                                stopped_drawdowns.append(max_drawdown)
+                            else:
+                                wrong_direction_count += 1
+                    yf_available = True
+                except Exception as yf_err:
+                    print(f"[Monthly] yfinance unavailable for {f}: {yf_err} — using basic stats only")
+
                 avg_drawdown_stopped = sum(stopped_drawdowns) / len(stopped_drawdowns) if stopped_drawdowns else 0.0
                 max_early_move = max(early_exit_moves) if early_exit_moves else 0.0
                 
