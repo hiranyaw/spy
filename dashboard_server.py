@@ -503,17 +503,76 @@ def trendline_breaks_endpoint():
 
 @app.route("/webhook/trendline", methods=["POST"])
 def webhook_trendline():
-    """Receive trendline break alerts from TradingView via webhook"""
+    """Receive trendline breaks or trade close signals from TradingView"""
     try:
         data = request.get_json(silent=True) or request.form.to_dict() or {}
 
-        # Extract from TradingView alert message
-        # Format: "SPY B↑ 425.50" or "SPY B↓ 424.80" or custom format
+        # ── Handle Pine Script Trade Close Webhook ─────────────────────
+        if data.get("event") == "trade_close":
+            direction = data.get("direction")
+            entry_p = float(data.get("entry_price") or 0)
+            exit_p = float(data.get("exit_price") or 0)
+            pnl_val = float(data.get("pnl") or 0)
+            pnl_pct = float(data.get("pnl_pct") or 0)
+            exit_cond = data.get("exit_condition") or "Indicator Exit"
+
+            # 1. DB write if active
+            if DB_AVAILABLE:
+                try:
+                    with db.conn.cursor() as cur:
+                        cur.execute("""
+                            INSERT INTO paper_trades
+                            (entry_time, exit_time, direction, entry_price, exit_price, pnl, pnl_percent, is_win, signal_type, closed)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, TRUE)
+                        """, (
+                            datetime.now() - timedelta(minutes=10),
+                            datetime.now(),
+                            direction,
+                            entry_p,
+                            exit_p,
+                            pnl_val,
+                            pnl_pct,
+                            pnl_val > 0,
+                            exit_cond
+                        ))
+                        db.conn.commit()
+                except Exception as db_err:
+                    print(f"Error saving webhook trade to DB: {db_err}")
+
+            # 2. Local fallback JSON write
+            trades = []
+            if os.path.exists(PAPER):
+                try:
+                    with open(PAPER, "r") as f:
+                        trades = json.load(f)
+                except Exception:
+                    pass
+            
+            trades.append({
+                "entry_time": (datetime.now() - timedelta(minutes=10)).strftime("%H:%M:%S"),
+                "exit_time": datetime.now().strftime("%H:%M:%S"),
+                "direction": "LONG" if direction == "CALL" else "SHORT",
+                "signal_type": exit_cond,
+                "entry_price": entry_p,
+                "exit_price": exit_p,
+                "pnl": pnl_val,
+                "win": pnl_val > 0
+            })
+
+            try:
+                with open(PAPER, "w") as f:
+                    json.dump(trades, f, indent=2)
+            except Exception as f_err:
+                print(f"Error saving fallback trade file: {f_err}")
+
+            print(f"[WEBHOOK] Saved trade: {direction} P&L: {pnl_val:+.2f} ({exit_cond})")
+            return jsonify({"ok": True, "message": "Saved trade close signal"})
+
+        # ── Handle regular Trendline Break Webhook ──────────────────────
         message = data.get("message", "") or data.get("text", "")
         if not message:
             message = request.get_data(as_text=True)
 
-        # Parse direction from message
         direction = None
         if "B↑" in message or "UP" in message.upper() or "BREAKOUT" in message.upper():
             direction = "UP"
@@ -528,7 +587,6 @@ def webhook_trendline():
 
         # Record to database or JSON
         try:
-            from datetime import datetime
             now = datetime.now()
             date_str = now.strftime("%Y-%m-%d")
             time_str = now.strftime("%H:%M:%S")
