@@ -4167,7 +4167,7 @@ async function selectAnaTrade(trade) {
   const tz = document.getElementById('ana-tz-select').value;
   
   try {
-    const url = `/api/analysis/chart?date=${dateStr}&entry_time=${encodeURIComponent(trade.entry_time)}&exit_time=${encodeURIComponent(trade.exit_time || "None")}&direction=${trade.direction}&option_type=${trade.option_type || "None"}&timezone=${tz}&pnl=${trade.pnl || "0"}`;
+    const url = `/api/analysis/chart?date=${dateStr}&entry_time=${encodeURIComponent(trade.entry_time)}&exit_time=${encodeURIComponent(trade.exit_time || "None")}&direction=${trade.direction}&option_type=${trade.option_type || "None"}&strike=${trade.strike || "None"}&timezone=${tz}&pnl=${trade.pnl || "0"}`;
     const res = await (await fetch(url)).json();
     
     if (res.ok && res.candles) {

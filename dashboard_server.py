@@ -1255,7 +1255,15 @@ def analysis_chart():
     option_type = request.args.get("option_type", "None").upper()
     user_tz_str = request.args.get("timezone", "US/Eastern")
     realized_pnl = request.args.get("pnl")
+    strike_str = request.args.get("strike", "None")
     
+    option_strike = None
+    if strike_str and strike_str != "None":
+        try:
+            option_strike = float(strike_str)
+        except:
+            pass
+            
     if not date_str or not entry_time_str:
         return jsonify({"ok": False, "error": "date and entry_time are required"}), 400
         
@@ -1299,8 +1307,37 @@ def analysis_chart():
             # 9:30 AM EST to 4:00 PM EST (391 minutes)
             times = pd.date_range(start=f"{date_str} 09:30:00-05:00", end=f"{date_str} 16:00:00-05:00", freq="1min")
             
+            # Resolve base_price dynamically to match simulation price range (700s)
+            db_base_price = None
+            if DB_AVAILABLE:
+                try:
+                    with db.conn.cursor() as cur:
+                        cur.execute("""
+                            SELECT spy_price FROM signals 
+                            WHERE timestamp::date = %s AND spy_price IS NOT NULL AND spy_price::float > 0
+                            ORDER BY ABS(EXTRACT(EPOCH FROM (timestamp - %s))) ASC
+                            LIMIT 1
+                        """, (date_str, entry_time_str))
+                        row = cur.fetchone()
+                        if row and row[0]:
+                            db_base_price = float(row[0])
+                except Exception as e:
+                    print(f"[chart] Error getting baseline from signals: {e}")
+                    
+            if not db_base_price:
+                try:
+                    with open(SIGNALS) as f:
+                        sig_data = json.load(f)
+                        val = sig_data.get("details", {}).get("spy_price")
+                        if val:
+                            db_base_price = float(val)
+                except:
+                    pass
+
+            base_price = db_base_price if db_base_price else (option_strike if option_strike else 750.0)
+            print(f"[chart] Resolved baseline price to: {base_price}")
+            
             prices = []
-            base_price = 548.50 # SPY baseline price
             for _ in range(len(times)):
                 base_price += np.random.normal(0, 0.22)
                 prices.append(base_price)
