@@ -4392,22 +4392,28 @@ function renderAnaVerdict(analysis, trade) {
   
   let directionVerdict = '';
   let stopLossVerdict = '';
+  let recommendationText = '';
   
   if (v === 'GREAT_TRADE') {
     directionVerdict = '<span style="color:#3fb950;font-weight:bold">CORRECT ✓</span>';
     stopLossVerdict = '<span style="color:#3fb950;font-weight:bold">GOOD</span>';
+    recommendationText = 'Perfect execution! You captured the bulk of the move and exited at the right time. Continue using your current entry and exit indicators.';
   } else if (v === 'EARLY_EXIT') {
     directionVerdict = '<span style="color:#3fb950;font-weight:bold">CORRECT ✓</span>';
     stopLossVerdict = '<span style="color:#3fb950;font-weight:bold">GOOD (Profitable)</span>';
+    recommendationText = `You won this trade, but exited early. SPY ran another <strong>$${analysis.favorable_post_exit_move.toFixed(2)}</strong> in your direction after you closed. Consider scaling out of positions (e.g., selling half and trailing the rest with a breakeven stop loss) to capture larger runs.`;
   } else if (v === 'STOPPED_OUT_BUT_CORRECT') {
     directionVerdict = '<span style="color:#3fb950;font-weight:bold">CORRECT ✓</span>';
     stopLossVerdict = '<span style="color:#f85149;font-weight:bold">TOO TIGHT</span>';
+    recommendationText = `Your market direction was correct, but your stop loss on the option was too tight and shook you out early. Consider using a wider stop loss on the option contract (e.g., matching a <strong>$${analysis.max_drawdown.toFixed(2)}</strong> SPY drawdown room) to let the trade breathe.`;
   } else if (v === 'WRONG_DIRECTION') {
     directionVerdict = '<span style="color:#f85149;font-weight:bold">WRONG ✗</span>';
     stopLossVerdict = '<span style="color:#3fb950;font-weight:bold">GOOD (Protected Capital)</span>';
+    recommendationText = 'The market immediately went against you and never recovered. Your stop loss worked perfectly to protect your capital. Review your entry criteria (VWAP, EMA alignment) to avoid counter-trend entries.';
   } else {
     directionVerdict = '<span style="color:#8b949e;font-weight:bold">--</span>';
     stopLossVerdict = '<span style="color:#8b949e;font-weight:bold">--</span>';
+    recommendationText = 'No recommendation available for this trade.';
   }
 
   box.innerHTML = `
@@ -4430,7 +4436,13 @@ function renderAnaVerdict(analysis, trade) {
     </div>
     
     <div style="font-size:0.8rem;color:#e6edf3;line-height:1.45;width:100%;text-align:left">${analysis.verdict_details}</div>
-    ${v === 'EARLY_EXIT' ? `
+    
+    <div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.1);border-radius:6px;width:100%;box-sizing:border-box;text-align:left">
+      <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:700">💡 Actionable Recommendation</div>
+      <div style="font-size:0.75rem;color:#c9d1d9;line-height:1.35">${recommendationText}</div>
+    </div>
+
+    ${(v === 'EARLY_EXIT' || v === 'GREAT_TRADE') ? `
     <div style="margin-top:12px;width:100%">
       <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">📊 How far SPY ran after your exit</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
