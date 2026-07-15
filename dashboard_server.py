@@ -1415,7 +1415,7 @@ def analysis_chart():
         else:
             is_win = (spy_exit_price > spy_entry_price if underlying_dir == "LONG" else spy_exit_price < spy_entry_price)
         
-        MOVE_THRESHOLD = 0.50
+        MOVE_THRESHOLD = 0.10
         
         verdict = "UNKNOWN"
         verdict_details = ""
@@ -1581,7 +1581,7 @@ def analysis_summary():
         stopped_drawdowns = []
         early_exit_moves = []
         
-        MOVE_THRESHOLD = 0.50
+        MOVE_THRESHOLD = 0.10
         
         for t in spy_trades:
             d_str = t["entry_time"].strftime("%Y-%m-%d")
@@ -1823,7 +1823,7 @@ def api_analysis_monthly():
                                 pass
                             spy_data[d_str] = df
 
-                    MOVE_THRESHOLD = 0.50
+                    MOVE_THRESHOLD = 0.10
                     for t in spy_trades:
                         d_str = t["entry_time"].strftime("%Y-%m-%d")
                         if d_str not in spy_data:
