@@ -1458,6 +1458,62 @@ def analysis_chart():
                 "ema21": float(row['EMA21']) if not pd.isna(row['EMA21']) else None
             })
             
+        # Fetch trendline breaks and signals for this day
+        db_signals = []
+        db_breaks = []
+        if DB_AVAILABLE:
+            try:
+                import psycopg2.extras
+                with db.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    # Query signals for the day (matching the trade date)
+                    cur.execute("""
+                        SELECT id, timestamp, signal, signal_type, status, confidence, spy_price 
+                        FROM signals 
+                        WHERE timestamp::date = %s 
+                        ORDER BY timestamp ASC
+                    """, (date_str,))
+                    rows = cur.fetchall()
+                    for r in rows:
+                        sig = dict(r)
+                        sig["timestamp_unix"] = int(sig["timestamp"].timestamp())
+                        sig["timestamp"] = sig["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
+                        db_signals.append(sig)
+                    
+                    # Query trendline breaks for the day
+                    cur.execute("""
+                        SELECT id, date, time, symbol, direction, price 
+                        FROM trendline_breaks 
+                        WHERE date = %s AND symbol = 'SPY'
+                        ORDER BY time ASC
+                    """, (date_str,))
+                    br_rows = cur.fetchall()
+                    for r in br_rows:
+                        br = dict(r)
+                        dt_combined = datetime.combine(br["date"], br["time"])
+                        br["timestamp_unix"] = int(dt_combined.timestamp())
+                        br["date"] = br["date"].strftime("%Y-%m-%d")
+                        br["time"] = br["time"].strftime("%H:%M:%S")
+                        db_breaks.append(br)
+            except Exception as db_err:
+                print(f"[chart] Error fetching signals/breaks from DB: {db_err}")
+        else:
+            # Fall back to trendline_breaks.json if DB not available
+            try:
+                tl_data = load_trendline_breaks()
+                for br in tl_data.get("breaks", []):
+                    if br.get("date") == date_str and br.get("symbol") == "SPY":
+                        try:
+                            t_parsed = datetime.strptime(br["time"], "%H:%M:%S").time()
+                            d_parsed = datetime.strptime(br["date"], "%Y-%m-%d").date()
+                            dt_combined = datetime.combine(d_parsed, t_parsed)
+                            br_copy = br.copy()
+                            br_copy["timestamp_unix"] = int(dt_combined.timestamp())
+                            db_breaks.append(br_copy)
+                        except:
+                            pass
+            except Exception as json_err:
+                print(f"[chart] Error reading local breaks JSON: {json_err}")
+
         analysis = {
             "spy_entry_price": spy_entry_price,
             "spy_exit_price": spy_exit_price,
@@ -1474,7 +1530,9 @@ def analysis_chart():
             "verdict_details": verdict_details,
             "spy_during_trade_min": min_spy_price,
             "spy_during_trade_max": max_spy_price,
-            "is_win": is_win
+            "is_win": is_win,
+            "signals": db_signals,
+            "breaks": db_breaks
         }
         
         return jsonify(sanitize({

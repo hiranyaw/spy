@@ -4338,6 +4338,45 @@ function renderAnaChart(candles, analysis, trade) {
     });
   }
   
+  // Add live webhook signal markers from the database
+  if (analysis.signals && Array.isArray(analysis.signals)) {
+    analysis.signals.forEach(sig => {
+      const ts = shiftTimestamp(sig.timestamp_unix);
+      const sigUpper = sig.signal ? sig.signal.toUpperCase() : '';
+      const isBuy = sigUpper.includes('BUY') || sigUpper.includes('CALL');
+      const isSell = sigUpper.includes('SELL') || sigUpper.includes('PUT');
+      
+      if (isBuy || isSell) {
+        markers.push({
+          time: ts,
+          position: isBuy ? 'belowBar' : 'aboveBar',
+          color: isBuy ? '#3fb950' : '#f85149',
+          shape: 'square',
+          text: `${isBuy ? '🟢 BUY' : '🔴 SELL'} Live Signal`
+        });
+      }
+    });
+  }
+  
+  // Add live trendline break markers from the database
+  if (analysis.breaks && Array.isArray(analysis.breaks)) {
+    analysis.breaks.forEach(br => {
+      const ts = shiftTimestamp(br.timestamp_unix);
+      const isUp = br.direction === 'UP';
+      
+      markers.push({
+        time: ts,
+        position: isUp ? 'belowBar' : 'aboveBar',
+        color: isUp ? '#ff9e2c' : '#a371f7',
+        shape: 'circle',
+        text: `⚡ TL Break ${br.direction}`
+      });
+    });
+  }
+  
+  // Sort markers chronologically to avoid lightweight-charts sorting issues
+  markers.sort((a, b) => a.time - b.time);
+  
   candleSeries.setMarkers(markers);
   
   const startVisible = shiftedEntry - 15 * 60;
