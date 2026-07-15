@@ -1277,7 +1277,16 @@ def analysis_chart():
         real_now = dt_mod.datetime.utcnow()
         req_date = dt_mod.datetime.strptime(date_str, "%Y-%m-%d")
         
-        if req_date.date() >= real_now.date():
+        # Try fetching real data from yfinance first
+        df = pd.DataFrame()
+        try:
+            df = yf.Ticker("SPY").history(start=start_date, end=end_date, interval="1m", prepost=True)
+        except Exception as yf_err:
+            print(f"[chart] yfinance fetch error: {yf_err}")
+            
+        # Fall back to mock data if yfinance returned empty and the date is today or in the future
+        if df.empty and req_date.date() >= real_now.date():
+            print(f"[chart] yfinance empty for today/future. Generating mock data for {date_str}")
             # Generate highly realistic mock 1-minute candles for SPY (9:30 AM to 4:00 PM EST)
             # Use deterministic seed based on the date hash so the chart is stable on reloads
             import hashlib
@@ -1300,8 +1309,6 @@ def analysis_chart():
             df['Close'] = prices
             df['Volume'] = [int(np.random.uniform(8000, 65000)) for _ in range(len(times))]
             df.index.name = 'Datetime'
-        else:
-            df = yf.Ticker("SPY").history(start=start_date, end=end_date, interval="1m", prepost=True)
 
         
         if df.empty:
