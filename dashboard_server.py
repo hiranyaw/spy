@@ -1271,21 +1271,24 @@ def analysis_chart():
         start_date = dt.strftime("%Y-%m-%d")
         end_date = next_dt.strftime("%Y-%m-%d")
         
-        # Detect if the requested date is in the future relative to real-world calendar
-        import datetime as dt_mod
-        import numpy as np
-        real_now = dt_mod.datetime.utcnow()
-        req_date = dt_mod.datetime.strptime(date_str, "%Y-%m-%d")
+        # Get today's date in user's timezone to avoid UTC mismatch
+        tz = pytz.timezone(user_tz_str)
+        today_user_tz = datetime.now(tz).date()
+        req_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         
         # Try fetching real data from yfinance first
         df = pd.DataFrame()
         try:
-            df = yf.Ticker("SPY").history(start=start_date, end=end_date, interval="1m", prepost=True)
+            if req_date == today_user_tz:
+                # Use same history query as get_live_chart_history for today to match exactly
+                df = yf.Ticker("SPY").history(period="3d", interval="1m", prepost=True)
+            else:
+                df = yf.Ticker("SPY").history(start=start_date, end=end_date, interval="1m", prepost=True)
         except Exception as yf_err:
             print(f"[chart] yfinance fetch error: {yf_err}")
-            
         # Fall back to mock data if yfinance returned empty and the date is today or in the future
-        if df.empty and req_date.date() >= real_now.date():
+        import numpy as np
+        if df.empty and req_date >= today_user_tz:
             print(f"[chart] yfinance empty for today/future. Generating mock data for {date_str}")
             # Generate highly realistic mock 1-minute candles for SPY (9:30 AM to 4:00 PM EST)
             # Use deterministic seed based on the date hash so the chart is stable on reloads
@@ -1322,6 +1325,10 @@ def analysis_chart():
             df.index = df.index.tz_convert(tz)
         except Exception as e:
             pass
+            
+        # Filter to only the requested trade date if we fetched 3d range
+        if req_date == today_user_tz and not df.empty:
+            df = df[df.index.date == req_date]
             
         df['Typical_Price'] = (df['High'] + df['Low'] + df['Close']) / 3
         df['TP_Vol'] = df['Typical_Price'] * df['Volume']
