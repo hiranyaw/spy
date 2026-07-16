@@ -2945,9 +2945,14 @@ def api_admin_debug_yf():
         return jsonify({"error": str(e), "trace": traceback.format_exc()})
 
 @app.route("/api/admin/clear_cache")
-def api_admin_clear_cache():
-    import os
+def clear_cache():
     try:
+        if db and not db.is_connected:
+            db.connect()
+        global DB_AVAILABLE
+        DB_AVAILABLE = db.is_connected if db else False
+        restore_tos_files_from_db()
+        
         if os.path.exists(CACHE_FILE):
             os.remove(CACHE_FILE)
             return jsonify({"ok": True, "msg": "Cache cleared."})
