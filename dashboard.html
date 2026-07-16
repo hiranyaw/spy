@@ -3774,6 +3774,7 @@ async function loadAnaMonthly() {
         <td style="padding:8px;text-align:center;font-weight:700;color:#e6edf3">${day.total_trades}</td>
         <td style="padding:8px;text-align:center">${winRateStr}</td>
         <td style="padding:8px;text-align:center;color:#3fb950;font-weight:700">${dirAccStr}</td>
+        <td style="padding:8px;text-align:center;color:#e6edf3;font-weight:700">${day.early_exits || 0}</td>
         <td style="padding:8px;text-align:right;font-weight:700;color:${pnlColor}">${pnlSign}${Math.abs(day.total_pnl).toFixed(2)}</td>
         <td style="padding:8px;text-align:right;font-weight:700;color:${sim3Color}">${sim3Sign}${Math.abs(day.sim_3_pnl).toFixed(2)}</td>
         <td style="padding:8px;text-align:right;font-weight:700;color:${sim2lColor}">${sim2lSign}${Math.abs(day.sim_2l_pnl).toFixed(2)}</td>
