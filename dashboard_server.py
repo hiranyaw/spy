@@ -2812,3 +2812,14 @@ if __name__ == "__main__":
     print(f"Dashboard running at http://0.0.0.0:{port}")
     app.run(host="0.0.0.0", port=port, debug=False)
 
+
+@app.route("/api/admin/clear_cache")
+def api_admin_clear_cache():
+    import os
+    try:
+        if os.path.exists(CACHE_FILE):
+            os.remove(CACHE_FILE)
+            return jsonify({"ok": True, "msg": "Cache cleared."})
+        return jsonify({"ok": True, "msg": "No cache file found."})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
