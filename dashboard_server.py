@@ -60,6 +60,36 @@ def load_raw_data(raw_val):
             return {}
     return raw_val
 
+
+def get_spy_history(start=None, end=None, period=None):
+    import pandas as pd, os, json, pytz
+    try:
+        if os.path.exists("spy_history.json"):
+            with open("spy_history.json", "r") as f:
+                data = json.load(f)
+            df = pd.DataFrame.from_dict(data, orient="index")
+            df.index = pd.to_datetime(df.index)
+            tz = pytz.timezone("US/Pacific")
+            if df.index.tz is None:
+                df.index = df.index.tz_localize(tz)
+            else:
+                df.index = df.index.tz_convert(tz)
+            if start and end:
+                s_dt = pd.to_datetime(start)
+                if s_dt.tz is None: s_dt = tz.localize(s_dt)
+                e_dt = pd.to_datetime(end)
+                if e_dt.tz is None: e_dt = tz.localize(e_dt)
+                df = df[(df.index >= s_dt) & (df.index <= e_dt)]
+            if not df.empty:
+                return df
+    except Exception as e:
+        print("spy_history fallback error:", e)
+    
+    import yfinance as yf
+    if period:
+        return yf.Ticker("SPY").history(period=period, interval="1m", prepost=True)
+    return yf.Ticker("SPY").history(start=start, end=end, interval="1m", prepost=True)
+
 app = Flask(__name__)
 
 @app.after_request
@@ -1294,9 +1324,9 @@ def analysis_chart():
         try:
             if req_date == today_user_tz:
                 # Use same history query as get_live_chart_history for today to match exactly
-                df = yf.Ticker("SPY").history(period="3d", interval="1m", prepost=True)
+                df = get_spy_history(period="3d")
             else:
-                df = yf.Ticker("SPY").history(start=start_date, end=end_date, interval="1m", prepost=True)
+                df = get_spy_history(start=start_date, end=end_date)
         except Exception as yf_err:
             print(f"[chart] yfinance fetch error: {yf_err}")
         # Fall back to mock data if yfinance returned empty and the date is today or in the future
@@ -1928,7 +1958,7 @@ def api_analysis_monthly():
                     for d_str in dates:
                         dt = datetime.strptime(d_str, "%Y-%m-%d")
                         next_dt = dt + timedelta(days=1)
-                        df = yf.Ticker("SPY").history(start=d_str, end=next_dt.strftime("%Y-%m-%d"), interval="1m", prepost=True)
+                        df = get_spy_history(start=d_str, end=next_dt.strftime("%Y-%m-%d"))
                         if not df.empty:
                             tz = pytz.timezone("US/Pacific")
                             try:
