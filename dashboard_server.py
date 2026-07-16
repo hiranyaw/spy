@@ -123,9 +123,13 @@ def get_spy_history(start=None, end=None, period=None):
 
     # 3. Fallback to yfinance (Will likely fail on Railway but good for local)
     import yfinance as yf
-    if period:
-        return yf.Ticker("SPY").history(period=period, interval="1m", prepost=True)
-    return yf.Ticker("SPY").history(start=start, end=end, interval="1m", prepost=True)
+    try:
+        if period:
+            return yf.Ticker("SPY").history(period=period, interval="1m", prepost=True)
+        return yf.Ticker("SPY").history(start=start, end=end, interval="1m", prepost=True)
+    except Exception as e:
+        print("yfinance fallback error:", e)
+        return pd.DataFrame()
 
 app = Flask(__name__)
 
@@ -2017,7 +2021,9 @@ def api_analysis_monthly():
                 wrong_direction_count = 0
                 early_exits_count = 0
                 total_missed_profit = 0
+                total_missed_profit_1m = 0
                 total_missed_profit_2m = 0
+                total_missed_profit_5m = 0
                 great_trades_count = 0
                 stopped_drawdowns = []
                 early_exit_moves = []
