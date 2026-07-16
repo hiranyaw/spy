@@ -2186,7 +2186,8 @@ def api_analysis_monthly():
                     cache_dirty = True
                 monthly_data.append(summary)
             except Exception as e:
-                print(f"Error parsing file {f}: {e}")
+                import traceback
+                monthly_data.append({"error": str(e), "trace": traceback.format_exc(), "file": f, "source": "error"})
                 continue
                 
         if cache_dirty:
