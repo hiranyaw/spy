@@ -2153,6 +2153,11 @@ def api_analysis_monthly():
         except Exception as manual_err:
             print(f"[monthly] manual trades fallback error: {manual_err}")
 
+        # Normalize all date fields to ISO strings (some cache entries may have datetime.date objects)
+        for d in monthly_data:
+            if d.get("date") and not isinstance(d["date"], str):
+                d["date"] = str(d["date"])
+
         # Sort chronologically by date (defensive: skip entries missing 'date')
         monthly_data = [d for d in monthly_data if d.get("date")]
         monthly_data.sort(key=lambda x: x["date"])
