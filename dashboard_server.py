@@ -2809,6 +2809,36 @@ def restart_server():
     return jsonify({"ok": True, "messages": ["Server restarting..."]})
 
 
+@app.route("/api/admin/debug_yf")
+def api_admin_debug_yf():
+    import yfinance as yf
+    import pytz
+    from datetime import datetime
+    import traceback
+    try:
+        df = yf.Ticker('SPY').history(start='2026-07-16', end='2026-07-17', interval='1m')
+        if df.empty: return jsonify({"error": "df is empty"})
+        
+        tz = pytz.timezone("US/Pacific")
+        try:
+            df.index = df.index.tz_convert(tz)
+        except Exception as e:
+            pass
+            
+        entry_time_str = "2026-07-16 06:34:51"
+        entry_dt = tz.localize(datetime.strptime(entry_time_str, "%Y-%m-%d %H:%M:%S"))
+        entry_search = entry_dt
+        if df.index.tz is None:
+            entry_search = entry_dt.replace(tzinfo=None)
+            
+        try:
+            entry_idx = int(df.index.get_indexer([entry_search], method='nearest')[0])
+            return jsonify({"ok": True, "idx": entry_idx, "dt": str(df.index[entry_idx])})
+        except Exception as e:
+            return jsonify({"error": str(e), "trace": traceback.format_exc()})
+    except Exception as e:
+        return jsonify({"error": str(e), "trace": traceback.format_exc()})
+
 @app.route("/api/admin/clear_cache")
 def api_admin_clear_cache():
     import os
