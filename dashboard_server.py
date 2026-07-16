@@ -1989,9 +1989,9 @@ def api_analysis_monthly():
             mtime = os.path.getmtime(filepath)
             
             if f in cache and cache[f].get("mtime") == mtime:
-                # If cached summary doesn't have date, right_direction_count or sim data, force recompute
+                # If cached summary doesn't have date, right_direction_count, sim_3_pnl or sim_1m_pnl, force recompute
                 summary = cache[f]["summary"]
-                if "date" in summary and "right_direction_count" in summary and "sim_3_pnl" in summary:
+                if "date" in summary and "right_direction_count" in summary and "sim_3_pnl" in summary and "sim_1m_pnl" in summary:
                     monthly_data.append(summary)
                     continue
             
@@ -2953,10 +2953,14 @@ def clear_cache():
         DB_AVAILABLE = db.is_connected if db else False
         restore_tos_files_from_db()
         
+        # Debugging info
+        db_files = db.get_all_uploaded_tos_files() if db else []
+        local_files = os.listdir(TOS_DIR) if os.path.exists(TOS_DIR) else []
+        
         if os.path.exists(CACHE_FILE):
             os.remove(CACHE_FILE)
-            return jsonify({"ok": True, "msg": "Cache cleared."})
-        return jsonify({"ok": True, "msg": "No cache file found."})
+            return jsonify({"ok": True, "msg": "Cache cleared and TOS files synced.", "debug": {"db_count": len(db_files), "local_files": local_files}})
+        return jsonify({"ok": True, "msg": "No cache file found, but TOS files synced.", "debug": {"db_count": len(db_files), "local_files": local_files}})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
 
