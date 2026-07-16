@@ -1885,9 +1885,9 @@ def api_analysis_monthly():
             mtime = os.path.getmtime(filepath)
             
             if f in cache and cache[f].get("mtime") == mtime:
-                # If cached summary doesn't have right_direction_count or sim data, force recompute
+                # If cached summary doesn't have date, right_direction_count or sim data, force recompute
                 summary = cache[f]["summary"]
-                if "right_direction_count" in summary and "sim_3_pnl" in summary:
+                if "date" in summary and "right_direction_count" in summary and "sim_3_pnl" in summary:
                     monthly_data.append(summary)
                     continue
             
@@ -2073,10 +2073,91 @@ def api_analysis_monthly():
                 
         if cache_dirty:
             save_analysis_cache(cache)
-            
-        # Sort chronologically by date
+
+        # ------------------------------------------------------------------
+        # Fallback: aggregate closed manual trades by date for any days that
+        # are NOT already covered by TOS CSV files.
+        # ------------------------------------------------------------------
+        try:
+            tos_dates = {d["date"] for d in monthly_data}
+
+            # Load manual trades (DB preferred, JSON fallback)
+            if DB_AVAILABLE:
+                try:
+                    raw_manual = [dict(t) for t in db.get_manual_trades(10000)]
+                except Exception:
+                    raw_manual = load_manual_trades()
+            else:
+                raw_manual = load_manual_trades()
+
+            closed_manual = [t for t in raw_manual if t.get("closed") and t.get("entry_date") and t.get("pnl") is not None]
+
+            # Group by entry_date
+            manual_by_date = {}
+            for t in closed_manual:
+                d = t["entry_date"]
+                manual_by_date.setdefault(d, []).append(t)
+
+            for date_str, day_trades in manual_by_date.items():
+                if date_str in tos_dates:
+                    continue  # already have TOS data for this day
+
+                wins_list   = [t for t in day_trades if t.get("win")]
+                losses_list = [t for t in day_trades if not t.get("win")]
+                total_pnl   = round(sum(float(t.get("pnl", 0)) for t in day_trades), 2)
+                win_rate    = (len(wins_list) / len(day_trades) * 100) if day_trades else 0.0
+
+                # Sim: stop after 3 trades
+                trades_3    = day_trades[:3]
+                sim_3_pnl   = round(sum(float(t.get("pnl", 0)) for t in trades_3), 2)
+                sim_3_wins  = len([t for t in trades_3 if t.get("win")])
+                sim_3_losses= len(trades_3) - sim_3_wins
+
+                # Sim: stop after 2 consecutive losses
+                trades_2l   = []
+                consec      = 0
+                for t in day_trades:
+                    trades_2l.append(t)
+                    consec = (consec + 1) if not t.get("win") else 0
+                    if consec >= 2:
+                        break
+                sim_2l_pnl  = round(sum(float(t.get("pnl", 0)) for t in trades_2l), 2)
+                sim_2l_wins = len([t for t in trades_2l if t.get("win")])
+                sim_2l_losses = len(trades_2l) - sim_2l_wins
+
+                monthly_data.append({
+                    "date"               : date_str,
+                    "source"             : "manual",
+                    "total_trades"       : len(day_trades),
+                    "win_rate"           : round(win_rate, 1),
+                    "total_pnl"          : total_pnl,
+                    "wins_count"         : len(wins_list),
+                    "losses_count"       : len(losses_list),
+                    "stopped_out_correct": 0,
+                    "wrong_direction"    : 0,
+                    "early_exits"        : 0,
+                    "great_trades"       : 0,
+                    "avg_drawdown_stopped": 0.0,
+                    "right_direction_count": len(wins_list),
+                    "sim_3_total"        : len(trades_3),
+                    "sim_3_wins"         : sim_3_wins,
+                    "sim_3_losses"       : sim_3_losses,
+                    "sim_3_pnl"          : sim_3_pnl,
+                    "sim_2l_total"       : len(trades_2l),
+                    "sim_2l_wins"        : sim_2l_wins,
+                    "sim_2l_losses"      : sim_2l_losses,
+                    "sim_2l_pnl"         : sim_2l_pnl,
+                    "recommendations"    : [],
+                    "donts"              : []
+                })
+        except Exception as manual_err:
+            print(f"[monthly] manual trades fallback error: {manual_err}")
+
+        # Sort chronologically by date (defensive: skip entries missing 'date')
+        monthly_data = [d for d in monthly_data if d.get("date")]
         monthly_data.sort(key=lambda x: x["date"])
-        return jsonify({"ok": True, "data": monthly_data})
+        has_tos = any(d.get("source") != "manual" for d in monthly_data)
+        return jsonify({"ok": True, "data": monthly_data, "has_tos": has_tos})
     except Exception as e:
         import traceback
         traceback.print_exc()

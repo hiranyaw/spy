@@ -1515,13 +1515,18 @@ Only B Trades with FULL confirmation."></textarea>
   <!-- Monthly View Section -->
   <div id="ana-view-monthly" style="display:none">
     <!-- Monthly Stats Grid -->
-    <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:15px;margin-bottom:20px">
+    <div id="ana-month-source-banner" style="display:none;margin-bottom:14px;padding:9px 14px;background:#1c2a1c;border:1px solid #3fb950;border-radius:8px;font-size:0.8rem;color:#8b949e"></div>
+    <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px;margin-bottom:20px">
       <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
-        <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Total Days Analyzed</div>
+        <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Total Days</div>
         <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-month-stat-days">0</div>
       </div>
       <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
-        <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Avg Direction Accuracy</div>
+        <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Actual P&amp;L</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-month-stat-actual">$0.00</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
+        <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Avg Direction Acc.</div>
         <div style="font-size:1.8rem;font-weight:700;color:#3fb950" id="ana-month-stat-dir">0%</div>
       </div>
       <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
@@ -1560,9 +1565,10 @@ Only B Trades with FULL confirmation."></textarea>
         <thead>
           <tr style="border-bottom:2px solid #30363d;color:#8b949e">
             <th style="padding:8px;text-align:left">Date</th>
-            <th style="padding:8px;text-align:center">Total Trades</th>
+            <th style="padding:8px;text-align:center">Source</th>
+            <th style="padding:8px;text-align:center">Trades</th>
             <th style="padding:8px;text-align:center">Win / Loss Rate</th>
-            <th style="padding:8px;text-align:center">Direction Accuracy</th>
+            <th style="padding:8px;text-align:center">Dir. Accuracy</th>
             <th style="padding:8px;text-align:right">Actual P&amp;L</th>
             <th style="padding:8px;text-align:right">Sim: Stop @ 3</th>
             <th style="padding:8px;text-align:right">Sim: Stop @ 2L</th>
@@ -3684,20 +3690,43 @@ async function loadAnaMonthly() {
     }
     
     const res = await (await fetch('/api/analysis/monthly')).json();
-    if (!res.ok || !res.data || res.data.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f85149;padding:20px">
-        ⚠️ No historical stats found. Upload TOS statements first.
+    if (!res.ok) {
+      tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">
+        ⚠️ Error loading monthly data: ${res.error || 'Unknown error'}
+      </td></tr>`;
+      return;
+    }
+
+    if (!res.data || res.data.length === 0) {
+      tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#8b949e;padding:20px">
+        📭 No trade data found yet. Log trades in the Paper Trading or Trade Journal tabs, or upload TOS statements.
       </td></tr>`;
       return;
     }
     
     const data = res.data;
+    const hasOnlyManual = !res.has_tos;
+
+    // Show source banner
+    const banner = document.getElementById('ana-month-source-banner');
+    if (banner) {
+      if (hasOnlyManual) {
+        banner.style.display = 'block';
+        banner.innerHTML = '📋 <strong style="color:#3fb950">Showing data from Trade Journal (manual trades)</strong> — Upload TOS brokerage statements in the Trade Analysis tab for full P&L and direction-accuracy stats.';
+      } else if (data.some(d => d.source === 'manual')) {
+        banner.style.display = 'block';
+        banner.innerHTML = '📋 Mix of <strong style="color:#58a6ff">TOS</strong> and <strong style="color:#ff9e2c">Manual</strong> trade data shown.';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
     
     // Calculate overall stats
     const totalDays = data.length;
     let sumDirAcc = 0;
     let sumSim3 = 0;
     let sumSim2l = 0;
+    let sumActual = 0;
     
     tableBody.innerHTML = '';
     
@@ -3708,35 +3737,40 @@ async function loadAnaMonthly() {
     const dirAccData = [];
     
     let cumActual = 0;
-    let cumSim3 = 0;
-    let cumSim2l = 0;
     
     data.forEach(day => {
       const dirAcc = day.total_trades > 0 ? (day.right_direction_count / day.total_trades * 100) : 0;
       sumDirAcc += dirAcc;
-      sumSim3 += day.sim_3_pnl;
-      sumSim2l += day.sim_2l_pnl;
+      sumSim3   += day.sim_3_pnl;
+      sumSim2l  += day.sim_2l_pnl;
+      sumActual += day.total_pnl;
+      cumActual += day.total_pnl;
       
       dates.push(day.date);
-      cumActual += day.total_pnl;
-      cumSim3 += day.sim_3_pnl;
-      cumSim2l += day.sim_2l_pnl;
-      
-      actualPnlData.push(Number(cumActual.toFixed(2)));
-      sim3PnlData.push(Number(cumSim3.toFixed(2)));
-      sim2lPnlData.push(Number(cumSim2l.toFixed(2)));
+      actualPnlData.push(Number((sumActual).toFixed(2)));
+      sim3PnlData.push(Number((sumSim3).toFixed(2)));
+      sim2lPnlData.push(Number((sumSim2l).toFixed(2)));
       dirAccData.push(Number(dirAcc.toFixed(1)));
       
+      // Source badge
+      const isManual = day.source === 'manual';
+      const sourceBadge = isManual
+        ? `<span style="background:#2d2200;color:#ff9e2c;border:1px solid #ff9e2c;border-radius:4px;padding:1px 6px;font-size:0.7rem;font-weight:700">Manual</span>`
+        : `<span style="background:#0d1f3c;color:#58a6ff;border:1px solid #58a6ff;border-radius:4px;padding:1px 6px;font-size:0.7rem;font-weight:700">TOS</span>`;
+
       // Append table row
       const winRateStr = `${day.wins_count}W / ${day.losses_count}L (${day.win_rate.toFixed(1)}%)`;
       const dirAccStr = `${day.right_direction_count} / ${day.total_trades} (${dirAcc.toFixed(1)}%)`;
-      const pnlColor = day.total_pnl >= 0 ? '#3fb950' : '#f85149';
-      const sim3Color = day.sim_3_pnl >= 0 ? '#3fb950' : '#f85149';
-      const sim2lColor = day.sim_2l_pnl >= 0 ? '#3fb950' : '#f85149';
+      const pnlColor  = day.total_pnl  >= 0 ? '#3fb950' : '#f85149';
+      const sim3Color = day.sim_3_pnl  >= 0 ? '#3fb950' : '#f85149';
+      const sim2lColor= day.sim_2l_pnl >= 0 ? '#3fb950' : '#f85149';
+      const rowBg     = isManual ? 'background:rgba(255,158,44,0.03)' : '';
       
       const tr = document.createElement('tr');
+      tr.setAttribute('style', rowBg);
       tr.innerHTML = `
         <td style="padding:8px">${day.date}</td>
+        <td style="padding:8px;text-align:center">${sourceBadge}</td>
         <td style="padding:8px;text-align:center;font-weight:700;color:#e6edf3">${day.total_trades}</td>
         <td style="padding:8px;text-align:center">${winRateStr}</td>
         <td style="padding:8px;text-align:center;color:#3fb950;font-weight:700">${dirAccStr}</td>
@@ -3750,6 +3784,10 @@ async function loadAnaMonthly() {
     // Populate cards
     document.getElementById('ana-month-stat-days').textContent = totalDays;
     document.getElementById('ana-month-stat-dir').textContent = `${(sumDirAcc / totalDays).toFixed(1)}%`;
+
+    const actualVal = document.getElementById('ana-month-stat-actual');
+    actualVal.textContent = (sumActual >= 0 ? '+$' : '-$') + Math.abs(sumActual).toFixed(2);
+    actualVal.style.color = sumActual >= 0 ? '#3fb950' : '#f85149';
     
     const sim3Val = document.getElementById('ana-month-stat-sim3');
     sim3Val.textContent = (sumSim3 >= 0 ? '+$' : '-$') + Math.abs(sumSim3).toFixed(2);
