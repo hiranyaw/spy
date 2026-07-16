@@ -3669,50 +3669,46 @@ function switchAnaSubTab(tab) {
 
 async function loadAnaMonthly() {
   const tableBody = document.getElementById('ana-month-table-body');
-  tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#8b949e;padding:20px">
-    <span class="ind ind-g" style="animation:pulse 1s infinite"></span> Aggregating monthly stats...
+  tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#8b949e;padding:20px">
+    <span class="ind ind-g" style="animation:pulse 1s infinite"></span> Loading monthly stats...
   </td></tr>`;
   
+  // ── 1. Fetch data ────────────────────────────────────────────────────────
+  let res;
   try {
-    // Dynamically load Chart.js if missing
-    if (typeof Chart === 'undefined') {
-      await new Promise((resolve, reject) => {
-        console.log("Loading Chart.js library dynamically...");
-        const script = document.createElement('script');
-        script.src = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js";
-        script.onload = () => {
-          console.log("Chart.js loaded successfully.");
-          resolve();
-        };
-        script.onerror = () => reject(new Error("Failed to load Chart.js"));
-        document.head.appendChild(script);
-      });
-    }
-    
-    const res = await (await fetch('/api/analysis/monthly')).json();
-    if (!res.ok) {
-      tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">
-        ⚠️ Error loading monthly data: ${res.error || 'Unknown error'}
-      </td></tr>`;
-      return;
-    }
+    res = await (await fetch('/api/analysis/monthly')).json();
+  } catch (fetchErr) {
+    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">
+      ⚠️ Network error fetching monthly data: ${fetchErr.message}
+    </td></tr>`;
+    return;
+  }
 
-    if (!res.data || res.data.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#8b949e;padding:20px">
-        📭 No trade data found yet. Log trades in the Paper Trading or Trade Journal tabs, or upload TOS statements.
-      </td></tr>`;
-      return;
-    }
-    
+  if (!res.ok) {
+    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">
+      ⚠️ Error loading monthly data: ${res.error || 'Unknown error'}
+    </td></tr>`;
+    return;
+  }
+
+  if (!res.data || res.data.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#8b949e;padding:20px">
+      📭 No trade data found yet. Log trades in Paper Trading or Trade Journal, or upload TOS statements.
+    </td></tr>`;
+    return;
+  }
+
+  // ── 2. Render table + stat cards (always succeeds) ───────────────────────
+  try {
     const data = res.data;
     const hasOnlyManual = !res.has_tos;
 
-    // Show source banner
+    // Source banner
     const banner = document.getElementById('ana-month-source-banner');
     if (banner) {
       if (hasOnlyManual) {
         banner.style.display = 'block';
-        banner.innerHTML = '📋 <strong style="color:#3fb950">Showing data from Trade Journal (manual trades)</strong> — Upload TOS brokerage statements in the Trade Analysis tab for full P&L and direction-accuracy stats.';
+        banner.innerHTML = '📋 <strong style="color:#3fb950">Showing data from Trade Journal (manual trades)</strong> — Upload TOS brokerage statements in the Trade Analysis tab for full direction-accuracy stats.';
       } else if (data.some(d => d.source === 'manual')) {
         banner.style.display = 'block';
         banner.innerHTML = '📋 Mix of <strong style="color:#58a6ff">TOS</strong> and <strong style="color:#ff9e2c">Manual</strong> trade data shown.';
@@ -3720,180 +3716,130 @@ async function loadAnaMonthly() {
         banner.style.display = 'none';
       }
     }
-    
-    // Calculate overall stats
+
     const totalDays = data.length;
-    let sumDirAcc = 0;
-    let sumSim3 = 0;
-    let sumSim2l = 0;
-    let sumActual = 0;
-    
+    let sumDirAcc = 0, sumSim3 = 0, sumSim2l = 0, sumActual = 0;
+    const dates = [], actualPnlData = [], sim3PnlData = [], sim2lPnlData = [], dirAccData = [];
+
     tableBody.innerHTML = '';
-    
-    const dates = [];
-    const actualPnlData = [];
-    const sim3PnlData = [];
-    const sim2lPnlData = [];
-    const dirAccData = [];
-    
-    let cumActual = 0;
-    
+
     data.forEach(day => {
       const dirAcc = day.total_trades > 0 ? (day.right_direction_count / day.total_trades * 100) : 0;
       sumDirAcc += dirAcc;
       sumSim3   += day.sim_3_pnl;
       sumSim2l  += day.sim_2l_pnl;
       sumActual += day.total_pnl;
-      cumActual += day.total_pnl;
-      
+
       dates.push(day.date);
-      actualPnlData.push(Number((sumActual).toFixed(2)));
-      sim3PnlData.push(Number((sumSim3).toFixed(2)));
-      sim2lPnlData.push(Number((sumSim2l).toFixed(2)));
+      actualPnlData.push(Number(sumActual.toFixed(2)));
+      sim3PnlData.push(Number(sumSim3.toFixed(2)));
+      sim2lPnlData.push(Number(sumSim2l.toFixed(2)));
       dirAccData.push(Number(dirAcc.toFixed(1)));
-      
-      // Source badge
-      const isManual = day.source === 'manual';
+
+      const isManual   = day.source === 'manual';
       const sourceBadge = isManual
         ? `<span style="background:#2d2200;color:#ff9e2c;border:1px solid #ff9e2c;border-radius:4px;padding:1px 6px;font-size:0.7rem;font-weight:700">Manual</span>`
         : `<span style="background:#0d1f3c;color:#58a6ff;border:1px solid #58a6ff;border-radius:4px;padding:1px 6px;font-size:0.7rem;font-weight:700">TOS</span>`;
 
-      // Append table row
-      const winRateStr = `${day.wins_count}W / ${day.losses_count}L (${day.win_rate.toFixed(1)}%)`;
-      const dirAccStr = `${day.right_direction_count} / ${day.total_trades} (${dirAcc.toFixed(1)}%)`;
-      const pnlColor  = day.total_pnl  >= 0 ? '#3fb950' : '#f85149';
-      const sim3Color = day.sim_3_pnl  >= 0 ? '#3fb950' : '#f85149';
-      const sim2lColor= day.sim_2l_pnl >= 0 ? '#3fb950' : '#f85149';
-      const rowBg     = isManual ? 'background:rgba(255,158,44,0.03)' : '';
-      
+      const winRateStr  = `${day.wins_count}W / ${day.losses_count}L (${Number(day.win_rate).toFixed(1)}%)`;
+      const dirAccStr   = `${day.right_direction_count} / ${day.total_trades} (${dirAcc.toFixed(1)}%)`;
+      const pnlColor    = day.total_pnl  >= 0 ? '#3fb950' : '#f85149';
+      const sim3Color   = day.sim_3_pnl  >= 0 ? '#3fb950' : '#f85149';
+      const sim2lColor  = day.sim_2l_pnl >= 0 ? '#3fb950' : '#f85149';
+      const pnlSign     = day.total_pnl  >= 0 ? '+$' : '-$';
+      const sim3Sign    = day.sim_3_pnl  >= 0 ? '+$' : '-$';
+      const sim2lSign   = day.sim_2l_pnl >= 0 ? '+$' : '-$';
+
       const tr = document.createElement('tr');
-      tr.setAttribute('style', rowBg);
+      tr.style.background = isManual ? 'rgba(255,158,44,0.03)' : '';
       tr.innerHTML = `
-        <td style="padding:8px">${day.date}</td>
+        <td style="padding:8px;white-space:nowrap">${day.date}</td>
         <td style="padding:8px;text-align:center">${sourceBadge}</td>
         <td style="padding:8px;text-align:center;font-weight:700;color:#e6edf3">${day.total_trades}</td>
         <td style="padding:8px;text-align:center">${winRateStr}</td>
         <td style="padding:8px;text-align:center;color:#3fb950;font-weight:700">${dirAccStr}</td>
-        <td style="padding:8px;text-align:right;font-weight:700;color:${pnlColor}">${day.total_pnl >= 0 ? '+$' : '-$'}${Math.abs(day.total_pnl).toFixed(2)}</td>
-        <td style="padding:8px;text-align:right;font-weight:700;color:${sim3Color}">${day.sim_3_pnl >= 0 ? '+$' : '-$'}${Math.abs(day.sim_3_pnl).toFixed(2)}</td>
-        <td style="padding:8px;text-align:right;font-weight:700;color:${sim2lColor}">${day.sim_2l_pnl >= 0 ? '+$' : '-$'}${Math.abs(day.sim_2l_pnl).toFixed(2)}</td>
+        <td style="padding:8px;text-align:right;font-weight:700;color:${pnlColor}">${pnlSign}${Math.abs(day.total_pnl).toFixed(2)}</td>
+        <td style="padding:8px;text-align:right;font-weight:700;color:${sim3Color}">${sim3Sign}${Math.abs(day.sim_3_pnl).toFixed(2)}</td>
+        <td style="padding:8px;text-align:right;font-weight:700;color:${sim2lColor}">${sim2lSign}${Math.abs(day.sim_2l_pnl).toFixed(2)}</td>
       `;
       tableBody.appendChild(tr);
     });
-    
-    // Populate cards
-    document.getElementById('ana-month-stat-days').textContent = totalDays;
-    document.getElementById('ana-month-stat-dir').textContent = `${(sumDirAcc / totalDays).toFixed(1)}%`;
 
-    const actualVal = document.getElementById('ana-month-stat-actual');
-    actualVal.textContent = (sumActual >= 0 ? '+$' : '-$') + Math.abs(sumActual).toFixed(2);
-    actualVal.style.color = sumActual >= 0 ? '#3fb950' : '#f85149';
-    
-    const sim3Val = document.getElementById('ana-month-stat-sim3');
-    sim3Val.textContent = (sumSim3 >= 0 ? '+$' : '-$') + Math.abs(sumSim3).toFixed(2);
-    sim3Val.style.color = sumSim3 >= 0 ? '#3fb950' : '#f85149';
-    
-    const sim2lVal = document.getElementById('ana-month-stat-sim2l');
-    sim2lVal.textContent = (sumSim2l >= 0 ? '+$' : '-$') + Math.abs(sumSim2l).toFixed(2);
-    sim2lVal.style.color = sumSim2l >= 0 ? '#3fb950' : '#f85149';
-    
-    // Render PnL Comparison Chart
-    const pnlCtx = document.getElementById('ana-month-chart-pnl').getContext('2d');
-    if (anaMonthPnlChart) anaMonthPnlChart.destroy();
-    
-    anaMonthPnlChart = new Chart(pnlCtx, {
-      type: 'line',
-      data: {
-        labels: dates,
-        datasets: [
-          {
-            label: 'Actual P&L',
-            data: actualPnlData,
-            borderColor: '#58a6ff',
-            borderWidth: 2,
-            pointRadius: 4,
-            tension: 0.1,
-            fill: false
-          },
-          {
-            label: 'Sim: Stop @ 3 Trades',
-            data: sim3PnlData,
-            borderColor: '#3fb950',
-            borderWidth: 2,
-            pointRadius: 4,
-            tension: 0.1,
-            fill: false
-          },
-          {
-            label: 'Sim: Stop @ 2 consec losses',
-            data: sim2lPnlData,
-            borderColor: '#ff9e2c',
-            borderWidth: 2,
-            pointRadius: 4,
-            tension: 0.1,
-            fill: false
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: true,
-            labels: { color: '#c9d1d9', font: { size: 10 } }
-          }
-        },
-        scales: {
-          x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
-          y: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } }
-        }
+    // Stat cards
+    document.getElementById('ana-month-stat-days').textContent = totalDays;
+    document.getElementById('ana-month-stat-dir').textContent  = `${(sumDirAcc / totalDays).toFixed(1)}%`;
+
+    const actualEl = document.getElementById('ana-month-stat-actual');
+    if (actualEl) { actualEl.textContent = (sumActual >= 0 ? '+$' : '-$') + Math.abs(sumActual).toFixed(2); actualEl.style.color = sumActual >= 0 ? '#3fb950' : '#f85149'; }
+
+    const sim3El = document.getElementById('ana-month-stat-sim3');
+    if (sim3El)   { sim3El.textContent   = (sumSim3   >= 0 ? '+$' : '-$') + Math.abs(sumSim3).toFixed(2);   sim3El.style.color   = sumSim3   >= 0 ? '#3fb950' : '#f85149'; }
+
+    const sim2lEl = document.getElementById('ana-month-stat-sim2l');
+    if (sim2lEl)  { sim2lEl.textContent  = (sumSim2l  >= 0 ? '+$' : '-$') + Math.abs(sumSim2l).toFixed(2);  sim2lEl.style.color  = sumSim2l  >= 0 ? '#3fb950' : '#f85149'; }
+
+    // ── 3. Render charts (non-fatal — data already visible above) ──────────
+    const renderCharts = async () => {
+      if (typeof Chart === 'undefined') {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
+          s.onload = resolve;
+          s.onerror = () => reject(new Error('Chart.js CDN unavailable'));
+          document.head.appendChild(s);
+        });
       }
-    });
-    
-    // Render Direction Accuracy Trend Chart
-    const dirCtx = document.getElementById('ana-month-chart-dir').getContext('2d');
-    if (anaMonthDirChart) anaMonthDirChart.destroy();
-    
-    anaMonthDirChart = new Chart(dirCtx, {
-      type: 'line',
-      data: {
-        labels: dates,
-        datasets: [
-          {
-            label: 'Direction Accuracy (%)',
-            data: dirAccData,
-            borderColor: '#3fb950',
-            backgroundColor: 'rgba(63, 185, 80, 0.1)',
-            borderWidth: 2,
-            pointRadius: 4,
-            tension: 0.1,
-            fill: true
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
+
+      const pnlCtx = document.getElementById('ana-month-chart-pnl').getContext('2d');
+      if (anaMonthPnlChart) anaMonthPnlChart.destroy();
+      anaMonthPnlChart = new Chart(pnlCtx, {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [
+            { label: 'Actual P&L',              data: actualPnlData, borderColor: '#58a6ff', borderWidth: 2, pointRadius: 4, tension: 0.3, fill: false },
+            { label: 'Sim: Stop @ 3 Trades',    data: sim3PnlData,   borderColor: '#3fb950', borderWidth: 2, pointRadius: 4, tension: 0.3, fill: false },
+            { label: 'Sim: Stop @ 2 consec L',  data: sim2lPnlData,  borderColor: '#ff9e2c', borderWidth: 2, pointRadius: 4, tension: 0.3, fill: false }
+          ]
         },
-        scales: {
-          x: { ticks: { color: '#8b949e', font: { size: 10 } }, grid: { color: '#21262d' } },
-          y: { 
-            min: 0, 
-            max: 100, 
-            ticks: { color: '#8b949e', font: { size: 10 }, callback: v => v + '%' },
-            grid: { color: '#21262d' } 
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: true, labels: { color: '#c9d1d9', font: { size: 10 } } } },
+          scales: {
+            x: { ticks: { color: '#8b949e', font: { size: 10 }, maxRotation: 45 }, grid: { color: '#21262d' } },
+            y: { ticks: { color: '#8b949e', font: { size: 10 }, callback: v => (v >= 0 ? '+$' : '-$') + Math.abs(v).toFixed(0) }, grid: { color: '#21262d' } }
           }
         }
-      }
+      });
+
+      const dirCtx = document.getElementById('ana-month-chart-dir').getContext('2d');
+      if (anaMonthDirChart) anaMonthDirChart.destroy();
+      anaMonthDirChart = new Chart(dirCtx, {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [{ label: 'Direction Accuracy (%)', data: dirAccData, borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,0.1)', borderWidth: 2, pointRadius: 4, tension: 0.3, fill: true }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#8b949e', font: { size: 10 }, maxRotation: 45 }, grid: { color: '#21262d' } },
+            y: { min: 0, max: 100, ticks: { color: '#8b949e', font: { size: 10 }, callback: v => v + '%' }, grid: { color: '#21262d' } }
+          }
+        }
+      });
+    };
+
+    renderCharts().catch(chartErr => {
+      console.warn('Monthly charts unavailable (Chart.js load failed):', chartErr.message);
+      // Data table + stat cards are already visible — just skip charts silently
     });
-    
-  } catch (err) {
-    console.error("Error loading monthly analysis:", err);
-    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#f85149;padding:20px">
-      ⚠️ Error aggregating monthly stats: ${err.message}
+
+  } catch (renderErr) {
+    console.error('Error rendering monthly data:', renderErr);
+    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">
+      ⚠️ Error rendering monthly stats: ${renderErr.message}
     </td></tr>`;
   }
 }
