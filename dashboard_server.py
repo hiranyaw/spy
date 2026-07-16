@@ -2066,11 +2066,12 @@ def api_analysis_monthly():
                     "donts": donts
                 }
                 
-                cache[f] = {
-                    "mtime": mtime,
-                    "summary": summary
-                }
-                cache_dirty = True
+                if yf_available:
+                    cache[f] = {
+                        "mtime": mtime,
+                        "summary": summary
+                    }
+                    cache_dirty = True
                 monthly_data.append(summary)
             except Exception as e:
                 print(f"Error parsing file {f}: {e}")
