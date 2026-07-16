@@ -2169,6 +2169,57 @@ def api_analysis_monthly():
         traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
 
+@app.route("/monthly")
+def monthly_standalone():
+    """Standalone server-rendered monthly analytics page — no JS/CDN required."""
+    try:
+        from flask import make_response
+        res = api_analysis_monthly()
+        # api_analysis_monthly returns a Response; get the JSON data
+        data_json = res.get_json()
+        rows_html = ""
+        total_pnl = 0
+        if data_json.get("ok") and data_json.get("data"):
+            for d in data_json["data"]:
+                total_pnl += d.get("total_pnl", 0)
+                pnl = d.get("total_pnl", 0)
+                pnl_color = "#3fb950" if pnl >= 0 else "#f85149"
+                pnl_str = ("+$" if pnl >= 0 else "-$") + f"{abs(pnl):.2f}"
+                src = d.get("source", "tos").upper()
+                src_color = "#ff9e2c" if src == "MANUAL" else "#58a6ff"
+                wr = d.get("win_rate", 0)
+                rows_html += f"""<tr style="border-bottom:1px solid #21262d">
+  <td style="padding:8px;white-space:nowrap">{d.get('date','')}</td>
+  <td style="padding:8px;text-align:center;color:{src_color};font-weight:700">{src}</td>
+  <td style="padding:8px;text-align:center">{d.get('total_trades',0)}</td>
+  <td style="padding:8px;text-align:center">{d.get('wins_count',0)}W / {d.get('losses_count',0)}L ({wr:.1f}%)</td>
+  <td style="padding:8px;text-align:right;color:{pnl_color};font-weight:700">{pnl_str}</td>
+  <td style="padding:8px;text-align:right;color:#3fb950">{'+$' if d.get('sim_3_pnl',0)>=0 else '-$'}{abs(d.get('sim_3_pnl',0)):.2f}</td>
+  <td style="padding:8px;text-align:right;color:#ff9e2c">{'+$' if d.get('sim_2l_pnl',0)>=0 else '-$'}{abs(d.get('sim_2l_pnl',0)):.2f}</td>
+</tr>"""
+        count = len(data_json.get("data", []))
+        total_color = "#3fb950" if total_pnl >= 0 else "#f85149"
+        total_str = ("+$" if total_pnl >= 0 else "-$") + f"{abs(total_pnl):.2f}"
+        html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>Monthly Analytics — SPY Trader</title>
+<style>body{{background:#0d1117;color:#e6edf3;font-family:system-ui,sans-serif;padding:30px;margin:0}}
+table{{width:100%;border-collapse:collapse;font-size:0.9rem}}
+th{{padding:10px 8px;text-align:left;color:#8b949e;border-bottom:2px solid #30363d;font-size:0.8rem;text-transform:uppercase}}
+tr:hover{{background:rgba(255,255,255,0.03)}}
+</style></head><body>
+<h2 style="color:#58a6ff;margin-bottom:4px">📈 Monthly Analytics</h2>
+<p style="color:#8b949e;margin-bottom:20px">{count} days tracked &nbsp;|&nbsp; Total P&L: <strong style="color:{total_color}">{total_str}</strong> &nbsp;|&nbsp; Source: {"TOS + Manual" if data_json.get("has_tos") and any(d.get("source")=="manual" for d in data_json.get("data",[])) else "TOS only" if data_json.get("has_tos") else "Manual only"}</p>
+<table><thead><tr>
+<th>Date</th><th>Source</th><th>Trades</th><th>Win Rate</th><th>Actual P&L</th><th>Sim: Stop@3</th><th>Sim: Stop@2L</th>
+</tr></thead><tbody>{rows_html}</tbody></table>
+<p style="margin-top:30px;color:#8b949e;font-size:0.8rem">This is a server-rendered diagnostic page. <a href="/" style="color:#58a6ff">← Back to dashboard</a></p>
+</body></html>"""
+        response = make_response(html)
+        response.headers["Content-Type"] = "text/html"
+        return response
+    except Exception as e:
+        return f"<pre>Error: {e}</pre>", 500
+
 import xml.etree.ElementTree as ET
 
 @app.route("/api/news")
