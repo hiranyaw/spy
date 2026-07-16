@@ -218,7 +218,12 @@ def get_update_interval():
 # ── Data endpoints ─────────────────────────────────────────────
 @app.route("/")
 def index():
-    return send_from_directory(BASE, "dashboard.html")
+    from flask import make_response
+    response = make_response(send_from_directory(BASE, "dashboard.html"))
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "-1"
+    return response
 
 @app.route("/lightweight-charts.js")
 def serve_lightweight_charts():
