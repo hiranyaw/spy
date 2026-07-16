@@ -1519,7 +1519,7 @@ Only B Trades with FULL confirmation."></textarea>
     
     <!-- Controls -->
     <div style="text-align:right; margin-bottom:15px">
-      <input type="checkbox" id="ana-month-include-manual" checked onchange="loadAnaMonthly()" style="cursor:pointer; width:16px; height:16px; vertical-align:middle; margin-right:5px">
+      <input type="checkbox" id="ana-month-include-manual" onchange="loadAnaMonthly()" style="cursor:pointer; width:16px; height:16px; vertical-align:middle; margin-right:5px">
       <label for="ana-month-include-manual" style="cursor:pointer; font-size:0.9rem; color:#c9d1d9; vertical-align:middle">Include Manual Trades</label>
     </div>
 
@@ -3735,7 +3735,7 @@ async function loadAnaMonthly() {
 
     const totalDays = data.length;
     let sumDirAcc = 0, sumSim3 = 0, sumSim2l = 0, sumActual = 0;
-    const dates = [], actualPnlData = [], sim3PnlData = [], sim2lPnlData = [], dirAccData = [];
+    const dates = [], actualPnlData = [], sim3PnlData = [], sim2lPnlData = [], dirAccData = [], earlyExitsData = [];
 
     tableBody.innerHTML = '';
 
@@ -3751,6 +3751,7 @@ async function loadAnaMonthly() {
       sim3PnlData.push(Number(sumSim3.toFixed(2)));
       sim2lPnlData.push(Number(sumSim2l.toFixed(2)));
       dirAccData.push(Number(dirAcc.toFixed(1)));
+      earlyExitsData.push(day.early_exits || 0);
 
       const isManual   = day.source === 'manual';
       const sourceBadge = isManual
@@ -3835,11 +3836,14 @@ async function loadAnaMonthly() {
         type: 'line',
         data: {
           labels: dates,
-          datasets: [{ label: 'Direction Accuracy (%)', data: dirAccData, borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,0.1)', borderWidth: 2, pointRadius: 4, tension: 0.3, fill: true }]
+          datasets: [
+              { label: 'Direction Accuracy (%)', type: 'line', data: dirAccData, yAxisID: 'y', borderColor: '#3fb950', backgroundColor: 'rgba(63,185,80,0.1)', borderWidth: 2, pointRadius: 4, tension: 0.3, fill: true },
+              { label: 'Early Exits', type: 'bar', data: earlyExitsData, yAxisID: 'y1', backgroundColor: 'rgba(255,158,44,0.7)', barThickness: 10 }
+            ]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          plugins: { legend: { display: true, labels: { color: '#c9d1d9', font: { size: 10 } } } },
           scales: {
             x: { ticks: { color: '#8b949e', font: { size: 10 }, maxRotation: 45 }, grid: { color: '#21262d' } },
             y: { min: 0, max: 100, ticks: { color: '#8b949e', font: { size: 10 }, callback: v => v + '%' }, grid: { color: '#21262d' } }

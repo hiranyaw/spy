@@ -1757,6 +1757,7 @@ def analysis_summary():
         stopped_out_correct_count = 0
         wrong_direction_count = 0
         early_exits_count = 0
+        total_missed_profit = 0
         great_trades_count = 0
         
         stopped_drawdowns = []
@@ -1826,6 +1827,9 @@ def analysis_summary():
                 if favorable_post_exit_move >= MOVE_THRESHOLD:
                     early_exits_count += 1
                     early_exit_moves.append(favorable_post_exit_move)
+                    trade_qty = sum(e.get("qty", 1) for e in t.get("entries", [])) if t.get("entries") else 1
+                    missed_profit = favorable_post_exit_move * trade_qty * 50
+                    total_missed_profit += missed_profit
                 else:
                     great_trades_count += 1
             else:
@@ -1984,6 +1988,7 @@ def api_analysis_monthly():
                 stopped_out_correct_count = 0
                 wrong_direction_count = 0
                 early_exits_count = 0
+        total_missed_profit = 0
                 great_trades_count = 0
                 stopped_drawdowns = []
                 early_exit_moves = []
@@ -2104,7 +2109,7 @@ def api_analysis_monthly():
                     recommendations.append("Your stop-losses are well-placed. Keep using technical indicators (like 9/21 EMAs or swing lows) for placement.")
                     
                 if early_exits_count > 0:
-                    recommendations.append(f"You sold {early_exits_count} winning trade(s) too early! The price continued in your favor over the next 5 minutes. Suggestion: Hold for at least 5 more minutes or trail using the 9 EMA (SPY ran up to +${max_early_move:.2f} post-exit).")
+                    recommendations.append(f"You sold {early_exits_count} winning trade(s) too early, leaving roughly ${total_missed_profit:,.2f} of potential profit on the table. Suggestion: The next time you are in profit, DO NOT sell your entire position. Sell half at your initial target to secure a win, and strictly trail the remaining half using the 1-minute 9 EMA to capture the rest of the trend. (SPY pushed up to +${max_early_move:.2f} points higher post-exit).")
                     donts.append("DO NOT panic sell 100% of your position at the first minor profit target; let your runners capture the main trend.")
                     
                 if len(spy_trades) > 5:
