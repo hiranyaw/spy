@@ -3690,7 +3690,7 @@ async function loadAnaMonthly() {
   try {
     const cb = document.getElementById('ana-month-include-manual');
     const includeManual = cb ? cb.checked : true;
-    const fetchObj = await fetch(`/api/analysis/monthly?include_manual=${includeManual}`);
+    const fetchObj = await fetch(`/api/analysis/monthly?include_manual=${includeManual}&t=${Date.now()}`);
     res = await fetchObj.json();
   } catch (fetchErr) {
     tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">
