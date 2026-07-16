@@ -1525,7 +1525,7 @@ Only B Trades with FULL confirmation."></textarea>
 
     <!-- Monthly Stats Grid -->
     <div id="ana-month-source-banner" style="display:none;margin-bottom:14px;padding:9px 14px;background:#1c2a1c;border:1px solid #3fb950;border-radius:8px;font-size:0.8rem;color:#8b949e"></div>
-    <div style="display:grid;grid-template-columns:repeat(7, 1fr);gap:12px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:repeat(8, 1fr);gap:12px;margin-bottom:20px">
       <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
         <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Total Days</div>
         <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-month-stat-days">0</div>
@@ -3734,8 +3734,8 @@ async function loadAnaMonthly() {
     }
 
     const totalDays = data.length;
-    let sumDirAcc = 0, sumSim3 = 0, sumSim2l = 0, sumActual = 0, sumSim5m = 0, sumSim15m = 0;
-    const dates = [], actualPnlData = [], sim3PnlData = [], sim2lPnlData = [], sim5mPnlData = [], sim15mPnlData = [], dirAccData = [], earlyExitsData = [];
+    let sumDirAcc = 0, sumSim3 = 0, sumSim2l = 0, sumActual = 0, sumSim1m = 0, sumSim2m = 0, sumSim5m = 0;
+    const dates = [], actualPnlData = [], sim3PnlData = [], sim2lPnlData = [], sim1mPnlData = [], sim2mPnlData = [], sim5mPnlData = [], dirAccData = [], earlyExitsData = [];
 
     tableBody.innerHTML = '';
 
@@ -3744,16 +3744,18 @@ async function loadAnaMonthly() {
       sumDirAcc += dirAcc;
       sumSim3   += day.sim_3_pnl;
       sumSim2l  += day.sim_2l_pnl;
+      sumSim1m  += (day.sim_1m_pnl || 0);
+      sumSim2m  += (day.sim_2m_pnl || 0);
       sumSim5m  += (day.sim_5m_pnl || 0);
-      sumSim15m += (day.sim_15m_pnl || 0);
       sumActual += day.total_pnl;
 
       dates.push(day.date);
       actualPnlData.push(Number(sumActual.toFixed(2)));
       sim3PnlData.push(Number(sumSim3.toFixed(2)));
       sim2lPnlData.push(Number(sumSim2l.toFixed(2)));
+      sim1mPnlData.push(Number(sumSim1m.toFixed(2)));
+      sim2mPnlData.push(Number(sumSim2m.toFixed(2)));
       sim5mPnlData.push(Number(sumSim5m.toFixed(2)));
-      sim15mPnlData.push(Number(sumSim15m.toFixed(2)));
       dirAccData.push(Number(dirAcc.toFixed(1)));
       earlyExitsData.push(day.early_exits || 0);
 
@@ -3797,11 +3799,14 @@ async function loadAnaMonthly() {
     const sim3El = document.getElementById('ana-month-stat-sim3');
     if (sim3El)   { sim3El.textContent   = (sumSim3   >= 0 ? '+$' : '-$') + Math.abs(sumSim3).toFixed(2);   sim3El.style.color   = sumSim3   >= 0 ? '#3fb950' : '#f85149'; }
 
+    const sim1mEl = document.getElementById('ana-month-stat-sim1m');
+    if (sim1mEl)  { sim1mEl.textContent  = (sumSim1m  >= 0 ? '+$' : '-$') + Math.abs(sumSim1m).toFixed(2);  sim1mEl.style.color  = sumSim1m  >= 0 ? '#3fb950' : '#f85149'; }
+
+    const sim2mEl = document.getElementById('ana-month-stat-sim2m');
+    if (sim2mEl)  { sim2mEl.textContent  = (sumSim2m  >= 0 ? '+$' : '-$') + Math.abs(sumSim2m).toFixed(2);  sim2mEl.style.color  = sumSim2m  >= 0 ? '#3fb950' : '#f85149'; }
+
     const sim5mEl = document.getElementById('ana-month-stat-sim5m');
     if (sim5mEl)  { sim5mEl.textContent  = (sumSim5m  >= 0 ? '+$' : '-$') + Math.abs(sumSim5m).toFixed(2);  sim5mEl.style.color  = sumSim5m  >= 0 ? '#3fb950' : '#f85149'; }
-
-    const sim15mEl = document.getElementById('ana-month-stat-sim15m');
-    if (sim15mEl) { sim15mEl.textContent = (sumSim15m >= 0 ? '+$' : '-$') + Math.abs(sumSim15m).toFixed(2); sim15mEl.style.color = sumSim15m >= 0 ? '#3fb950' : '#f85149'; }
 
     const sim2lEl = document.getElementById('ana-month-stat-sim2l');
     if (sim2lEl)  { sim2lEl.textContent  = (sumSim2l  >= 0 ? '+$' : '-$') + Math.abs(sumSim2l).toFixed(2);  sim2lEl.style.color  = sumSim2l  >= 0 ? '#3fb950' : '#f85149'; }
@@ -3828,8 +3833,9 @@ async function loadAnaMonthly() {
             { label: 'Actual P&L',              data: actualPnlData, borderColor: '#58a6ff', borderWidth: 2, pointRadius: 4, tension: 0.3, fill: false },
             { label: 'Sim: Stop @ 3 Trades',    data: sim3PnlData,   borderColor: '#3fb950', borderWidth: 2, pointRadius: 4, tension: 0.3, fill: false },
             { label: 'Sim: Stop @ 2 consec L',  data: sim2lPnlData,  borderColor: '#ff9e2c', borderWidth: 2, pointRadius: 4, tension: 0.3, fill: false },
-            { label: 'Sim: Hold 5m (No Early Exits)', data: sim5mPnlData, borderColor: '#bc8cff', borderWidth: 2, borderDash: [5, 5], pointRadius: 4, tension: 0.3, fill: false },
-            { label: 'Sim: Hold 15m (No Early Exits)', data: sim15mPnlData, borderColor: '#d2a8ff', borderWidth: 2, borderDash: [2, 2], pointRadius: 4, tension: 0.3, fill: false }
+            { label: 'Sim: Hold 1m', data: sim1mPnlData, borderColor: '#ff7b72', borderWidth: 2, borderDash: [2, 2], pointRadius: 4, tension: 0.3, fill: false },
+            { label: 'Sim: Hold 2m', data: sim2mPnlData, borderColor: '#ffa657', borderWidth: 2, borderDash: [3, 3], pointRadius: 4, tension: 0.3, fill: false },
+            { label: 'Sim: Hold 5m', data: sim5mPnlData, borderColor: '#bc8cff', borderWidth: 2, borderDash: [5, 5], pointRadius: 4, tension: 0.3, fill: false }
           ]
         },
         options: {
