@@ -1946,9 +1946,14 @@ def api_analysis_monthly():
                         tz = pytz.timezone("US/Pacific")
                         entry_dt = tz.localize(t["entry_time"])
                         exit_dt  = tz.localize(t["exit_time"])
+                        entry_search = entry_dt
+                        exit_search  = exit_dt
+                        if df.index.tz is None:
+                            entry_search = entry_dt.replace(tzinfo=None)
+                            exit_search  = exit_dt.replace(tzinfo=None)
                         try:
-                            entry_idx = int(df.index.get_indexer([entry_dt], method='nearest')[0])
-                            exit_idx  = int(df.index.get_indexer([exit_dt],  method='nearest')[0])
+                            entry_idx = int(df.index.get_indexer([entry_search], method='nearest')[0])
+                            exit_idx  = int(df.index.get_indexer([exit_search],  method='nearest')[0])
                         except:
                             continue
                         spy_entry_price = float(df.iloc[entry_idx]['Close'])
@@ -1966,7 +1971,10 @@ def api_analysis_monthly():
                             max_runup    = spy_entry_price - min_spy_price
                             max_drawdown = max_spy_price - spy_entry_price
                         post_exit_dt  = exit_dt + timedelta(minutes=60)
-                        post_exit_idx = int(df.index.get_indexer([post_exit_dt], method='nearest')[0])
+                        post_search = post_exit_dt
+                        if df.index.tz is None:
+                            post_search = post_exit_dt.replace(tzinfo=None)
+                        post_exit_idx = int(df.index.get_indexer([post_search], method='nearest')[0])
                         post_df = df.iloc[exit_idx:post_exit_idx+1] if post_exit_idx > exit_idx else pd.DataFrame()
                         if not post_df.empty:
                             max_spy_post = float(post_df['High'].max())
@@ -2801,18 +2809,6 @@ def restart_server():
     return jsonify({"ok": True, "messages": ["Server restarting..."]})
 
 
-if __name__ == "__main__":
-    # install psutil if missing
-    try:
-        import psutil
-    except ImportError:
-        subprocess.run([sys.executable, "-m", "pip", "install", "psutil", "-q"])
-        import psutil
-    port = int(os.environ.get("PORT", 5000))
-    print(f"Dashboard running at http://0.0.0.0:{port}")
-    app.run(host="0.0.0.0", port=port, debug=False)
-
-
 @app.route("/api/admin/clear_cache")
 def api_admin_clear_cache():
     import os
@@ -2823,3 +2819,14 @@ def api_admin_clear_cache():
         return jsonify({"ok": True, "msg": "No cache file found."})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
+
+if __name__ == "__main__":
+    try:
+        import psutil
+    except ImportError:
+        import subprocess, sys
+        subprocess.run([sys.executable, "-m", "pip", "install", "psutil", "-q"])
+        import psutil
+    port = int(os.environ.get("PORT", 5000))
+    print(f"Dashboard running at http://0.0.0.0:{port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
