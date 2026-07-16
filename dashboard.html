@@ -1518,11 +1518,9 @@ Only B Trades with FULL confirmation."></textarea>
   <div id="ana-view-monthly" style="display:none">
     
     <!-- Controls -->
-    <div style="display:flex;justify-content:flex-end;margin-bottom:15px">
-      <label style="cursor:pointer;display:flex;align-items:center;gap:8px;font-size:0.85rem;color:#c9d1d9;background:#161b22;padding:6px 12px;border:1px solid #30363d;border-radius:6px;transition:background 0.2s" onmouseover="this.style.background='#21262d'" onmouseout="this.style.background='#161b22'">
-        <input type="checkbox" id="ana-month-include-manual" checked onchange="loadAnaMonthly()" style="cursor:pointer;accent-color:#1f6feb;width:14px;height:14px;margin:0">
-        Include Manual Trades
-      </label>
+    <div style="text-align:right; margin-bottom:15px">
+      <input type="checkbox" id="ana-month-include-manual" checked onchange="loadAnaMonthly()" style="cursor:pointer; width:16px; height:16px; vertical-align:middle; margin-right:5px">
+      <label for="ana-month-include-manual" style="cursor:pointer; font-size:0.9rem; color:#c9d1d9; vertical-align:middle">Include Manual Trades</label>
     </div>
 
     <!-- Monthly Stats Grid -->
