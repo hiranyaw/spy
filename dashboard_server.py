@@ -2280,10 +2280,13 @@ def api_analysis_monthly():
             if d.get("date") and not isinstance(d["date"], str):
                 d["date"] = str(d["date"])
 
-        # Sort chronologically by date (defensive: skip entries missing 'date')
-        monthly_data = [d for d in monthly_data if d.get("date")]
-        monthly_data.sort(key=lambda x: x["date"])
-        has_tos = any(d.get("source") != "manual" for d in monthly_data)
+        # Sort chronologically by date (defensive: skip entries missing 'date' unless they are errors)
+        monthly_data = [d for d in monthly_data if d.get("date") or d.get("error")]
+        
+        # Safe sort: push errors to the end
+        monthly_data.sort(key=lambda x: x.get("date", "9999-12-31"))
+        
+        has_tos = any(d.get("source") != "manual" and not d.get("error") for d in monthly_data)
         return jsonify({"ok": True, "data": monthly_data, "has_tos": has_tos})
     except Exception as e:
         import traceback
