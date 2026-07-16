@@ -2079,8 +2079,6 @@ def api_analysis_monthly():
         # are NOT already covered by TOS CSV files.
         # ------------------------------------------------------------------
         try:
-            tos_dates = {d["date"] for d in monthly_data}
-
             # Load manual trades (DB preferred, JSON fallback)
             if DB_AVAILABLE:
                 try:
@@ -2092,11 +2090,14 @@ def api_analysis_monthly():
 
             closed_manual = [t for t in raw_manual if t.get("closed") and t.get("entry_date") and t.get("pnl") is not None]
 
-            # Group by entry_date
+            # Group by entry_date — convert to string since psycopg2 returns DATE as datetime.date
             manual_by_date = {}
             for t in closed_manual:
-                d = t["entry_date"]
+                d = str(t["entry_date"])[:10]  # ensure ISO string "YYYY-MM-DD"
                 manual_by_date.setdefault(d, []).append(t)
+
+            # Normalize tos_dates to strings too (old cache may have datetime.date objects)
+            tos_dates = {str(d.get("date", ""))[:10] for d in monthly_data if d.get("date")}
 
             for date_str, day_trades in manual_by_date.items():
                 if date_str in tos_dates:
