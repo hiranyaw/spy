@@ -3641,29 +3641,34 @@ let anaMonthPnlChart = null;
 let anaMonthDirChart = null;
 
 function switchAnaSubTab(tab) {
-  const dailyBtn = document.getElementById('ana-subtab-daily');
-  const monthlyBtn = document.getElementById('ana-subtab-monthly');
-  const dailyView = document.getElementById('ana-view-daily');
-  const monthlyView = document.getElementById('ana-view-monthly');
-  
-  if (tab === 'daily') {
-    dailyBtn.style.background = '#1f6feb';
-    dailyBtn.style.color = '#ffffff';
-    monthlyBtn.style.background = '#21262d';
-    monthlyBtn.style.color = '#c9d1d9';
+  alert("Clicked tab: " + tab);
+  try {
+    const dailyBtn = document.getElementById('ana-subtab-daily');
+    const monthlyBtn = document.getElementById('ana-subtab-monthly');
+    const dailyView = document.getElementById('ana-view-daily');
+    const monthlyView = document.getElementById('ana-view-monthly');
     
-    dailyView.style.display = 'block';
-    monthlyView.style.display = 'none';
-  } else {
-    monthlyBtn.style.background = '#1f6feb';
-    monthlyBtn.style.color = '#ffffff';
-    dailyBtn.style.background = '#21262d';
-    dailyBtn.style.color = '#c9d1d9';
-    
-    dailyView.style.display = 'none';
-    monthlyView.style.display = 'block';
-    
-    loadAnaMonthly();
+    if (tab === 'daily') {
+      dailyBtn.style.background = '#1f6feb';
+      dailyBtn.style.color = '#ffffff';
+      monthlyBtn.style.background = '#21262d';
+      monthlyBtn.style.color = '#c9d1d9';
+      
+      dailyView.style.display = 'block';
+      monthlyView.style.display = 'none';
+    } else {
+      monthlyBtn.style.background = '#1f6feb';
+      monthlyBtn.style.color = '#ffffff';
+      dailyBtn.style.background = '#21262d';
+      dailyBtn.style.color = '#c9d1d9';
+      
+      dailyView.style.display = 'none';
+      monthlyView.style.display = 'block';
+      
+      loadAnaMonthly();
+    }
+  } catch(e) {
+    alert("Error in switchAnaSubTab: " + e.message);
   }
 }
 
@@ -3676,8 +3681,10 @@ async function loadAnaMonthly() {
   // ── 1. Fetch data ────────────────────────────────────────────────────────
   let res;
   try {
-    res = await (await fetch('/api/analysis/monthly')).json();
+    const fetchObj = await fetch('/api/analysis/monthly');
+    res = await fetchObj.json();
   } catch (fetchErr) {
+    alert("Fetch error: " + fetchErr.message);
     tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">
       ⚠️ Network error fetching monthly data: ${fetchErr.message}
     </td></tr>`;
@@ -3685,6 +3692,7 @@ async function loadAnaMonthly() {
   }
 
   if (!res.ok) {
+    alert("API returned error: " + res.error);
     tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">
       ⚠️ Error loading monthly data: ${res.error || 'Unknown error'}
     </td></tr>`;
@@ -3692,6 +3700,7 @@ async function loadAnaMonthly() {
   }
 
   if (!res.data || res.data.length === 0) {
+    alert("API returned 0 rows");
     tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#8b949e;padding:20px">
       📭 No trade data found yet. Log trades in Paper Trading or Trade Journal, or upload TOS statements.
     </td></tr>`;
