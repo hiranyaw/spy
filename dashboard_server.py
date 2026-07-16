@@ -1802,8 +1802,8 @@ def analysis_summary():
                 max_runup = spy_entry_price - min_spy_price
                 max_drawdown = max_spy_price - spy_entry_price
                 
-            # Post exit move (60 minutes)
-            post_exit_dt = exit_dt + timedelta(minutes=60)
+            # Post exit move (5 minutes)
+            post_exit_dt = exit_dt + timedelta(minutes=5)
             post_exit_idx = int(df.index.get_indexer([post_exit_dt], method='nearest')[0])
             post_df = df.iloc[exit_idx:post_exit_idx+1] if post_exit_idx > exit_idx else pd.DataFrame()
             
@@ -2104,7 +2104,7 @@ def api_analysis_monthly():
                     recommendations.append("Your stop-losses are well-placed. Keep using technical indicators (like 9/21 EMAs or swing lows) for placement.")
                     
                 if early_exits_count > 0:
-                    recommendations.append(f"Implement a 2-stage exit: sell 50% at your initial target, and trail the remainder using the 1-minute 9 EMA to capture extended runs (SPY ran up to +${max_early_move:.2f} post-exit today).")
+                    recommendations.append(f"You sold {early_exits_count} winning trade(s) too early! The price continued in your favor over the next 5 minutes. Suggestion: Hold for at least 5 more minutes or trail using the 9 EMA (SPY ran up to +${max_early_move:.2f} post-exit).")
                     donts.append("DO NOT panic sell 100% of your position at the first minor profit target; let your runners capture the main trend.")
                     
                 if len(spy_trades) > 5:

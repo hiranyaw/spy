@@ -1578,6 +1578,7 @@ Only B Trades with FULL confirmation."></textarea>
             <th style="padding:8px;text-align:center">Trades</th>
             <th style="padding:8px;text-align:center">Win / Loss Rate</th>
             <th style="padding:8px;text-align:center">Dir. Accuracy</th>
+            <th style="padding:8px;text-align:center">Early Exits</th>
             <th style="padding:8px;text-align:right">Actual P&amp;L</th>
             <th style="padding:8px;text-align:right">Sim: Stop @ 3</th>
             <th style="padding:8px;text-align:right">Sim: Stop @ 2L</th>
@@ -3681,7 +3682,7 @@ function switchAnaSubTab(tab) {
 
 async function loadAnaMonthly() {
   const tableBody = document.getElementById('ana-month-table-body');
-  tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#8b949e;padding:20px">
+  tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#8b949e;padding:20px">
     <span class="ind ind-g" style="animation:pulse 1s infinite"></span> Loading monthly stats...
   </td></tr>`;
   
@@ -3693,21 +3694,21 @@ async function loadAnaMonthly() {
     const fetchObj = await fetch(`/api/analysis/monthly?include_manual=${includeManual}&t=${Date.now()}`);
     res = await fetchObj.json();
   } catch (fetchErr) {
-    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">
+    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#f85149;padding:20px">
       ⚠️ Network error fetching monthly data: ${fetchErr.message}
     </td></tr>`;
     return;
   }
 
   if (!res.ok) {
-    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">
+    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#f85149;padding:20px">
       ⚠️ Error loading monthly data: ${res.error || 'Unknown error'}
     </td></tr>`;
     return;
   }
 
   if (!res.data || res.data.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#8b949e;padding:20px">
+    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#8b949e;padding:20px">
       📭 No trade data found yet. Log trades in Paper Trading or Trade Journal, or upload TOS statements.
     </td></tr>`;
     return;
@@ -3853,7 +3854,7 @@ async function loadAnaMonthly() {
 
   } catch (renderErr) {
     console.error('Error rendering monthly data:', renderErr);
-    tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#f85149;padding:20px">
+    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#f85149;padding:20px">
       ⚠️ Error rendering monthly stats: ${renderErr.message}
     </td></tr>`;
   }
