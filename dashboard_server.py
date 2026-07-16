@@ -2083,6 +2083,30 @@ def api_analysis_monthly():
                             post_search = post_exit_dt.replace(tzinfo=None)
                         post_exit_idx = int(df.index.get_indexer([post_search], method='nearest')[0])
                         post_df = df.iloc[exit_idx:post_exit_idx+1] if post_exit_idx > exit_idx else pd.DataFrame()
+                        
+                        post_1m_dt = exit_dt + timedelta(minutes=1)
+                        post_1m_idx = int(df.index.get_indexer([post_1m_dt], method='nearest')[0])
+                        post_1m_df = df.iloc[exit_idx:post_1m_idx+1] if post_1m_idx > exit_idx else pd.DataFrame()
+                        
+                        post_2m_dt = exit_dt + timedelta(minutes=2)
+                        post_2m_idx = int(df.index.get_indexer([post_2m_dt], method='nearest')[0])
+                        post_2m_df = df.iloc[exit_idx:post_2m_idx+1] if post_2m_idx > exit_idx else pd.DataFrame()
+                        
+                        post_5m_dt = exit_dt + timedelta(minutes=5)
+                        post_5m_idx = int(df.index.get_indexer([post_5m_dt], method='nearest')[0])
+                        post_5m_df = df.iloc[exit_idx:post_5m_idx+1] if post_5m_idx > exit_idx else pd.DataFrame()
+
+                        favorable_post_exit_move_1m = 0.0
+                        favorable_post_exit_move_2m = 0.0
+                        favorable_post_exit_move_5m = 0.0
+
+                        if not post_1m_df.empty:
+                            favorable_post_exit_move_1m = (float(post_1m_df['High'].max()) - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - float(post_1m_df['Low'].min()))
+                        if not post_2m_df.empty:
+                            favorable_post_exit_move_2m = (float(post_2m_df['High'].max()) - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - float(post_2m_df['Low'].min()))
+                        if not post_5m_df.empty:
+                            favorable_post_exit_move_5m = (float(post_5m_df['High'].max()) - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - float(post_5m_df['Low'].min()))
+                            
                         if not post_df.empty:
                             max_spy_post = float(post_df['High'].max())
                             min_spy_post = float(post_df['Low'].min())
@@ -2095,6 +2119,12 @@ def api_analysis_monthly():
                             if favorable_post_exit_move >= MOVE_THRESHOLD:
                                 early_exits_count += 1
                                 early_exit_moves.append(favorable_post_exit_move)
+                                trade_qty = sum(e.get("qty", 1) for e in t.get("entries", [])) if t.get("entries") else 1
+                                missed_profit = favorable_post_exit_move * trade_qty * 50
+                                total_missed_profit_1m += favorable_post_exit_move_1m * trade_qty * 50
+                                total_missed_profit_2m += favorable_post_exit_move_2m * trade_qty * 50
+                                total_missed_profit_5m += favorable_post_exit_move_5m * trade_qty * 50
+                                total_missed_profit += missed_profit
                             else:
                                 great_trades_count += 1
                         else:
