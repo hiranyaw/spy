@@ -1988,7 +1988,7 @@ def api_analysis_monthly():
                 stopped_out_correct_count = 0
                 wrong_direction_count = 0
                 early_exits_count = 0
-        total_missed_profit = 0
+                total_missed_profit = 0
                 great_trades_count = 0
                 stopped_drawdowns = []
                 early_exit_moves = []
