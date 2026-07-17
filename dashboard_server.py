@@ -1827,26 +1827,23 @@ def analysis_summary():
             favorable_post_exit_move_5m = 0.0
             
             if not post_1m_df.empty:
-                favorable_post_exit_move_1m = (float(post_1m_df['High'].max()) - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - float(post_1m_df['Low'].min()))
+                close_1m = float(post_1m_df['Close'].iloc[-1])
+                favorable_post_exit_move_1m = (close_1m - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - close_1m)
             if not post_2m_df.empty:
-                favorable_post_exit_move_2m = (float(post_2m_df['High'].max()) - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - float(post_2m_df['Low'].min()))
+                close_2m = float(post_2m_df['Close'].iloc[-1])
+                favorable_post_exit_move_2m = (close_2m - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - close_2m)
             if not post_5m_df.empty:
-                favorable_post_exit_move_5m = (float(post_5m_df['High'].max()) - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - float(post_5m_df['Low'].min()))
+                close_5m = float(post_5m_df['Close'].iloc[-1])
+                favorable_post_exit_move_5m = (close_5m - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - close_5m)
             
             # keep legacy var for recommendation
             post_df = post_5m_df
             favorable_post_exit_move = favorable_post_exit_move_5m
             
             if not post_df.empty:
-                max_spy_post = float(post_df['High'].max())
-                min_spy_post = float(post_df['Low'].min())
-                
-                if underlying_dir == "LONG":
-                    max_post_runup = max_spy_post - spy_entry_price
-                    favorable_post_exit_move = max_spy_post - spy_exit_price
-                else:
-                    max_post_runup = spy_entry_price - min_spy_post
-                    favorable_post_exit_move = spy_exit_price - min_spy_post
+                close_post = float(post_df['Close'].iloc[-1])
+                favorable_post_exit_move = (close_post - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - close_post)
+                max_post_runup = (close_post - spy_entry_price) if underlying_dir == "LONG" else (spy_entry_price - close_post)
             else:
                 max_post_runup = 0.0
                 favorable_post_exit_move = 0.0
@@ -2101,17 +2098,19 @@ def api_analysis_monthly():
                         favorable_post_exit_move_5m = 0.0
 
                         if not post_1m_df.empty:
-                            favorable_post_exit_move_1m = (float(post_1m_df['High'].max()) - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - float(post_1m_df['Low'].min()))
+                            close_1m = float(post_1m_df['Close'].iloc[-1])
+                            favorable_post_exit_move_1m = (close_1m - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - close_1m)
                         if not post_2m_df.empty:
-                            favorable_post_exit_move_2m = (float(post_2m_df['High'].max()) - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - float(post_2m_df['Low'].min()))
+                            close_2m = float(post_2m_df['Close'].iloc[-1])
+                            favorable_post_exit_move_2m = (close_2m - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - close_2m)
                         if not post_5m_df.empty:
-                            favorable_post_exit_move_5m = (float(post_5m_df['High'].max()) - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - float(post_5m_df['Low'].min()))
+                            close_5m = float(post_5m_df['Close'].iloc[-1])
+                            favorable_post_exit_move_5m = (close_5m - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - close_5m)
                             
                         if not post_df.empty:
-                            max_spy_post = float(post_df['High'].max())
-                            min_spy_post = float(post_df['Low'].min())
-                            favorable_post_exit_move = (max_spy_post - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - min_spy_post)
-                            max_post_runup = (max_spy_post - spy_entry_price) if underlying_dir == "LONG" else (spy_entry_price - min_spy_post)
+                            close_post = float(post_df['Close'].iloc[-1])
+                            favorable_post_exit_move = (close_post - spy_exit_price) if underlying_dir == "LONG" else (spy_exit_price - close_post)
+                            max_post_runup = favorable_post_exit_move
                         else:
                             max_post_runup = favorable_post_exit_move = 0.0
                         is_win = t["pnl"] > 0
