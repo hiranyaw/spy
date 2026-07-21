@@ -4903,32 +4903,41 @@ document.addEventListener('DOMContentLoaded', function() {
 //  TRADE CHECKLIST MODULE
 // ══════════════════════════════════════════════════════
 
+// Points total = 100 per trade type
 const CL_CONDITIONS = {
   PUTS: [
-    { key: 'time_after_640',    label: 'After 6:40 AM',        sub: 'No entries before market opens properly' },
-    { key: 'below_vwap',        label: 'Below VWAP',           sub: 'Price is trading below VWAP' },
-    { key: 'below_21ema',       label: 'Below 21 EMA',         sub: 'Price below 21-period EMA' },
-    { key: 'below_9ema',        label: 'Below 9 EMA',          sub: 'Price below 9-period EMA' },
-    { key: 'trendline_break',   label: 'Trendline Break',      sub: 'Downside trendline break confirmed' },
-    { key: 'candle_confirmed',  label: 'Candle Confirmed',     sub: 'Wait for full candle close' },
-    { key: 'supertrend_red',    label: 'SuperTrend Red',       sub: 'SuperTrend indicator is bearish (red)' },
-    { key: 'qqq_same_dir',      label: 'QQQ Same Direction',   sub: 'QQQ is also moving down' },
-    { key: 'no_sr_nearby',      label: 'No Support Nearby',    sub: 'No support / resistance levels close by' },
-    { key: 'add_same_dir',      label: 'ADD Declining',        sub: 'NYSE Advance-Decline line is negative / declining' },
+    { key: 'time_after_640',    label: 'After 6:40 AM',        sub: 'No entries before market opens properly', pts: 5  },
+    { key: 'below_vwap',        label: 'Below VWAP',           sub: 'Price is trading below VWAP',            pts: 15 },
+    { key: 'below_21ema',       label: 'Below 21 EMA',         sub: 'Price below 21-period EMA',              pts: 10 },
+    { key: 'below_9ema',        label: 'Below 9 EMA',          sub: 'Price below 9-period EMA',               pts: 5  },
+    { key: 'trendline_break',   label: 'Trendline Break',      sub: 'Downside trendline break confirmed',     pts: 15 },
+    { key: 'candle_confirmed',  label: 'Candle Confirmed',     sub: 'Wait for full candle close',             pts: 10 },
+    { key: 'supertrend_red',    label: 'SuperTrend Red',       sub: 'SuperTrend indicator is bearish (red)',  pts: 15 },
+    { key: 'qqq_same_dir',      label: 'QQQ Same Direction',   sub: 'QQQ is also moving down',                pts: 15 },
+    { key: 'no_sr_nearby',      label: 'No Support Nearby',    sub: 'No support / resistance levels close by',pts: 5  },
+    { key: 'add_same_dir',      label: 'ADD Declining',        sub: 'NYSE Advance-Decline line declining',    pts: 5  },
   ],
   CALLS: [
-    { key: 'time_after_640',    label: 'After 6:40 AM',        sub: 'No entries before market opens properly' },
-    { key: 'above_vwap',        label: 'Above VWAP',           sub: 'Price is trading above VWAP' },
-    { key: 'above_21ema',       label: 'Above 21 EMA',         sub: 'Price above 21-period EMA' },
-    { key: 'above_9ema',        label: 'Above 9 EMA',          sub: 'Price above 9-period EMA' },
-    { key: 'trendline_break',   label: 'Trendline Break',      sub: 'Upside trendline break confirmed' },
-    { key: 'candle_confirmed',  label: 'Candle Confirmed',     sub: 'Wait for full candle close' },
-    { key: 'supertrend_green',  label: 'SuperTrend Green',     sub: 'SuperTrend indicator is bullish (green)' },
-    { key: 'qqq_same_dir',      label: 'QQQ Same Direction',   sub: 'QQQ is also moving up' },
-    { key: 'no_sr_nearby',      label: 'No Resistance Nearby', sub: 'No resistance levels close by' },
-    { key: 'add_same_dir',      label: 'ADD Advancing',        sub: 'NYSE Advance-Decline line is positive / advancing' },
+    { key: 'time_after_640',    label: 'After 6:40 AM',        sub: 'No entries before market opens properly', pts: 5  },
+    { key: 'above_vwap',        label: 'Above VWAP',           sub: 'Price is trading above VWAP',            pts: 15 },
+    { key: 'above_21ema',       label: 'Above 21 EMA',         sub: 'Price above 21-period EMA',              pts: 10 },
+    { key: 'above_9ema',        label: 'Above 9 EMA',          sub: 'Price above 9-period EMA',               pts: 5  },
+    { key: 'trendline_break',   label: 'Trendline Break',      sub: 'Upside trendline break confirmed',       pts: 15 },
+    { key: 'candle_confirmed',  label: 'Candle Confirmed',     sub: 'Wait for full candle close',             pts: 10 },
+    { key: 'supertrend_green',  label: 'SuperTrend Green',     sub: 'SuperTrend indicator is bullish (green)',pts: 15 },
+    { key: 'qqq_same_dir',      label: 'QQQ Same Direction',   sub: 'QQQ is also moving up',                  pts: 15 },
+    { key: 'no_sr_nearby',      label: 'No Resistance Nearby', sub: 'No resistance levels close by',          pts: 5  },
+    { key: 'add_same_dir',      label: 'ADD Advancing',        sub: 'NYSE Advance-Decline line advancing',    pts: 5  },
   ]
 };
+
+function clEarnedPoints(type, checks) {
+  const conds = CL_CONDITIONS[type] || CL_CONDITIONS.PUTS;
+  return conds.reduce((sum, c) => sum + (checks[c.key] ? c.pts : 0), 0);
+}
+function clTotalPoints(type) {
+  return (CL_CONDITIONS[type]||CL_CONDITIONS.PUTS).reduce((s,c)=>s+c.pts, 0);
+}
 
 const CL_EMOJIS = {
   time_after_640:'⏰', below_vwap:'📉', below_21ema:'📉', below_9ema:'📉',
@@ -4965,6 +4974,7 @@ function clRenderGrid() {
   const isSell = clType === 'PUTS';
   grid.innerHTML = CL_CONDITIONS[clType].map(c => {
     const checked = clChecks[c.key] || false;
+    const ptColor = checked ? (isSell ? '#f85149' : '#3fb950') : '#8b949e';
     return `<div class="cl-item${checked ? (' checked' + (isSell?' sell-type':'')) : ''}"
                  id="cli-${c.key}" onclick="clToggle('${c.key}')">
       <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
@@ -4972,6 +4982,7 @@ function clRenderGrid() {
         <div class="cl-item-label">${CL_EMOJIS[c.key]||'•'} ${c.label}</div>
         <div class="cl-item-sub">${c.sub}</div>
       </div>
+      <div style="font-size:0.8rem;font-weight:800;color:${ptColor};min-width:32px;text-align:right;flex-shrink:0">${checked?'+':''}${c.pts}pt</div>
     </div>`;
   }).join('');
 }
@@ -4987,13 +4998,12 @@ function clToggle(key) {
 }
 
 function clUpdateScore() {
-  const conds = CL_CONDITIONS[clType];
-  const total = conds.length;
-  const score = conds.filter(c => clChecks[c.key]).length;
-  const pct = total > 0 ? Math.round((score/total)*100) : 0;
+  const earned = clEarnedPoints(clType, clChecks);
+  const maxPts = clTotalPoints(clType);
+  const pct    = maxPts > 0 ? Math.round((earned/maxPts)*100) : 0;
 
-  document.getElementById('cl-score-num').textContent = score;
-  document.getElementById('cl-score-denom').textContent = total;
+  document.getElementById('cl-score-num').textContent = earned;
+  document.getElementById('cl-score-denom').textContent = maxPts;
 
   const bar = document.getElementById('cl-score-bar');
   bar.style.width = pct + '%';
@@ -5006,35 +5016,38 @@ function clUpdateScore() {
 
   let label = 'Not ready — keep checking conditions';
   let icon = '⬜';
-  if(score === total)       { label = '🎯 Perfect setup! All conditions met'; icon = '🚀'; }
-  else if(pct >= 78)        { label = 'Strong setup — almost there'; icon = '💪'; }
-  else if(pct >= 56)        { label = 'Partial setup — review missing conditions'; icon = '⚠️'; }
-  else if(score === 0)      { label = 'Waiting for your checklist...'; icon = '⬜'; }
+  if(earned === maxPts)  { label = '🎯 Perfect! 100 pts — all conditions met'; icon = '🚀'; }
+  else if(pct >= 80)     { label = `Strong setup — ${earned} pts`; icon = '💪'; }
+  else if(pct >= 55)     { label = `Partial setup — ${earned} pts, review missing`; icon = '⚠️'; }
+  else if(earned === 0)  { label = 'Waiting for your checklist...'; icon = '⬜'; }
+  else                   { label = `Weak setup — only ${earned} pts`; icon = '❌'; }
   document.getElementById('cl-score-label').textContent = label;
   document.getElementById('cl-score-icon').textContent = icon;
+  // Re-render grid so point colors update
+  clRenderGrid();
 }
 
 async function clSave() {
-  const conds = CL_CONDITIONS[clType];
-  const total = conds.length;
-  const score = conds.filter(c => clChecks[c.key]).length;
-  const note  = document.getElementById('cl-note').value.trim();
+  const conds   = CL_CONDITIONS[clType];
+  const total   = conds.length;
+  const score   = conds.filter(c => clChecks[c.key]).length;
+  const earned_points = clEarnedPoints(clType, clChecks);
+  const total_points  = clTotalPoints(clType);
+  const note    = document.getElementById('cl-note').value.trim();
 
   try {
     const res = await fetch('/api/checklist/save', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ trade_type:clType, checks:clChecks, score, total, note })
+      body: JSON.stringify({ trade_type:clType, checks:clChecks, score, total, earned_points, total_points, note })
     });
     const data = await res.json();
     if(data.ok) {
-      clShowFeedback('✅ Trade checklist saved!', true);
-      // Reset checkboxes for next trade
+      clShowFeedback(`✅ Saved! ${earned_points}/${total_points} pts`, true);
       clChecks = {};
       clRenderGrid();
       clUpdateScore();
       document.getElementById('cl-note').value = '';
-      // Reload history + charts
       await clLoadHistory();
     } else {
       clShowFeedback('❌ Error: ' + (data.error||'Unknown error'), false);
@@ -5075,27 +5088,34 @@ function clUpdateStats() {
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-30);
   const recent = clAllRecords.filter(r => new Date(r.date) >= cutoff);
   if(recent.length) {
-    const avgScore = (recent.reduce((s,r) => s + (r.total > 0 ? r.score/r.total : 0), 0) / recent.length * 100).toFixed(0);
-    document.getElementById('cl-stat-avg').textContent = avgScore + '%';
+    // Use points if available, fall back to score/total ratio
+    const avgPts = recent.reduce((s,r) => {
+      if(r.total_points) return s + (r.earned_points/r.total_points*100);
+      return s + (r.total > 0 ? r.score/r.total*100 : 0);
+    }, 0) / recent.length;
+    document.getElementById('cl-stat-avg').textContent = avgPts.toFixed(0) + 'pts';
   } else {
     document.getElementById('cl-stat-avg').textContent = '--';
   }
 
-  const perfect = clAllRecords.filter(r => r.score === r.total && r.total > 0).length;
+  const perfect = clAllRecords.filter(r => {
+    if(r.total_points) return r.earned_points === r.total_points;
+    return r.score === r.total && r.total > 0;
+  }).length;
   document.getElementById('cl-stat-perfect').textContent = perfect;
 
-  // Most missed condition across all records
-  const missCounts = {};
+  // Most missed condition (weighted by pts) across all records
+  const missPts = {};
   clAllRecords.forEach(r => {
     const type = r.trade_type || 'PUTS';
     (CL_CONDITIONS[type]||CL_CONDITIONS.PUTS).forEach(c => {
       if(!r.checks[c.key]) {
-        missCounts[c.label] = (missCounts[c.label]||0) + 1;
+        missPts[c.label] = (missPts[c.label]||0) + c.pts;
       }
     });
   });
-  const sorted = Object.entries(missCounts).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('cl-stat-missed').textContent = sorted.length ? `${sorted[0][0]} (${sorted[0][1]}x)` : '--';
+  const sorted = Object.entries(missPts).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('cl-stat-missed').textContent = sorted.length ? sorted[0][0] : '--';
 }
 
 function clFilterRecords() {
@@ -5117,27 +5137,35 @@ function clRenderHistory(filter='all') {
   </div>`;
 
   recs.forEach(r => {
-    const pct = r.total > 0 ? Math.round(r.score/r.total*100) : 0;
+    // Support both old (score/total) and new (earned_points/total_points) records
+    const earned   = r.earned_points != null ? r.earned_points : null;
+    const maxPts   = r.total_points  != null ? r.total_points  : null;
+    const hasPoints = earned != null && maxPts != null && maxPts > 0;
+    const pct = hasPoints ? Math.round(earned/maxPts*100) : (r.total>0 ? Math.round(r.score/r.total*100) : 0);
+
     let fillColor = '#f85149';
     if(pct>=90) fillColor='#3fb950'; else if(pct>=67) fillColor='#f0883e'; else if(pct>=45) fillColor='#f0d000';
     const badge = r.trade_type==='PUTS'
       ? '<span class="cl-badge-put">PUTS</span>'
       : '<span class="cl-badge-call">CALLS</span>';
 
-    // Build mini checked condition list on hover (as title)
-    const checkedList = Object.entries(r.checks||{}).filter(([,v])=>v).map(([k])=>k).join(', ');
-    const missedList  = Object.entries(r.checks||{}).filter(([,v])=>!v).map(([k])=>k).join(', ');
+    // Build condition breakdown for tooltip
+    const type = r.trade_type||'PUTS';
+    const conds = CL_CONDITIONS[type]||CL_CONDITIONS.PUTS;
+    const checkedList = conds.filter(c=>r.checks[c.key]).map(c=>`${c.label}(+${c.pts})`).join(', ');
+    const missedList  = conds.filter(c=>!r.checks[c.key]).map(c=>`${c.label}(-${c.pts})`).join(', ');
     const noteHtml = r.note ? `<div style="font-size:0.73rem;color:#8b949e;margin-top:3px;font-style:italic">"${r.note}"</div>` : '';
+
+    const scoreDisplay = hasPoints
+      ? `<span style="font-weight:900;font-size:1rem;color:${fillColor}">${earned}pts</span><span style="font-size:0.72rem;color:#8b949e">/${maxPts} (${r.score}/${r.total} ✓)</span>`
+      : `<span style="font-weight:700;color:${fillColor}">${r.score}/${r.total}</span><span style="font-size:0.72rem;color:#8b949e"> (${pct}%)</span>`;
 
     html += `<div class="cl-hist-row" title="✓ ${checkedList}\n✗ ${missedList}">
       <span style="color:#c9d1d9;font-weight:600">${r.date}</span>
       <span style="color:#8b949e">${r.time||''}</span>
       <span>${badge}</span>
       <span>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-weight:700;color:${fillColor}">${r.score}/${r.total}</span>
-          <span style="font-size:0.72rem;color:#8b949e">(${pct}%)</span>
-        </div>
+        <div style="display:flex;align-items:center;gap:8px">${scoreDisplay}</div>
         <div class="cl-hist-score-bar"><div class="cl-hist-score-fill" style="width:${pct}%;background:${fillColor}"></div></div>
         ${noteHtml}
       </span>

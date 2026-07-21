@@ -3043,7 +3043,9 @@ def checklist_save():
         checks = req.get("checks", {})
         note = req.get("note", "")
         score = req.get("score", 0)
-        total = req.get("total", 9)
+        total = req.get("total", 10)
+        earned_points = req.get("earned_points", None)
+        total_points  = req.get("total_points", None)
 
         now = datetime.now()
         record = {
@@ -3055,6 +3057,8 @@ def checklist_save():
             "checks": checks,
             "score": score,
             "total": total,
+            "earned_points": earned_points,
+            "total_points": total_points,
             "note": note,
         }
 
