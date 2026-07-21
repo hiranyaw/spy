@@ -146,6 +146,42 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
 .mt-feedback.ok{background:#0d3320;border:1px solid #3fb950;color:#3fb950}
 .mt-feedback.err{background:#3d1515;border:1px solid #f85149;color:#f85149}
 .mt-sep{border:none;border-top:1px solid #21262d;margin:14px 0}
+
+/* ── Trade Checklist Tab ── */
+.cl-section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px 20px;margin-bottom:16px}
+.cl-section-title{font-size:0.8rem;color:#8b949e;text-transform:uppercase;letter-spacing:.9px;margin-bottom:14px;display:flex;align-items:center;gap:8px;font-weight:700}
+.cl-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cl-item{display:flex;align-items:center;gap:12px;background:#0d1117;border:1.5px solid #21262d;border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .15s;user-select:none}
+.cl-item:hover{border-color:#30363d;background:#161b22}
+.cl-item.checked{border-color:#3fb950;background:#0d2918}
+.cl-item.checked.sell-type{border-color:#f85149;background:#2d0e0e}
+.cl-checkbox{width:24px;height:24px;border-radius:6px;border:2px solid #30363d;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;background:#161b22}
+.cl-item.checked .cl-checkbox{background:#3fb950;border-color:#3fb950}
+.cl-item.checked.sell-type .cl-checkbox{background:#f85149;border-color:#f85149}
+.cl-checkmark{display:none;color:#fff;font-size:14px;font-weight:900;line-height:1}
+.cl-item.checked .cl-checkmark{display:block}
+.cl-item-text{flex:1}
+.cl-item-label{font-size:0.88rem;font-weight:600;color:#e6edf3;line-height:1.3}
+.cl-item-sub{font-size:0.7rem;color:#8b949e;margin-top:2px}
+.cl-score-ring{display:flex;flex-direction:column;align-items:center;gap:4px}
+.cl-score-num{font-size:2.5rem;font-weight:900;line-height:1}
+.cl-score-denom{font-size:0.8rem;color:#8b949e}
+.cl-score-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px;color:#8b949e}
+.cl-type-btn{padding:8px 20px;border-radius:8px;border:2px solid #30363d;background:#161b22;color:#8b949e;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.cl-type-btn.active-put{background:#2d0e0e;border-color:#f85149;color:#f85149}
+.cl-type-btn.active-call{background:#0d2918;border-color:#3fb950;color:#3fb950}
+.cl-save-btn{width:100%;padding:14px;border-radius:10px;border:2px solid;font-size:1rem;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:.5px;transition:all .15s}
+.cl-save-btn:hover{filter:brightness(1.12)}.cl-save-btn:active{transform:scale(.98)}
+.cl-save-btn.put{background:linear-gradient(135deg,#4d1818,#8b2020);border-color:#f85149;color:#f85149}
+.cl-save-btn.call{background:linear-gradient(135deg,#0d4429,#196c2e);border-color:#3fb950;color:#3fb950}
+.cl-hist-row{display:grid;grid-template-columns:80px 55px 55px 1fr auto;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid #21262d;font-size:0.82rem}
+.cl-hist-row:last-child{border-bottom:none}
+.cl-hist-score-bar{height:6px;border-radius:4px;background:#21262d;margin-top:4px;overflow:hidden}
+.cl-hist-score-fill{height:100%;border-radius:4px;transition:width .4s ease}
+.cl-badge-put{background:#2d0e0e;color:#f85149;border:1px solid #f85149;border-radius:6px;padding:2px 8px;font-size:0.72rem;font-weight:700}
+.cl-badge-call{background:#0d2918;color:#3fb950;border:1px solid #3fb950;border-radius:6px;padding:2px 8px;font-size:0.72rem;font-weight:700}
+.cl-del-btn{background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:2px 5px;border-radius:4px;transition:color .15s}
+.cl-del-btn:hover{color:#f85149}
 </style>
 </head>
 <body>
@@ -196,6 +232,7 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
   <div class="tab"    data-tab="journal">📔 Trade Journal</div>
   <div class="tab"    data-tab="ctrl">Controls</div>
   <div class="tab"    data-tab="analysis">🔍 Trade Analysis</div>
+  <div class="tab"    data-tab="checklist">✅ Trade Checklist</div>
 </div>
 </div>
 <div class="main-content">
@@ -1604,6 +1641,123 @@ Only B Trades with FULL confirmation."></textarea>
   </div>
   
 </div>
+
+<!-- ══ TAB: TRADE CHECKLIST ══ -->
+<div class="tc" id="tab-checklist">
+<div style="padding:20px;max-width:1400px;margin:0 auto">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+    <div>
+      <h2 style="color:#e6edf3;margin:0;font-size:1.3rem">✅ Trade Conditions Checklist</h2>
+      <p style="color:#8b949e;font-size:0.78rem;margin:4px 0 0">Verify ALL conditions before entering a trade &mdash; saved per trade entry</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:0.78rem;color:#8b949e">Trade Type:</span>
+      <button id="cl-btn-put" class="cl-type-btn active-put" onclick="clSetType('PUTS')">📉 PUTS</button>
+      <button id="cl-btn-call" class="cl-type-btn" onclick="clSetType('CALLS')">📈 CALLS</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start">
+
+    <!-- Left: Checklist -->
+    <div>
+      <!-- Score banner -->
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px 22px;margin-bottom:16px;display:flex;align-items:center;gap:24px">
+        <div class="cl-score-ring">
+          <div id="cl-score-num" class="cl-score-num" style="color:#8b949e">0</div>
+          <div class="cl-score-denom">/ <span id="cl-score-denom">9</span></div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:1rem;font-weight:700;color:#e6edf3;margin-bottom:6px" id="cl-score-label">Waiting for your checklist...</div>
+          <div style="background:#21262d;border-radius:8px;height:10px;overflow:hidden">
+            <div id="cl-score-bar" style="height:100%;border-radius:8px;width:0%;background:#3fb950;transition:width .35s ease,background .35s ease"></div>
+          </div>
+        </div>
+        <div id="cl-score-icon" style="font-size:2.5rem">⬜</div>
+      </div>
+
+      <!-- Conditions -->
+      <div class="cl-section" id="cl-conditions-wrap">
+        <div class="cl-section-title" id="cl-conditions-header">
+          <span>📉</span><span id="cl-conditions-title">PUTS — Setup Conditions</span>
+        </div>
+        <div class="cl-grid" id="cl-conditions-grid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Note field -->
+      <div class="cl-section">
+        <div class="cl-section-title"><span>✏️</span> Trade Note (optional)</div>
+        <textarea id="cl-note" placeholder="e.g. Strong break below 9 EMA, QQQ tanking, clean setup" style="width:100%;height:80px;background:#0d1117;border:1.5px solid #30363d;border-radius:8px;color:#e6edf3;font-family:inherit;font-size:0.88rem;padding:10px 12px;resize:vertical;box-sizing:border-box;line-height:1.5"></textarea>
+      </div>
+
+      <!-- Save button -->
+      <button id="cl-save-btn" class="cl-save-btn put" onclick="clSave()">💾 Save Trade Checklist</button>
+      <div id="cl-feedback" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:0.85rem;text-align:center"></div>
+    </div>
+
+    <!-- Right: Stats + charts -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <!-- Quick stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Trades Saved Today</div>
+          <div id="cl-stat-today" style="font-size:1.8rem;font-weight:900;color:#58a6ff">--</div>
+        </div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Avg Score (30d)</div>
+          <div id="cl-stat-avg" style="font-size:1.8rem;font-weight:900;color:#f0d000">--</div>
+        </div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">9/9 Perfect Trades</div>
+          <div id="cl-stat-perfect" style="font-size:1.8rem;font-weight:900;color:#3fb950">--</div>
+        </div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Most Missed</div>
+          <div id="cl-stat-missed" style="font-size:0.75rem;font-weight:700;color:#f85149;margin-top:6px">--</div>
+        </div>
+      </div>
+
+      <!-- Sub-tab: Daily / Monthly -->
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;overflow:hidden">
+        <div style="display:flex;border-bottom:1px solid #30363d">
+          <button id="cl-subtab-daily" onclick="clSubTab('daily')" style="flex:1;padding:9px;background:#1f6feb;color:#fff;border:none;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit">📅 Daily</button>
+          <button id="cl-subtab-monthly" onclick="clSubTab('monthly')" style="flex:1;padding:9px;background:#161b22;color:#8b949e;border:none;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit">📆 Monthly</button>
+        </div>
+        <div style="padding:14px">
+          <div id="cl-chart-daily" style="position:relative;height:180px">
+            <canvas id="cl-canvas-daily"></canvas>
+          </div>
+          <div id="cl-chart-monthly" style="position:relative;height:180px;display:none">
+            <canvas id="cl-canvas-monthly"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- History log -->
+  <div class="cl-section" style="margin-top:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="cl-section-title" style="margin-bottom:0"><span>📋</span> Saved Trade Records</div>
+      <select id="cl-filter" onchange="clFilterRecords()" style="background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:4px 10px;font-size:0.78rem;font-family:inherit">
+        <option value="all">All Trades</option>
+        <option value="PUTS">PUTS Only</option>
+        <option value="CALLS">CALLS Only</option>
+      </select>
+    </div>
+    <div id="cl-hist-list">
+      <div style="text-align:center;color:#555;padding:20px;font-size:0.85rem">No trades saved yet. Fill in the checklist and click Save.</div>
+    </div>
+  </div>
+
+</div>
+</div><!-- /tab-checklist -->
+
 </div> <!-- Close main-content wrapper -->
 
 <script>
@@ -1639,12 +1793,13 @@ function parseLocalISO(s) {
 }
 
 function sw(n){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',['live','guide','paper','tl','journal','ctrl','analysis'][i]===n));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',['live','guide','paper','tl','journal','ctrl','analysis','checklist'][i]===n));
   document.querySelectorAll('.tc').forEach(c=>c.classList.remove('on'));
   document.getElementById('tab-'+n).classList.add('on');
   if(n==='ctrl') refreshStatus();
   if(n==='journal') loadJournal();
   if(n==='analysis') initAnalysis();
+  if(n==='checklist') initChecklist();
   if(n==='live') {
     if (liveChart) {
       const container = document.getElementById('live-chart-container');
@@ -4743,6 +4898,404 @@ document.addEventListener('DOMContentLoaded', function() {
   loadMarketNews();
   setInterval(loadMarketNews, 300000);
 });
+
+// ══════════════════════════════════════════════════════
+//  TRADE CHECKLIST MODULE
+// ══════════════════════════════════════════════════════
+
+const CL_CONDITIONS = {
+  PUTS: [
+    { key: 'time_after_640',    label: 'After 6:40 AM',        sub: 'No entries before market opens properly' },
+    { key: 'below_vwap',        label: 'Below VWAP',           sub: 'Price is trading below VWAP' },
+    { key: 'below_21ema',       label: 'Below 21 EMA',         sub: 'Price below 21-period EMA' },
+    { key: 'below_9ema',        label: 'Below 9 EMA',          sub: 'Price below 9-period EMA' },
+    { key: 'trendline_break',   label: 'Trendline Break',      sub: 'Downside trendline break confirmed' },
+    { key: 'candle_confirmed',  label: 'Candle Confirmed',     sub: 'Wait for full candle close' },
+    { key: 'supertrend_red',    label: 'SuperTrend Red',       sub: 'SuperTrend indicator is bearish (red)' },
+    { key: 'qqq_same_dir',      label: 'QQQ Same Direction',   sub: 'QQQ is also moving down' },
+    { key: 'no_sr_nearby',      label: 'No Support Nearby',    sub: 'No support / resistance levels close by' },
+  ],
+  CALLS: [
+    { key: 'time_after_640',    label: 'After 6:40 AM',        sub: 'No entries before market opens properly' },
+    { key: 'above_vwap',        label: 'Above VWAP',           sub: 'Price is trading above VWAP' },
+    { key: 'above_21ema',       label: 'Above 21 EMA',         sub: 'Price above 21-period EMA' },
+    { key: 'above_9ema',        label: 'Above 9 EMA',          sub: 'Price above 9-period EMA' },
+    { key: 'trendline_break',   label: 'Trendline Break',      sub: 'Upside trendline break confirmed' },
+    { key: 'candle_confirmed',  label: 'Candle Confirmed',     sub: 'Wait for full candle close' },
+    { key: 'supertrend_green',  label: 'SuperTrend Green',     sub: 'SuperTrend indicator is bullish (green)' },
+    { key: 'qqq_same_dir',      label: 'QQQ Same Direction',   sub: 'QQQ is also moving up' },
+    { key: 'no_sr_nearby',      label: 'No Resistance Nearby', sub: 'No resistance levels close by' },
+  ]
+};
+
+const CL_EMOJIS = {
+  time_after_640:'⏰', below_vwap:'📉', below_21ema:'📉', below_9ema:'📉',
+  above_vwap:'📈', above_21ema:'📈', above_9ema:'📈',
+  trendline_break:'🔻', candle_confirmed:'🕯️', supertrend_red:'🔴',
+  supertrend_green:'🟢', qqq_same_dir:'📊', no_sr_nearby:'🚫'
+};
+
+let clType = 'PUTS';
+let clChecks = {};       // key -> bool
+let clAllRecords = [];   // all fetched from server
+let clDailyChart = null;
+let clMonthlyChart = null;
+let clInitialized = false;
+
+function clSetType(type) {
+  clType = type;
+  clChecks = {};
+  document.getElementById('cl-btn-put').className = 'cl-type-btn' + (type==='PUTS' ? ' active-put' : '');
+  document.getElementById('cl-btn-call').className = 'cl-type-btn' + (type==='CALLS' ? ' active-call' : '');
+  const btn = document.getElementById('cl-save-btn');
+  btn.className = 'cl-save-btn ' + (type==='PUTS' ? 'put' : 'call');
+  const hdr = document.getElementById('cl-conditions-header');
+  hdr.querySelector('span').textContent = type==='PUTS' ? '📉' : '📈';
+  document.getElementById('cl-conditions-title').textContent = type + ' — Setup Conditions';
+  clRenderGrid();
+  clUpdateScore();
+  document.getElementById('cl-note').value = '';
+}
+
+function clRenderGrid() {
+  const grid = document.getElementById('cl-conditions-grid');
+  const isSell = clType === 'PUTS';
+  grid.innerHTML = CL_CONDITIONS[clType].map(c => {
+    const checked = clChecks[c.key] || false;
+    return `<div class="cl-item${checked ? (' checked' + (isSell?' sell-type':'')) : ''}"
+                 id="cli-${c.key}" onclick="clToggle('${c.key}')">
+      <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
+      <div class="cl-item-text">
+        <div class="cl-item-label">${CL_EMOJIS[c.key]||'•'} ${c.label}</div>
+        <div class="cl-item-sub">${c.sub}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function clToggle(key) {
+  clChecks[key] = !clChecks[key];
+  const item = document.getElementById('cli-' + key);
+  if(item) {
+    item.classList.toggle('checked', clChecks[key]);
+    item.classList.toggle('sell-type', clChecks[key] && clType==='PUTS');
+  }
+  clUpdateScore();
+}
+
+function clUpdateScore() {
+  const conds = CL_CONDITIONS[clType];
+  const total = conds.length;
+  const score = conds.filter(c => clChecks[c.key]).length;
+  const pct = total > 0 ? Math.round((score/total)*100) : 0;
+
+  document.getElementById('cl-score-num').textContent = score;
+  document.getElementById('cl-score-denom').textContent = total;
+
+  const bar = document.getElementById('cl-score-bar');
+  bar.style.width = pct + '%';
+  let color = '#f85149';
+  if(pct >= 90) color = '#3fb950';
+  else if(pct >= 67) color = '#f0883e';
+  else if(pct >= 45) color = '#f0d000';
+  bar.style.background = color;
+  document.getElementById('cl-score-num').style.color = color;
+
+  let label = 'Not ready — keep checking conditions';
+  let icon = '⬜';
+  if(score === total)       { label = '🎯 Perfect setup! All conditions met'; icon = '🚀'; }
+  else if(pct >= 78)        { label = 'Strong setup — almost there'; icon = '💪'; }
+  else if(pct >= 56)        { label = 'Partial setup — review missing conditions'; icon = '⚠️'; }
+  else if(score === 0)      { label = 'Waiting for your checklist...'; icon = '⬜'; }
+  document.getElementById('cl-score-label').textContent = label;
+  document.getElementById('cl-score-icon').textContent = icon;
+}
+
+async function clSave() {
+  const conds = CL_CONDITIONS[clType];
+  const total = conds.length;
+  const score = conds.filter(c => clChecks[c.key]).length;
+  const note  = document.getElementById('cl-note').value.trim();
+
+  try {
+    const res = await fetch('/api/checklist/save', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ trade_type:clType, checks:clChecks, score, total, note })
+    });
+    const data = await res.json();
+    if(data.ok) {
+      clShowFeedback('✅ Trade checklist saved!', true);
+      // Reset checkboxes for next trade
+      clChecks = {};
+      clRenderGrid();
+      clUpdateScore();
+      document.getElementById('cl-note').value = '';
+      // Reload history + charts
+      await clLoadHistory();
+    } else {
+      clShowFeedback('❌ Error: ' + (data.error||'Unknown error'), false);
+    }
+  } catch(e) {
+    clShowFeedback('❌ Network error: ' + e.message, false);
+  }
+}
+
+function clShowFeedback(msg, ok) {
+  const el = document.getElementById('cl-feedback');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = ok ? '#0d3320' : '#3d1515';
+  el.style.border = '1px solid ' + (ok ? '#3fb950' : '#f85149');
+  el.style.color = ok ? '#3fb950' : '#f85149';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+async function clLoadHistory() {
+  try {
+    const res = await fetch('/api/checklist/history');
+    const data = await res.json();
+    if(data.ok) {
+      clAllRecords = data.records || [];
+      clUpdateStats();
+      clRenderHistory(document.getElementById('cl-filter').value);
+      clRenderCharts();
+    }
+  } catch(e) { console.error('Checklist load error:', e); }
+}
+
+function clUpdateStats() {
+  const today = new Date().toISOString().slice(0,10);
+  const todayRecs = clAllRecords.filter(r => r.date === today);
+  document.getElementById('cl-stat-today').textContent = todayRecs.length;
+
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-30);
+  const recent = clAllRecords.filter(r => new Date(r.date) >= cutoff);
+  if(recent.length) {
+    const avgScore = (recent.reduce((s,r) => s + (r.total > 0 ? r.score/r.total : 0), 0) / recent.length * 100).toFixed(0);
+    document.getElementById('cl-stat-avg').textContent = avgScore + '%';
+  } else {
+    document.getElementById('cl-stat-avg').textContent = '--';
+  }
+
+  const perfect = clAllRecords.filter(r => r.score === r.total && r.total > 0).length;
+  document.getElementById('cl-stat-perfect').textContent = perfect;
+
+  // Most missed condition across all records
+  const missCounts = {};
+  clAllRecords.forEach(r => {
+    const type = r.trade_type || 'PUTS';
+    (CL_CONDITIONS[type]||CL_CONDITIONS.PUTS).forEach(c => {
+      if(!r.checks[c.key]) {
+        missCounts[c.label] = (missCounts[c.label]||0) + 1;
+      }
+    });
+  });
+  const sorted = Object.entries(missCounts).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('cl-stat-missed').textContent = sorted.length ? `${sorted[0][0]} (${sorted[0][1]}x)` : '--';
+}
+
+function clFilterRecords() {
+  clRenderHistory(document.getElementById('cl-filter').value);
+}
+
+function clRenderHistory(filter='all') {
+  const container = document.getElementById('cl-hist-list');
+  let recs = clAllRecords;
+  if(filter !== 'all') recs = recs.filter(r => r.trade_type === filter);
+  if(!recs.length) {
+    container.innerHTML = '<div style="text-align:center;color:#555;padding:20px;font-size:0.85rem">No trades saved yet.</div>';
+    return;
+  }
+
+  // Header row
+  let html = `<div class="cl-hist-row" style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;font-weight:700;border-bottom:1px solid #30363d">
+    <span>Date</span><span>Time</span><span>Type</span><span>Score</span><span></span>
+  </div>`;
+
+  recs.forEach(r => {
+    const pct = r.total > 0 ? Math.round(r.score/r.total*100) : 0;
+    let fillColor = '#f85149';
+    if(pct>=90) fillColor='#3fb950'; else if(pct>=67) fillColor='#f0883e'; else if(pct>=45) fillColor='#f0d000';
+    const badge = r.trade_type==='PUTS'
+      ? '<span class="cl-badge-put">PUTS</span>'
+      : '<span class="cl-badge-call">CALLS</span>';
+
+    // Build mini checked condition list on hover (as title)
+    const checkedList = Object.entries(r.checks||{}).filter(([,v])=>v).map(([k])=>k).join(', ');
+    const missedList  = Object.entries(r.checks||{}).filter(([,v])=>!v).map(([k])=>k).join(', ');
+    const noteHtml = r.note ? `<div style="font-size:0.73rem;color:#8b949e;margin-top:3px;font-style:italic">"${r.note}"</div>` : '';
+
+    html += `<div class="cl-hist-row" title="✓ ${checkedList}\n✗ ${missedList}">
+      <span style="color:#c9d1d9;font-weight:600">${r.date}</span>
+      <span style="color:#8b949e">${r.time||''}</span>
+      <span>${badge}</span>
+      <span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:700;color:${fillColor}">${r.score}/${r.total}</span>
+          <span style="font-size:0.72rem;color:#8b949e">(${pct}%)</span>
+        </div>
+        <div class="cl-hist-score-bar"><div class="cl-hist-score-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+        ${noteHtml}
+      </span>
+      <button class="cl-del-btn" onclick="clDelete(${r.id})" title="Delete this record">🗑</button>
+    </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+async function clDelete(id) {
+  if(!confirm('Delete this checklist record?')) return;
+  try {
+    const res = await fetch('/api/checklist/delete', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id})
+    });
+    const data = await res.json();
+    if(data.ok) await clLoadHistory();
+  } catch(e) { console.error(e); }
+}
+
+function clSubTab(tab) {
+  const daily   = document.getElementById('cl-chart-daily');
+  const monthly = document.getElementById('cl-chart-monthly');
+  const btnD    = document.getElementById('cl-subtab-daily');
+  const btnM    = document.getElementById('cl-subtab-monthly');
+  if(tab==='daily') {
+    daily.style.display='';  monthly.style.display='none';
+    btnD.style.background='#1f6feb'; btnD.style.color='#fff';
+    btnM.style.background='#161b22'; btnM.style.color='#8b949e';
+  } else {
+    daily.style.display='none'; monthly.style.display='';
+    btnM.style.background='#1f6feb'; btnM.style.color='#fff';
+    btnD.style.background='#161b22'; btnD.style.color='#8b949e';
+  }
+}
+
+function clRenderCharts() {
+  // ── Daily: last 30 days, avg score % per day
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-29);
+  const dayMap = {};
+  clAllRecords.forEach(r => {
+    const d = new Date(r.date);
+    if(d >= cutoff) {
+      if(!dayMap[r.date]) dayMap[r.date] = [];
+      dayMap[r.date].push(r.total>0 ? r.score/r.total*100 : 0);
+    }
+  });
+
+  const days = [];
+  for(let i=29;i>=0;i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    days.push(d.toISOString().slice(0,10));
+  }
+  const dayLabels = days.map(d => d.slice(5));
+  const dayValues = days.map(d => dayMap[d] ? Math.round(dayMap[d].reduce((a,b)=>a+b,0)/dayMap[d].length) : null);
+  const dayColors = dayValues.map(v => v===null ? 'transparent' : v>=90?'rgba(63,185,80,0.85)':v>=67?'rgba(240,136,62,0.85)':v>=45?'rgba(240,208,0,0.85)':'rgba(248,81,73,0.85)');
+  const dayCounts = days.map(d => dayMap[d] ? dayMap[d].length : 0);
+
+  const dailyCtx = document.getElementById('cl-canvas-daily').getContext('2d');
+  if(clDailyChart) clDailyChart.destroy();
+  clDailyChart = new Chart(dailyCtx, {
+    type:'bar',
+    data: {
+      labels: dayLabels,
+      datasets: [{
+        label:'Avg Score %',
+        data: dayValues,
+        backgroundColor: dayColors,
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label: (ctx) => {
+              const idx=ctx.dataIndex;
+              const count=dayCounts[idx];
+              return `Avg: ${ctx.parsed.y===null?'--':ctx.parsed.y+'%'} (${count} trade${count!==1?'s':''})`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{color:'rgba(48,54,61,0.5)'}, ticks:{color:'#8b949e',font:{size:10}, maxTicksLimit:10} },
+        y:{ min:0,max:100, grid:{color:'rgba(48,54,61,0.5)'}, ticks:{color:'#8b949e',font:{size:10},callback:v=>v+'%'} }
+      }
+    }
+  });
+
+  // ── Monthly: group by YYYY-MM
+  const monthMap = {};
+  clAllRecords.forEach(r => {
+    const mon = r.date.slice(0,7);
+    if(!monthMap[mon]) monthMap[mon] = [];
+    monthMap[mon].push(r.total>0 ? r.score/r.total*100 : 0);
+  });
+  const months = Object.keys(monthMap).sort();
+  const monLabels = months.map(m => { const [y,mo]=m.split('-'); return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(mo)-1]+' '+y; });
+  const monValues = months.map(m => Math.round(monthMap[m].reduce((a,b)=>a+b,0)/monthMap[m].length));
+  const monColors = monValues.map(v => v>=90?'rgba(63,185,80,0.85)':v>=67?'rgba(240,136,62,0.85)':v>=45?'rgba(240,208,0,0.85)':'rgba(248,81,73,0.85)');
+  const monCounts = months.map(m => monthMap[m].length);
+
+  const monCtx = document.getElementById('cl-canvas-monthly').getContext('2d');
+  if(clMonthlyChart) clMonthlyChart.destroy();
+  clMonthlyChart = new Chart(monCtx, {
+    type:'bar',
+    data: {
+      labels: monLabels.length ? monLabels : ['No data'],
+      datasets: [{
+        label:'Avg Score %',
+        data: monValues.length ? monValues : [0],
+        backgroundColor: monColors.length ? monColors : ['#30363d'],
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label:(ctx)=>{
+              const idx=ctx.dataIndex;
+              const count=monCounts[idx]||0;
+              return `Avg: ${ctx.parsed.y}% (${count} trade${count!==1?'s':''})`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{color:'rgba(48,54,61,0.5)'}, ticks:{color:'#8b949e',font:{size:11}} },
+        y:{ min:0,max:100, grid:{color:'rgba(48,54,61,0.5)'}, ticks:{color:'#8b949e',font:{size:11},callback:v=>v+'%'} }
+      }
+    }
+  });
+}
+
+async function initChecklist() {
+  if(!clInitialized) {
+    clInitialized = true;
+    clRenderGrid();
+    clUpdateScore();
+    // Load Chart.js if not already present
+    if(typeof Chart === 'undefined') {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+        s.onload = resolve; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+  }
+  await clLoadHistory();
+}
 </script>
 
 <!-- Diagnostics Modal -->

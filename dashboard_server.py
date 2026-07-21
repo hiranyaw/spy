@@ -3002,7 +3002,86 @@ def clear_cache():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
 
+
+# ── Trade Checklist ────────────────────────────────────────────────────────────
+CHECKLIST_FILE = os.path.join(BASE, "trade_checklist.json")
+
+def load_checklist():
+    """Load all checklist records from JSON file."""
+    if os.path.exists(CHECKLIST_FILE):
+        try:
+            with open(CHECKLIST_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+    return []
+
+def save_checklist(records):
+    """Persist checklist records to JSON file."""
+    with open(CHECKLIST_FILE, "w", encoding="utf-8") as f:
+        json.dump(records, f, indent=2)
+
+
+@app.route("/api/checklist/history", methods=["GET"])
+def checklist_history():
+    """Return all saved checklist records, newest first."""
+    try:
+        records = load_checklist()
+        records_sorted = sorted(records, key=lambda r: r.get("timestamp", ""), reverse=True)
+        return jsonify({"ok": True, "records": records_sorted})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/checklist/save", methods=["POST"])
+def checklist_save():
+    """Save a new checklist record (one per trade, not per day)."""
+    try:
+        req = request.get_json(force=True)
+        trade_type = req.get("trade_type", "PUTS")
+        checks = req.get("checks", {})
+        note = req.get("note", "")
+        score = req.get("score", 0)
+        total = req.get("total", 9)
+
+        now = datetime.now()
+        record = {
+            "id": int(now.timestamp() * 1000),
+            "date": now.strftime("%Y-%m-%d"),
+            "time": now.strftime("%H:%M"),
+            "timestamp": now.isoformat(),
+            "trade_type": trade_type,
+            "checks": checks,
+            "score": score,
+            "total": total,
+            "note": note,
+        }
+
+        records = load_checklist()
+        records.append(record)
+        save_checklist(records)
+        return jsonify({"ok": True, "record": record})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/checklist/delete", methods=["POST"])
+def checklist_delete():
+    """Delete a checklist record by id."""
+    try:
+        req = request.get_json(force=True)
+        record_id = req.get("id")
+        records = load_checklist()
+        records = [r for r in records if r.get("id") != record_id]
+        save_checklist(records)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 if __name__ == "__main__":
+
     try:
         import psutil
     except ImportError:
