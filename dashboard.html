@@ -4914,6 +4914,7 @@ const CL_CONDITIONS = {
     { key: 'supertrend_red',    label: 'SuperTrend Red',       sub: 'SuperTrend indicator is bearish (red)' },
     { key: 'qqq_same_dir',      label: 'QQQ Same Direction',   sub: 'QQQ is also moving down' },
     { key: 'no_sr_nearby',      label: 'No Support Nearby',    sub: 'No support / resistance levels close by' },
+    { key: 'add_same_dir',      label: 'ADD Declining',        sub: 'NYSE Advance-Decline line is negative / declining' },
   ],
   CALLS: [
     { key: 'time_after_640',    label: 'After 6:40 AM',        sub: 'No entries before market opens properly' },
@@ -4925,6 +4926,7 @@ const CL_CONDITIONS = {
     { key: 'supertrend_green',  label: 'SuperTrend Green',     sub: 'SuperTrend indicator is bullish (green)' },
     { key: 'qqq_same_dir',      label: 'QQQ Same Direction',   sub: 'QQQ is also moving up' },
     { key: 'no_sr_nearby',      label: 'No Resistance Nearby', sub: 'No resistance levels close by' },
+    { key: 'add_same_dir',      label: 'ADD Advancing',        sub: 'NYSE Advance-Decline line is positive / advancing' },
   ]
 };
 
@@ -4932,7 +4934,8 @@ const CL_EMOJIS = {
   time_after_640:'⏰', below_vwap:'📉', below_21ema:'📉', below_9ema:'📉',
   above_vwap:'📈', above_21ema:'📈', above_9ema:'📈',
   trendline_break:'🔻', candle_confirmed:'🕯️', supertrend_red:'🔴',
-  supertrend_green:'🟢', qqq_same_dir:'📊', no_sr_nearby:'🚫'
+  supertrend_green:'🟢', qqq_same_dir:'📊', no_sr_nearby:'🚫',
+  add_same_dir:'📶'
 };
 
 let clType = 'PUTS';
