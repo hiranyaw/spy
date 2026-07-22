@@ -182,6 +182,64 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
 .cl-badge-call{background:#0d2918;color:#3fb950;border:1px solid #3fb950;border-radius:6px;padding:2px 8px;font-size:0.72rem;font-weight:700}
 .cl-del-btn{background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:2px 5px;border-radius:4px;transition:color .15s}
 .cl-del-btn:hover{color:#f85149}
+
+/* ── Pre-Trade Ritual ── */
+.ptr-panel{background:linear-gradient(135deg,#0d1117 0%,#161b22 100%);border:1.5px solid #30363d;border-radius:16px;margin-bottom:20px;overflow:hidden;transition:all .3s}
+.ptr-header{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;cursor:pointer;user-select:none;transition:background .2s}
+.ptr-header:hover{background:rgba(88,166,255,0.04)}
+.ptr-header-left{display:flex;align-items:center;gap:14px}
+.ptr-title{font-size:1.05rem;font-weight:800;color:#e6edf3;letter-spacing:.3px}
+.ptr-subtitle{font-size:0.72rem;color:#8b949e;margin-top:2px}
+.ptr-collapse-arrow{font-size:0.9rem;color:#8b949e;transition:transform .3s}
+.ptr-panel.open .ptr-collapse-arrow{transform:rotate(180deg)}
+.ptr-body{display:none;padding:0 22px 22px}
+.ptr-panel.open .ptr-body{display:block}
+.ptr-progress-bar-wrap{background:#21262d;border-radius:8px;height:8px;overflow:hidden;margin-bottom:20px}
+.ptr-progress-bar{height:100%;border-radius:8px;background:linear-gradient(90deg,#58a6ff,#3fb950);transition:width .5s cubic-bezier(.4,0,.2,1)}
+.ptr-category{margin-bottom:18px}
+.ptr-cat-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ptr-cat-icon{font-size:1.1rem}
+.ptr-cat-label{font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#8b949e}
+.ptr-cat-count{font-size:0.72rem;color:#555;margin-left:auto}
+.ptr-items{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:900px){.ptr-items{grid-template-columns:1fr}}
+.ptr-item{display:flex;align-items:flex-start;gap:10px;background:#0d1117;border:1.5px solid #21262d;border-radius:10px;padding:11px 13px;cursor:pointer;transition:all .18s;user-select:none}
+.ptr-item:hover{border-color:#30363d;background:#161b22;transform:translateY(-1px)}
+.ptr-item.ptr-done{border-color:#58a6ff;background:rgba(88,166,255,0.07)}
+.ptr-item.ptr-done.ptr-relax{border-color:#a78bfa;background:rgba(167,139,250,0.07)}
+.ptr-item.ptr-done.ptr-env{border-color:#3fb950;background:rgba(63,185,80,0.07)}
+.ptr-item.ptr-done.ptr-market{border-color:#f0883e;background:rgba(240,136,62,0.07)}
+.ptr-cb{width:22px;height:22px;border-radius:6px;border:2px solid #30363d;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s;margin-top:1px}
+.ptr-item.ptr-done .ptr-cb{border-color:#58a6ff;background:#1c2d52}
+.ptr-item.ptr-done.ptr-relax .ptr-cb{border-color:#a78bfa;background:#1e1b4b}
+.ptr-item.ptr-done.ptr-env .ptr-cb{border-color:#3fb950;background:#0d2918}
+.ptr-item.ptr-done.ptr-market .ptr-cb{border-color:#f0883e;background:#2d1a00}
+.ptr-ck{display:none;font-size:13px;font-weight:900;color:#fff;line-height:1}
+.ptr-item.ptr-done .ptr-ck{display:block}
+.ptr-item-body{flex:1}
+.ptr-item-label{font-size:0.85rem;font-weight:600;color:#e6edf3;line-height:1.3}
+.ptr-item-sub{font-size:0.68rem;color:#8b949e;margin-top:2px;line-height:1.4}
+.ptr-item.ptr-done .ptr-item-label{color:#c9d1d9}
+.ptr-summary{display:flex;align-items:center;gap:20px;background:#0d1117;border-radius:12px;padding:16px 20px;margin-top:4px}
+.ptr-ring{position:relative;width:70px;height:70px;flex-shrink:0}
+.ptr-ring svg{transform:rotate(-90deg)}
+.ptr-ring-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ptr-ring-pct{font-size:1.1rem;font-weight:900;color:#e6edf3}
+.ptr-ring-lbl{font-size:0.55rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px}
+.ptr-summary-msg{flex:1}
+.ptr-summary-title{font-size:0.95rem;font-weight:700;color:#e6edf3;margin-bottom:4px}
+.ptr-summary-sub{font-size:0.75rem;color:#8b949e}
+.ptr-reset-btn{background:#21262d;border:1px solid #30363d;color:#8b949e;font-size:0.78rem;font-weight:700;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:inherit;transition:all .15s}
+.ptr-reset-btn:hover{border-color:#58a6ff;color:#58a6ff}
+.ptr-breathe-wrap{display:flex;align-items:center;gap:12px;margin-bottom:14px;background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:10px;padding:12px 16px}
+.ptr-breathe-circle{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,#a78bfa,#6d28d9);flex-shrink:0;animation:ptr-breathe 7s ease-in-out infinite}
+@keyframes ptr-breathe{0%,100%{transform:scale(1);opacity:0.7}50%{transform:scale(1.45);opacity:1}}
+.ptr-breathe-text{font-size:0.78rem;color:#c4b5fd;line-height:1.5}
+.ptr-breathe-text b{color:#a78bfa}
+.ptr-badge{display:inline-flex;align-items:center;gap:4px;font-size:0.62rem;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:auto;flex-shrink:0}
+.ptr-badge.ready{background:#0d3320;color:#3fb950;border:1px solid #3fb950}
+.ptr-badge.partial{background:#2d1a00;color:#f0883e;border:1px solid #f0883e}
+.ptr-badge.pending{background:#21262d;color:#555;border:1px solid #30363d}
 </style>
 </head>
 <body>
@@ -1645,6 +1703,90 @@ Only B Trades with FULL confirmation."></textarea>
 <!-- ══ TAB: TRADE CHECKLIST ══ -->
 <div class="tc" id="tab-checklist">
 <div style="padding:20px;max-width:1400px;margin:0 auto">
+
+  <!-- ══ PRE-TRADE RITUAL PANEL ══ -->
+  <div class="ptr-panel open" id="ptr-panel">
+    <div class="ptr-header" onclick="ptrToggle()">
+      <div class="ptr-header-left">
+        <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#1e1b4b,#2d1b69);border:1.5px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🧘</div>
+        <div>
+          <div class="ptr-title">Pre-Trade Ritual &nbsp;<span style="font-size:0.72rem;font-weight:600;color:#a78bfa;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);border-radius:6px;padding:2px 8px">5–10 min before trading</span></div>
+          <div class="ptr-subtitle">Clear your mind · Prepare your space · Review the market</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="ptr-header-badge" class="ptr-badge pending">⬜ Not Started</span>
+        <span class="ptr-collapse-arrow">▾</span>
+      </div>
+    </div>
+    <div class="ptr-body">
+      <!-- Progress bar -->
+      <div class="ptr-progress-bar-wrap" style="margin-bottom:16px">
+        <div class="ptr-progress-bar" id="ptr-progress-bar" style="width:0%"></div>
+      </div>
+
+      <!-- Breathing guide -->
+      <div class="ptr-breathe-wrap">
+        <div class="ptr-breathe-circle"></div>
+        <div class="ptr-breathe-text">
+          <b>Box Breathing:</b> Inhale 4s → Hold 4s → Exhale 4s → Hold 4s &nbsp;·&nbsp; Repeat 3×<br>
+          <span style="color:#8b949e">Close your eyes. Let the market noise fade. You are calm, focused, ready.</span>
+        </div>
+      </div>
+
+      <!-- Category 1: Mind Relax -->
+      <div class="ptr-category">
+        <div class="ptr-cat-header">
+          <span class="ptr-cat-icon">🧠</span>
+          <span class="ptr-cat-label" style="color:#a78bfa">Mind &amp; Body Relax</span>
+          <span class="ptr-cat-count" id="ptr-count-mind">0 / 5</span>
+        </div>
+        <div class="ptr-items" id="ptr-items-mind"></div>
+      </div>
+
+      <!-- Category 2: Environment -->
+      <div class="ptr-category">
+        <div class="ptr-cat-header">
+          <span class="ptr-cat-icon">🖥️</span>
+          <span class="ptr-cat-label" style="color:#3fb950">Environment &amp; Setup</span>
+          <span class="ptr-cat-count" id="ptr-count-env">0 / 4</span>
+        </div>
+        <div class="ptr-items" id="ptr-items-env"></div>
+      </div>
+
+      <!-- Category 3: Market Prep -->
+      <div class="ptr-category">
+        <div class="ptr-cat-header">
+          <span class="ptr-cat-icon">📊</span>
+          <span class="ptr-cat-label" style="color:#f0883e">Market Preparation</span>
+          <span class="ptr-cat-count" id="ptr-count-market">0 / 5</span>
+        </div>
+        <div class="ptr-items" id="ptr-items-market"></div>
+      </div>
+
+      <!-- Summary ring -->
+      <div class="ptr-summary">
+        <div class="ptr-ring">
+          <svg width="70" height="70" viewBox="0 0 70 70">
+            <circle cx="35" cy="35" r="28" fill="none" stroke="#21262d" stroke-width="7"/>
+            <circle id="ptr-ring-arc" cx="35" cy="35" r="28" fill="none" stroke="#58a6ff" stroke-width="7"
+              stroke-linecap="round" stroke-dasharray="175.93" stroke-dashoffset="175.93"
+              style="transition:stroke-dashoffset .5s cubic-bezier(.4,0,.2,1),stroke .3s"/>
+          </svg>
+          <div class="ptr-ring-text">
+            <div class="ptr-ring-pct" id="ptr-ring-pct">0%</div>
+            <div class="ptr-ring-lbl">ready</div>
+          </div>
+        </div>
+        <div class="ptr-summary-msg">
+          <div class="ptr-summary-title" id="ptr-summary-title">Complete the ritual to start trading</div>
+          <div class="ptr-summary-sub" id="ptr-summary-sub">Work through each section above — mind first, then environment, then market</div>
+        </div>
+        <button class="ptr-reset-btn" onclick="ptrReset()">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+  <!-- ══ /PRE-TRADE RITUAL ══ -->
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
     <div>
@@ -5326,6 +5468,172 @@ async function initChecklist() {
     }
   }
   await clLoadHistory();
+  ptrInit();
+}
+
+// ══════════════════════════════════════════════
+//  PRE-TRADE RITUAL
+// ══════════════════════════════════════════════
+
+const PTR_CATEGORIES = {
+  mind: {
+    label: 'Mind & Body',
+    colorClass: 'ptr-relax',
+    items: [
+      { key: 'ptr_breath',    label: 'Box Breathing Done',       sub: '3 rounds of 4-4-4-4 breathing — stress is gone' },
+      { key: 'ptr_calm',     label: 'Feeling Calm & Focused',   sub: 'No anxiety, anger, or FOMO in your mind right now' },
+      { key: 'ptr_sleep',    label: 'Rested & Alert',           sub: 'Not trading tired, hungover, or emotionally drained' },
+      { key: 'ptr_intent',   label: 'Clear Trading Intent',     sub: 'I know my rules — I will wait for the setup, not chase' },
+      { key: 'ptr_loss_ok',  label: 'Loss Acceptance',          sub: 'I accept I may lose this trade — it doesn\'t define me' },
+    ]
+  },
+  env: {
+    label: 'Environment',
+    colorClass: 'ptr-env',
+    items: [
+      { key: 'ptr_dist',     label: 'Distractions Eliminated',  sub: 'Phone on silent, notifications off, no social media' },
+      { key: 'ptr_screens',  label: 'Charts Ready',             sub: 'TradingView loaded, SPY + QQQ on correct timeframe' },
+      { key: 'ptr_water',    label: 'Water & Comfort Ready',    sub: 'Hydrated, comfortable — can focus for 2+ hours' },
+      { key: 'ptr_max_loss', label: 'Max Loss Limit Set',       sub: 'Know today\'s max loss — will STOP if hit it' },
+    ]
+  },
+  market: {
+    label: 'Market Prep',
+    colorClass: 'ptr-market',
+    items: [
+      { key: 'ptr_news',     label: 'News & Events Checked',    sub: 'No surprise FOMC/CPI/earnings in next 2 hrs' },
+      { key: 'ptr_premarket',label: 'Pre-Market Briefing Read', sub: 'Reviewed gap, futures direction, overnight range' },
+      { key: 'ptr_levels',   label: 'Key Levels Marked',        sub: 'VWAP, 9/21 EMA, support & resistance on chart' },
+      { key: 'ptr_bias',     label: 'Market Bias Noted',        sub: 'Bullish / Bearish / Neutral — confirmed from signals' },
+      { key: 'ptr_wait',     label: 'Committed to Waiting',     sub: 'Will NOT enter before 6:40 AM — will wait for signal' },
+    ]
+  }
+};
+
+let ptrChecks = {};
+const PTR_STORAGE_KEY = 'ptr_state_' + new Date().toISOString().slice(0,10);
+
+function ptrInit() {
+  // Restore today's state from sessionStorage
+  try {
+    const saved = sessionStorage.getItem(PTR_STORAGE_KEY);
+    if(saved) ptrChecks = JSON.parse(saved);
+  } catch(e) { ptrChecks = {}; }
+  ptrRenderAll();
+}
+
+function ptrSave() {
+  try { sessionStorage.setItem(PTR_STORAGE_KEY, JSON.stringify(ptrChecks)); } catch(e) {}
+}
+
+function ptrToggle() {
+  document.getElementById('ptr-panel').classList.toggle('open');
+}
+
+function ptrReset() {
+  ptrChecks = {};
+  ptrSave();
+  ptrRenderAll();
+}
+
+function ptrToggleItem(key, catKey) {
+  ptrChecks[key] = !ptrChecks[key];
+  ptrSave();
+  // Update just this item visually
+  const el = document.getElementById('ptr-item-' + key);
+  if(el) {
+    const colorClass = PTR_CATEGORIES[catKey].colorClass;
+    el.classList.toggle('ptr-done', ptrChecks[key]);
+    // Remove all color classes first
+    el.classList.remove('ptr-relax','ptr-env','ptr-market');
+    if(ptrChecks[key]) el.classList.add(colorClass);
+  }
+  ptrUpdateProgress();
+}
+
+function ptrRenderAll() {
+  Object.entries(PTR_CATEGORIES).forEach(([catKey, cat]) => {
+    const container = document.getElementById('ptr-items-' + catKey);
+    if(!container) return;
+    container.innerHTML = cat.items.map(item => {
+      const done = ptrChecks[item.key];
+      return `<div class="ptr-item${done?' ptr-done '+cat.colorClass:''}" id="ptr-item-${item.key}" onclick="ptrToggleItem('${item.key}','${catKey}')">
+        <div class="ptr-cb"><span class="ptr-ck">✓</span></div>
+        <div class="ptr-item-body">
+          <div class="ptr-item-label">${item.label}</div>
+          <div class="ptr-item-sub">${item.sub}</div>
+        </div>
+      </div>`;
+    }).join('');
+  });
+  ptrUpdateProgress();
+}
+
+function ptrUpdateProgress() {
+  let total = 0, done = 0;
+  Object.entries(PTR_CATEGORIES).forEach(([catKey, cat]) => {
+    const catDone = cat.items.filter(i => ptrChecks[i.key]).length;
+    const catTotal = cat.items.length;
+    total += catTotal;
+    done  += catDone;
+    const el = document.getElementById('ptr-count-' + catKey);
+    if(el) el.textContent = catDone + ' / ' + catTotal;
+  });
+
+  const pct = total > 0 ? Math.round(done / total * 100) : 0;
+
+  // Progress bar
+  const bar = document.getElementById('ptr-progress-bar');
+  if(bar) bar.style.width = pct + '%';
+
+  // Ring arc (circumference = 2π×28 ≈ 175.93)
+  const arc = document.getElementById('ptr-ring-arc');
+  if(arc) {
+    const circ = 175.93;
+    arc.style.strokeDashoffset = circ - (circ * pct / 100);
+    let ringColor = '#555';
+    if(pct >= 100) ringColor = '#3fb950';
+    else if(pct >= 70) ringColor = '#58a6ff';
+    else if(pct >= 40) ringColor = '#f0883e';
+    else if(pct > 0)   ringColor = '#a78bfa';
+    arc.style.stroke = ringColor;
+  }
+
+  // Ring % text
+  const pctEl = document.getElementById('ptr-ring-pct');
+  if(pctEl) pctEl.textContent = pct + '%';
+
+  // Summary msg
+  const title = document.getElementById('ptr-summary-title');
+  const sub   = document.getElementById('ptr-summary-sub');
+  if(pct === 100) {
+    if(title) title.textContent = '🚀 Ritual Complete — You are READY to trade!';
+    if(sub)   sub.textContent = 'Mind calm ✓  Environment set ✓  Market studied ✓  Go make good trades.';
+  } else if(pct >= 70) {
+    if(title) title.textContent = `Almost there — ${done}/${total} items done`;
+    if(sub)   sub.textContent = 'Finish the remaining items before entering the market';
+  } else if(pct > 0) {
+    if(title) title.textContent = `In progress — ${done}/${total} items done`;
+    if(sub)   sub.textContent = 'Keep going — every checked item makes you a more disciplined trader';
+  } else {
+    if(title) title.textContent = 'Complete the ritual to start trading';
+    if(sub)   sub.textContent = 'Work through each section above — mind first, then environment, then market';
+  }
+
+  // Header badge
+  const badge = document.getElementById('ptr-header-badge');
+  if(badge) {
+    if(pct === 100) {
+      badge.className = 'ptr-badge ready';
+      badge.textContent = '✅ Ready to Trade';
+    } else if(pct > 0) {
+      badge.className = 'ptr-badge partial';
+      badge.textContent = `⏳ ${pct}% Done`;
+    } else {
+      badge.className = 'ptr-badge pending';
+      badge.textContent = '⬜ Not Started';
+    }
+  }
 }
 </script>
 
