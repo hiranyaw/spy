@@ -182,6 +182,16 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
 .cl-badge-call{background:#0d2918;color:#3fb950;border:1px solid #3fb950;border-radius:6px;padding:2px 8px;font-size:0.72rem;font-weight:700}
 .cl-del-btn{background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:2px 5px;border-radius:4px;transition:color .15s}
 .cl-del-btn:hover{color:#f85149}
+.cl-comment-btn{background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:2px 5px;border-radius:4px;transition:color .15s}
+.cl-comment-btn:hover{color:#58a6ff}
+.cl-comment-btn.has-comment{color:#58a6ff}
+.cl-comment-area{display:none;grid-column:1/-1;padding:8px 14px 12px;border-top:1px solid #21262d;background:rgba(88,166,255,0.04)}
+.cl-comment-area.open{display:block}
+.cl-comment-input{width:100%;box-sizing:border-box;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:0.82rem;font-family:inherit;padding:8px 12px;resize:vertical;min-height:60px;outline:none;transition:border-color .2s}
+.cl-comment-input:focus{border-color:#58a6ff}
+.cl-comment-save-btn{margin-top:6px;padding:5px 16px;background:linear-gradient(135deg,#1f3a5c,#1f6feb);border:1px solid #388bfd;color:#e6edf3;border-radius:7px;font-size:0.78rem;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit}
+.cl-comment-save-btn:hover{background:linear-gradient(135deg,#1f6feb,#388bfd);transform:translateY(-1px)}
+.cl-comment-saved-msg{display:inline-block;margin-left:10px;font-size:0.75rem;color:#3fb950;opacity:0;transition:opacity .3s}
 
 /* ── Pre-Trade Ritual ── */
 .ptr-panel{background:linear-gradient(135deg,#0d1117 0%,#161b22 100%);border:1.5px solid #30363d;border-radius:16px;margin-bottom:20px;overflow:hidden;transition:all .3s}
@@ -5302,7 +5312,16 @@ function clRenderHistory(filter='all') {
       ? `<span style="font-weight:900;font-size:1rem;color:${fillColor}">${earned}pts</span><span style="font-size:0.72rem;color:#8b949e">/${maxPts} (${r.score}/${r.total} ✓)</span>`
       : `<span style="font-weight:700;color:${fillColor}">${r.score}/${r.total}</span><span style="font-size:0.72rem;color:#8b949e"> (${pct}%)</span>`;
 
-    html += `<div class="cl-hist-row" title="✓ ${checkedList}\n✗ ${missedList}">
+    // Existing comment (different from the pre-save 'note' field)
+    const existingComment = r.comment || '';
+    const commentBtnClass = existingComment ? 'cl-comment-btn has-comment' : 'cl-comment-btn';
+    const commentBtnTitle = existingComment ? 'Edit comment' : 'Add comment';
+    const commentPreview = existingComment
+      ? `<div style="font-size:0.73rem;color:#58a6ff;margin-top:4px;font-style:italic">💬 ${existingComment.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`
+      : '';
+
+    html += `
+    <div class="cl-hist-row" style="flex-wrap:wrap;display:grid;grid-template-columns:80px 55px 55px 1fr auto auto;" title="✓ ${checkedList}\n✗ ${missedList}">
       <span style="color:#c9d1d9;font-weight:600">${r.date}</span>
       <span style="color:#8b949e">${r.time||''}</span>
       <span>${badge}</span>
@@ -5310,12 +5329,64 @@ function clRenderHistory(filter='all') {
         <div style="display:flex;align-items:center;gap:8px">${scoreDisplay}</div>
         <div class="cl-hist-score-bar"><div class="cl-hist-score-fill" style="width:${pct}%;background:${fillColor}"></div></div>
         ${noteHtml}
+        ${commentPreview}
       </span>
+      <button class="${commentBtnClass}" onclick="clToggleComment(${r.id})" title="${commentBtnTitle}">💬</button>
       <button class="cl-del-btn" onclick="clDelete(${r.id})" title="Delete this record">🗑</button>
+    </div>
+    <div class="cl-comment-area" id="cl-comment-${r.id}">
+      <div style="font-size:0.75rem;color:#8b949e;margin-bottom:6px;font-weight:600">📝 Comment on this trade</div>
+      <textarea class="cl-comment-input" id="cl-comment-text-${r.id}" placeholder="What happened? What did you learn? Any mistakes?">${existingComment.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+      <div style="display:flex;align-items:center;gap:0">
+        <button class="cl-comment-save-btn" onclick="clSaveComment(${r.id})">Save Comment</button>
+        <span class="cl-comment-saved-msg" id="cl-comment-saved-${r.id}">✓ Saved</span>
+      </div>
     </div>`;
   });
 
   container.innerHTML = html;
+}
+
+function clToggleComment(id) {
+  const area = document.getElementById('cl-comment-' + id);
+  if(!area) return;
+  area.classList.toggle('open');
+  if(area.classList.contains('open')) {
+    const ta = document.getElementById('cl-comment-text-' + id);
+    if(ta) setTimeout(() => ta.focus(), 50);
+  }
+}
+
+async function clSaveComment(id) {
+  const ta = document.getElementById('cl-comment-text-' + id);
+  if(!ta) return;
+  const comment = ta.value.trim();
+  try {
+    const res = await fetch('/api/checklist/comment', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id, comment})
+    });
+    const data = await res.json();
+    if(data.ok) {
+      // Update in-memory record so preview refreshes on next render
+      const rec = clAllRecords.find(r => r.id === id);
+      if(rec) rec.comment = comment;
+      // Show saved indicator
+      const msg = document.getElementById('cl-comment-saved-' + id);
+      if(msg) {
+        msg.style.opacity = '1';
+        setTimeout(() => { msg.style.opacity = '0'; }, 2000);
+      }
+      // Refresh to update preview
+      clRenderHistory(document.getElementById('cl-filter').value);
+    } else {
+      alert('Failed to save comment: ' + (data.error||'unknown error'));
+    }
+  } catch(e) {
+    console.error('Comment save error:', e);
+    alert('Network error saving comment.');
+  }
 }
 
 async function clDelete(id) {

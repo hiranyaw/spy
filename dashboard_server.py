@@ -3084,6 +3084,28 @@ def checklist_delete():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+@app.route("/api/checklist/comment", methods=["POST"])
+def checklist_comment():
+    """Add or update a comment on an existing checklist record by id."""
+    try:
+        req = request.get_json(force=True)
+        record_id = req.get("id")
+        comment = req.get("comment", "").strip()
+        records = load_checklist()
+        updated = False
+        for r in records:
+            if r.get("id") == record_id:
+                r["comment"] = comment
+                updated = True
+                break
+        if not updated:
+            return jsonify({"ok": False, "error": "Record not found"}), 404
+        save_checklist(records)
+        return jsonify({"ok": True, "comment": comment})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 if __name__ == "__main__":
 
     try:
