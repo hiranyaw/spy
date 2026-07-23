@@ -2255,19 +2255,26 @@ def api_analysis_monthly():
                 # Normalize tos_dates to strings too (old cache may have datetime.date objects)
                 tos_dates = {str(d.get("date", ""))[:10] for d in monthly_data if d.get("date")}
 
+                def _is_win(t):
+                    """Handle both JSON (win) and PostgreSQL (is_win) field names."""
+                    v = t.get("win")
+                    if v is None:
+                        v = t.get("is_win")
+                    return bool(v)
+
                 for date_str, day_trades in manual_by_date.items():
                     if date_str in tos_dates:
                         continue  # already have TOS data for this day
 
-                    wins_list   = [t for t in day_trades if t.get("win")]
-                    losses_list = [t for t in day_trades if not t.get("win")]
+                    wins_list   = [t for t in day_trades if _is_win(t)]
+                    losses_list = [t for t in day_trades if not _is_win(t)]
                     total_pnl   = round(sum(float(t.get("pnl", 0)) for t in day_trades), 2)
                     win_rate    = (len(wins_list) / len(day_trades) * 100) if day_trades else 0.0
 
                     # Sim: stop after 3 trades
                     trades_3    = day_trades[:3]
                     sim_3_pnl   = round(sum(float(t.get("pnl", 0)) for t in trades_3), 2)
-                    sim_3_wins  = len([t for t in trades_3 if t.get("win")])
+                    sim_3_wins  = len([t for t in trades_3 if _is_win(t)])
                     sim_3_losses= len(trades_3) - sim_3_wins
 
                     # Sim: stop after 2 consecutive losses
@@ -2275,11 +2282,11 @@ def api_analysis_monthly():
                     consec      = 0
                     for t in day_trades:
                         trades_2l.append(t)
-                        consec = (consec + 1) if not t.get("win") else 0
+                        consec = (consec + 1) if not _is_win(t) else 0
                         if consec >= 2:
                             break
                     sim_2l_pnl  = round(sum(float(t.get("pnl", 0)) for t in trades_2l), 2)
-                    sim_2l_wins = len([t for t in trades_2l if t.get("win")])
+                    sim_2l_wins = len([t for t in trades_2l if _is_win(t)])
                     sim_2l_losses = len(trades_2l) - sim_2l_wins
 
                     monthly_data.append({
@@ -2304,6 +2311,9 @@ def api_analysis_monthly():
                         "sim_2l_wins"        : sim_2l_wins,
                         "sim_2l_losses"      : sim_2l_losses,
                         "sim_2l_pnl"         : sim_2l_pnl,
+                        "sim_1m_pnl"         : total_pnl,
+                        "sim_2m_pnl"         : total_pnl,
+                        "sim_5m_pnl"         : total_pnl,
                         "recommendations"    : [],
                         "donts"              : []
                     })
@@ -3025,9 +3035,27 @@ def save_checklist(records):
 
 @app.route("/api/checklist/history", methods=["GET"])
 def checklist_history():
-    """Return all saved checklist records, newest first."""
+    """Return all saved checklist records, newest first. Times are in US/Pacific."""
     try:
         records = load_checklist()
+        pacific = pytz.timezone("US/Pacific")
+        utc     = pytz.utc
+        for r in records:
+            ts_str = r.get("timestamp", "")
+            if not ts_str:
+                continue
+            try:
+                # Parse the stored timestamp
+                ts = datetime.fromisoformat(ts_str)
+                # If naive (no tzinfo), assume it was saved as UTC (old records)
+                if ts.tzinfo is None:
+                    ts = utc.localize(ts)
+                # Convert to Pacific
+                ts_pac = ts.astimezone(pacific)
+                r["date"] = ts_pac.strftime("%Y-%m-%d")
+                r["time"] = ts_pac.strftime("%H:%M")
+            except Exception:
+                pass  # leave as-is if parse fails
         records_sorted = sorted(records, key=lambda r: r.get("timestamp", ""), reverse=True)
         return jsonify({"ok": True, "records": records_sorted})
     except Exception as e:
@@ -3047,7 +3075,7 @@ def checklist_save():
         earned_points = req.get("earned_points", None)
         total_points  = req.get("total_points", None)
 
-        now = datetime.now()
+        now = datetime.now(pytz.timezone("US/Pacific"))
         record = {
             "id": int(now.timestamp() * 1000),
             "date": now.strftime("%Y-%m-%d"),
