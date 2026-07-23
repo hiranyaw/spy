@@ -509,9 +509,133 @@ class Database:
             logger.error(f"Error fetching uploaded TOS files: {e}")
             return []
 
+    # ── CHECKLIST TABLE ──
+    def _ensure_checklist_table(self):
+        """Create checklist table if it doesn't exist yet."""
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS trade_checklist (
+                        id          BIGINT PRIMARY KEY,
+                        trade_date  DATE NOT NULL,
+                        trade_time  VARCHAR(5),
+                        timestamp   VARCHAR(40),
+                        trade_type  VARCHAR(10) DEFAULT 'PUTS',
+                        checks      JSONB DEFAULT '{}',
+                        score       INT DEFAULT 0,
+                        total       INT DEFAULT 10,
+                        earned_points INT,
+                        total_points  INT,
+                        note        TEXT DEFAULT '',
+                        comment     TEXT DEFAULT '',
+                        created_at  TIMESTAMP DEFAULT NOW()
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_checklist_date
+                        ON trade_checklist(trade_date DESC);
+                """)
+        except Exception as e:
+            logger.error(f"Error creating trade_checklist table: {e}")
+
+    def save_checklist_record(self, record):
+        """Insert one checklist record. Returns True on success."""
+        self.ensure_connected()
+        self._ensure_checklist_table()
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO trade_checklist
+                        (id, trade_date, trade_time, timestamp, trade_type,
+                         checks, score, total, earned_points, total_points,
+                         note, comment)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (id) DO NOTHING
+                """, (
+                    record["id"],
+                    record.get("date"),
+                    record.get("time"),
+                    record.get("timestamp"),
+                    record.get("trade_type", "PUTS"),
+                    json.dumps(record.get("checks", {})),
+                    record.get("score", 0),
+                    record.get("total", 10),
+                    record.get("earned_points"),
+                    record.get("total_points"),
+                    record.get("note", ""),
+                    record.get("comment", ""),
+                ))
+            return True
+        except Exception as e:
+            logger.error(f"Error saving checklist record: {e}")
+            return False
+
+    def get_checklist_records(self):
+        """Return all checklist records as list of dicts, newest first."""
+        self.ensure_connected()
+        self._ensure_checklist_table()
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT id,
+                           trade_date  AS date,
+                           trade_time  AS time,
+                           timestamp,
+                           trade_type,
+                           checks,
+                           score, total,
+                           earned_points, total_points,
+                           note, comment
+                    FROM trade_checklist
+                    ORDER BY trade_date DESC, trade_time DESC
+                """)
+                rows = cur.fetchall() or []
+                result = []
+                for row in rows:
+                    r = dict(row)
+                    r["date"] = str(r["date"]) if r["date"] else ""
+                    # checks may be a dict already (RealDictCursor + jsonb)
+                    if isinstance(r.get("checks"), str):
+                        try:
+                            r["checks"] = json.loads(r["checks"])
+                        except Exception:
+                            r["checks"] = {}
+                    result.append(r)
+                return result
+        except Exception as e:
+            logger.error(f"Error fetching checklist records: {e}")
+            return []
+
+    def delete_checklist_record(self, record_id):
+        """Delete one checklist record by id."""
+        self.ensure_connected()
+        self._ensure_checklist_table()
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("DELETE FROM trade_checklist WHERE id = %s", (record_id,))
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting checklist record: {e}")
+            return False
+
+    def update_checklist_comment(self, record_id, comment):
+        """Update the comment on a checklist record."""
+        self.ensure_connected()
+        self._ensure_checklist_table()
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE trade_checklist SET comment = %s WHERE id = %s",
+                    (comment, record_id)
+                )
+            return True
+        except Exception as e:
+            logger.error(f"Error updating checklist comment: {e}")
+            return False
+
+
 # Global database instance
 db = Database()
 
 # Auto-connect on import
 if DATABASE_URL:
     db.connect()
+

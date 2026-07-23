@@ -3037,25 +3037,39 @@ def save_checklist(records):
 def checklist_history():
     """Return all saved checklist records, newest first. Times are in US/Pacific."""
     try:
-        records = load_checklist()
         pacific = pytz.timezone("US/Pacific")
         utc     = pytz.utc
+
+        if DB_AVAILABLE:
+            # One-time migration: push any existing JSON records into DB
+            try:
+                json_recs = load_checklist()
+                if json_recs:
+                    for r in json_recs:
+                        db.save_checklist_record(r)
+                    # Wipe local file to avoid re-migrating every request
+                    save_checklist([])
+            except Exception:
+                pass
+            records = db.get_checklist_records()
+        else:
+            records = load_checklist()
+
+        # Convert timestamps to Pacific time
         for r in records:
             ts_str = r.get("timestamp", "")
             if not ts_str:
                 continue
             try:
-                # Parse the stored timestamp
                 ts = datetime.fromisoformat(ts_str)
-                # If naive (no tzinfo), assume it was saved as UTC (old records)
                 if ts.tzinfo is None:
                     ts = utc.localize(ts)
-                # Convert to Pacific
                 ts_pac = ts.astimezone(pacific)
                 r["date"] = ts_pac.strftime("%Y-%m-%d")
                 r["time"] = ts_pac.strftime("%H:%M")
             except Exception:
-                pass  # leave as-is if parse fails
+                pass
+
         records_sorted = sorted(records, key=lambda r: r.get("timestamp", ""), reverse=True)
         return jsonify({"ok": True, "records": records_sorted})
     except Exception as e:
@@ -3067,32 +3081,37 @@ def checklist_save():
     """Save a new checklist record (one per trade, not per day)."""
     try:
         req = request.get_json(force=True)
-        trade_type = req.get("trade_type", "PUTS")
-        checks = req.get("checks", {})
-        note = req.get("note", "")
-        score = req.get("score", 0)
-        total = req.get("total", 10)
+        trade_type    = req.get("trade_type", "PUTS")
+        checks        = req.get("checks", {})
+        note          = req.get("note", "")
+        score         = req.get("score", 0)
+        total         = req.get("total", 10)
         earned_points = req.get("earned_points", None)
         total_points  = req.get("total_points", None)
 
         now = datetime.now(pytz.timezone("US/Pacific"))
         record = {
-            "id": int(now.timestamp() * 1000),
-            "date": now.strftime("%Y-%m-%d"),
-            "time": now.strftime("%H:%M"),
-            "timestamp": now.isoformat(),
-            "trade_type": trade_type,
-            "checks": checks,
-            "score": score,
-            "total": total,
+            "id":            int(now.timestamp() * 1000),
+            "date":          now.strftime("%Y-%m-%d"),
+            "time":          now.strftime("%H:%M"),
+            "timestamp":     now.isoformat(),
+            "trade_type":    trade_type,
+            "checks":        checks,
+            "score":         score,
+            "total":         total,
             "earned_points": earned_points,
-            "total_points": total_points,
-            "note": note,
+            "total_points":  total_points,
+            "note":          note,
+            "comment":       "",
         }
 
-        records = load_checklist()
-        records.append(record)
-        save_checklist(records)
+        if DB_AVAILABLE:
+            db.save_checklist_record(record)
+        else:
+            records = load_checklist()
+            records.append(record)
+            save_checklist(records)
+
         return jsonify({"ok": True, "record": record})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -3104,9 +3123,12 @@ def checklist_delete():
     try:
         req = request.get_json(force=True)
         record_id = req.get("id")
-        records = load_checklist()
-        records = [r for r in records if r.get("id") != record_id]
-        save_checklist(records)
+        if DB_AVAILABLE:
+            db.delete_checklist_record(record_id)
+        else:
+            records = load_checklist()
+            records = [r for r in records if r.get("id") != record_id]
+            save_checklist(records)
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
@@ -3118,17 +3140,22 @@ def checklist_comment():
     try:
         req = request.get_json(force=True)
         record_id = req.get("id")
-        comment = req.get("comment", "").strip()
-        records = load_checklist()
-        updated = False
-        for r in records:
-            if r.get("id") == record_id:
-                r["comment"] = comment
-                updated = True
-                break
-        if not updated:
-            return jsonify({"ok": False, "error": "Record not found"}), 404
-        save_checklist(records)
+        comment   = req.get("comment", "").strip()
+        if DB_AVAILABLE:
+            ok = db.update_checklist_comment(record_id, comment)
+            if not ok:
+                return jsonify({"ok": False, "error": "Record not found or DB error"}), 404
+        else:
+            records = load_checklist()
+            updated = False
+            for r in records:
+                if r.get("id") == record_id:
+                    r["comment"] = comment
+                    updated = True
+                    break
+            if not updated:
+                return jsonify({"ok": False, "error": "Record not found"}), 404
+            save_checklist(records)
         return jsonify({"ok": True, "comment": comment})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

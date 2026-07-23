@@ -5233,8 +5233,9 @@ async function clLoadHistory() {
 }
 
 function clUpdateStats() {
-  const today = new Date().toISOString().slice(0,10);
-  const todayRecs = clAllRecords.filter(r => r.date === today);
+  // Use Pacific date for today
+  const todayPT = new Date().toLocaleDateString('en-CA', {timeZone:'America/Los_Angeles'});
+  const todayRecs = clAllRecords.filter(r => r.date === todayPT);
   document.getElementById('cl-stat-today').textContent = todayRecs.length;
 
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-30);
@@ -5270,81 +5271,154 @@ function clUpdateStats() {
   document.getElementById('cl-stat-missed').textContent = sorted.length ? sorted[0][0] : '--';
 }
 
+let clActiveDayFilter = 'all';   // type filter: 'all','PUTS','CALLS'
+let clActiveDay = null;          // which date tab is selected
+
 function clFilterRecords() {
-  clRenderHistory(document.getElementById('cl-filter').value);
+  clActiveDayFilter = document.getElementById('cl-filter').value;
+  clRenderHistory();
 }
 
-function clRenderHistory(filter='all') {
+// Build a single trade row HTML string
+function clTradeRowHtml(r) {
+  const earned    = r.earned_points != null ? r.earned_points : null;
+  const maxPts    = r.total_points  != null ? r.total_points  : null;
+  const hasPoints = earned != null && maxPts != null && maxPts > 0;
+  const pct = hasPoints ? Math.round(earned/maxPts*100) : (r.total>0 ? Math.round(r.score/r.total*100) : 0);
+
+  let fillColor = '#f85149';
+  if(pct>=90) fillColor='#3fb950'; else if(pct>=67) fillColor='#f0883e'; else if(pct>=45) fillColor='#f0d000';
+  const badge = r.trade_type==='PUTS'
+    ? '<span class="cl-badge-put">PUTS</span>'
+    : '<span class="cl-badge-call">CALLS</span>';
+
+  const type  = r.trade_type||'PUTS';
+  const conds = CL_CONDITIONS[type]||CL_CONDITIONS.PUTS;
+  const checkedList = conds.filter(c=>r.checks[c.key]).map(c=>`${c.label}(+${c.pts})`).join(', ');
+  const missedList  = conds.filter(c=>!r.checks[c.key]).map(c=>`${c.label}(-${c.pts})`).join(', ');
+  const noteHtml = r.note ? `<div style="font-size:0.73rem;color:#8b949e;margin-top:3px;font-style:italic">"${r.note}"</div>` : '';
+
+  const scoreDisplay = hasPoints
+    ? `<span style="font-weight:900;font-size:1rem;color:${fillColor}">${earned}pts</span><span style="font-size:0.72rem;color:#8b949e">/${maxPts} (${r.score}/${r.total} ✓)</span>`
+    : `<span style="font-weight:700;color:${fillColor}">${r.score}/${r.total}</span><span style="font-size:0.72rem;color:#8b949e"> (${pct}%)</span>`;
+
+  const existingComment = r.comment || '';
+  const commentBtnClass = existingComment ? 'cl-comment-btn has-comment' : 'cl-comment-btn';
+  const commentPreview = existingComment
+    ? `<div style="font-size:0.73rem;color:#58a6ff;margin-top:4px;font-style:italic">💬 ${existingComment.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`
+    : '';
+
+  return `
+  <div class="cl-hist-row" style="display:grid;grid-template-columns:50px 55px 1fr auto auto;" title="✓ ${checkedList}\n✗ ${missedList}">
+    <span style="color:#8b949e">${r.time||''}</span>
+    <span>${badge}</span>
+    <span>
+      <div style="display:flex;align-items:center;gap:8px">${scoreDisplay}</div>
+      <div class="cl-hist-score-bar"><div class="cl-hist-score-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+      ${noteHtml}
+      ${commentPreview}
+    </span>
+    <button class="${commentBtnClass}" onclick="clToggleComment(${r.id})" title="Comment">💬</button>
+    <button class="cl-del-btn" onclick="clDelete(${r.id})" title="Delete">🗑</button>
+  </div>
+  <div class="cl-comment-area" id="cl-comment-${r.id}">
+    <div style="font-size:0.75rem;color:#8b949e;margin-bottom:6px;font-weight:600">📝 Comment on this trade</div>
+    <textarea class="cl-comment-input" id="cl-comment-text-${r.id}" placeholder="What happened? What did you learn?">${existingComment.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+    <div style="display:flex;align-items:center;gap:0">
+      <button class="cl-comment-save-btn" onclick="clSaveComment(${r.id})">Save Comment</button>
+      <span class="cl-comment-saved-msg" id="cl-comment-saved-${r.id}">✓ Saved</span>
+    </div>
+  </div>`;
+}
+
+function clRenderHistory() {
   const container = document.getElementById('cl-hist-list');
+  const filter    = clActiveDayFilter;
+
+  // Apply type filter
   let recs = clAllRecords;
   if(filter !== 'all') recs = recs.filter(r => r.trade_type === filter);
+
   if(!recs.length) {
-    container.innerHTML = '<div style="text-align:center;color:#555;padding:20px;font-size:0.85rem">No trades saved yet.</div>';
+    container.innerHTML = '<div style="text-align:center;color:#555;padding:20px;font-size:0.85rem">No trades saved yet. Fill in the checklist and click Save.</div>';
     return;
   }
 
-  // Header row
-  let html = `<div class="cl-hist-row" style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;font-weight:700;border-bottom:1px solid #30363d">
-    <span>Date</span><span>Time</span><span>Type</span><span>Score</span><span></span>
+  // Build sorted list of unique dates (newest first)
+  const todayPT = new Date().toLocaleDateString('en-CA', {timeZone:'America/Los_Angeles'});
+  const allDates = [...new Set(recs.map(r => r.date))].sort((a,b) => b.localeCompare(a));
+
+  // Default active day to the most recent
+  if(!clActiveDay || !allDates.includes(clActiveDay)) clActiveDay = allDates[0];
+
+  // ── Day-tab bar ──────────────────────────────────────────────────
+  const tabsHtml = allDates.map(d => {
+    const dayRecs = recs.filter(r => r.date === d);
+    const isToday = d === todayPT;
+    const active  = d === clActiveDay;
+    // Day label: "Today", "Jul 22", "Jul 21", …
+    let label = isToday ? 'Today' : new Date(d + 'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    // Mini avg score pill
+    const avgPct = dayRecs.length ? Math.round(dayRecs.reduce((s,r) => {
+      if(r.total_points) return s + (r.earned_points/r.total_points*100);
+      return s + (r.total>0 ? r.score/r.total*100 : 0);
+    }, 0) / dayRecs.length) : 0;
+    const pillColor = avgPct>=90?'#3fb950':avgPct>=67?'#f0883e':avgPct>=45?'#f0d000':'#f85149';
+    return `<button onclick="clSelectDay('${d}')" style="
+      flex-shrink:0;padding:6px 12px;border-radius:8px;border:1.5px solid ${active?'#58a6ff':'#30363d'};
+      background:${active?'rgba(31,111,235,0.18)':'#0d1117'};
+      color:${active?'#58a6ff':'#8b949e'};font-weight:${active?'700':'500'};
+      font-size:0.78rem;cursor:pointer;font-family:inherit;transition:all .15s;
+      display:flex;flex-direction:column;align-items:center;gap:2px;min-width:58px">
+      ${isToday?'<span style="font-size:0.62rem;color:#3fb950;font-weight:700">TODAY</span>':''}
+      <span>${label}</span>
+      <span style="font-size:0.65rem;font-weight:700;color:${pillColor}">${dayRecs.length}T · ${avgPct}%</span>
+    </button>`;
+  }).join('');
+
+  // ── Trades for selected day ──────────────────────────────────────
+  const dayRecs = recs.filter(r => r.date === clActiveDay);
+  const dayAvg  = dayRecs.length ? Math.round(dayRecs.reduce((s,r)=>{
+    if(r.total_points) return s + r.earned_points/r.total_points*100;
+    return s + (r.total>0 ? r.score/r.total*100 : 0);
+  }, 0) / dayRecs.length) : 0;
+  const dayAvgColor = dayAvg>=90?'#3fb950':dayAvg>=67?'#f0883e':dayAvg>=45?'#f0d000':'#f85149';
+
+  const tableHeader = `<div style="display:grid;grid-template-columns:50px 55px 1fr auto auto;
+font-size:0.7rem;color:#8b949e;text-transform:uppercase;font-weight:700;
+border-bottom:1px solid #21262d;padding:6px 0 4px">
+    <span>Time</span><span>Type</span><span>Score</span><span></span><span></span>
   </div>`;
 
-  recs.forEach(r => {
-    // Support both old (score/total) and new (earned_points/total_points) records
-    const earned   = r.earned_points != null ? r.earned_points : null;
-    const maxPts   = r.total_points  != null ? r.total_points  : null;
-    const hasPoints = earned != null && maxPts != null && maxPts > 0;
-    const pct = hasPoints ? Math.round(earned/maxPts*100) : (r.total>0 ? Math.round(r.score/r.total*100) : 0);
+  const rowsHtml = dayRecs.length
+    ? dayRecs.map(r => clTradeRowHtml(r)).join('')
+    : '<div style="color:#555;font-size:0.85rem;padding:16px 0;text-align:center">No trades for this day.</div>';
 
-    let fillColor = '#f85149';
-    if(pct>=90) fillColor='#3fb950'; else if(pct>=67) fillColor='#f0883e'; else if(pct>=45) fillColor='#f0d000';
-    const badge = r.trade_type==='PUTS'
-      ? '<span class="cl-badge-put">PUTS</span>'
-      : '<span class="cl-badge-call">CALLS</span>';
-
-    // Build condition breakdown for tooltip
-    const type = r.trade_type||'PUTS';
-    const conds = CL_CONDITIONS[type]||CL_CONDITIONS.PUTS;
-    const checkedList = conds.filter(c=>r.checks[c.key]).map(c=>`${c.label}(+${c.pts})`).join(', ');
-    const missedList  = conds.filter(c=>!r.checks[c.key]).map(c=>`${c.label}(-${c.pts})`).join(', ');
-    const noteHtml = r.note ? `<div style="font-size:0.73rem;color:#8b949e;margin-top:3px;font-style:italic">"${r.note}"</div>` : '';
-
-    const scoreDisplay = hasPoints
-      ? `<span style="font-weight:900;font-size:1rem;color:${fillColor}">${earned}pts</span><span style="font-size:0.72rem;color:#8b949e">/${maxPts} (${r.score}/${r.total} ✓)</span>`
-      : `<span style="font-weight:700;color:${fillColor}">${r.score}/${r.total}</span><span style="font-size:0.72rem;color:#8b949e"> (${pct}%)</span>`;
-
-    // Existing comment (different from the pre-save 'note' field)
-    const existingComment = r.comment || '';
-    const commentBtnClass = existingComment ? 'cl-comment-btn has-comment' : 'cl-comment-btn';
-    const commentBtnTitle = existingComment ? 'Edit comment' : 'Add comment';
-    const commentPreview = existingComment
-      ? `<div style="font-size:0.73rem;color:#58a6ff;margin-top:4px;font-style:italic">💬 ${existingComment.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`
-      : '';
-
-    html += `
-    <div class="cl-hist-row" style="flex-wrap:wrap;display:grid;grid-template-columns:80px 55px 55px 1fr auto auto;" title="✓ ${checkedList}\n✗ ${missedList}">
-      <span style="color:#c9d1d9;font-weight:600">${r.date}</span>
-      <span style="color:#8b949e">${r.time||''}</span>
-      <span>${badge}</span>
-      <span>
-        <div style="display:flex;align-items:center;gap:8px">${scoreDisplay}</div>
-        <div class="cl-hist-score-bar"><div class="cl-hist-score-fill" style="width:${pct}%;background:${fillColor}"></div></div>
-        ${noteHtml}
-        ${commentPreview}
-      </span>
-      <button class="${commentBtnClass}" onclick="clToggleComment(${r.id})" title="${commentBtnTitle}">💬</button>
-      <button class="cl-del-btn" onclick="clDelete(${r.id})" title="Delete this record">🗑</button>
+  container.innerHTML = `
+    <!-- Day-tab navigator -->
+    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:12px;
+      border-bottom:1px solid #21262d;scrollbar-width:thin;scrollbar-color:#30363d transparent">
+      ${tabsHtml}
     </div>
-    <div class="cl-comment-area" id="cl-comment-${r.id}">
-      <div style="font-size:0.75rem;color:#8b949e;margin-bottom:6px;font-weight:600">📝 Comment on this trade</div>
-      <textarea class="cl-comment-input" id="cl-comment-text-${r.id}" placeholder="What happened? What did you learn? Any mistakes?">${existingComment.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-      <div style="display:flex;align-items:center;gap:0">
-        <button class="cl-comment-save-btn" onclick="clSaveComment(${r.id})">Save Comment</button>
-        <span class="cl-comment-saved-msg" id="cl-comment-saved-${r.id}">✓ Saved</span>
-      </div>
-    </div>`;
-  });
+    <!-- Day summary bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:0.82rem;font-weight:700;color:#e6edf3">
+        📅 ${clActiveDay === todayPT ? 'Today — ' + clActiveDay : clActiveDay}
+      </span>
+      <span style="font-size:0.8rem;font-weight:700;color:${dayAvgColor}">
+        ${dayRecs.length} trade${dayRecs.length!==1?'s':''} &nbsp;·&nbsp; avg ${dayAvg}%
+      </span>
+    </div>
+    <!-- Column header -->
+    ${tableHeader}
+    <!-- Rows -->
+    ${rowsHtml}
+  `;
+}
 
-  container.innerHTML = html;
+function clSelectDay(date) {
+  clActiveDay = date;
+  clRenderHistory();
 }
 
 function clToggleComment(id) {
