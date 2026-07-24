@@ -1892,6 +1892,19 @@ Only B Trades with FULL confirmation."></textarea>
     </div>
   </div>
 
+  <!-- Daily Summary -->
+  <div class="cl-section" style="margin-top:20px">
+    <div class="cl-section-title"><span>📝</span> Daily Summary</div>
+    <textarea id="cl-summary-input" placeholder="Write your daily summary here... e.g., market behavior, lessons learned, overall feeling." style="width:100%;height:100px;background:#0d1117;border:1.5px solid #30363d;border-radius:8px;color:#e6edf3;font-family:inherit;font-size:0.88rem;padding:10px 12px;resize:vertical;box-sizing:border-box;line-height:1.5"></textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px">
+        <button class="cl-save-btn put" onclick="clSaveSummary()" style="width:auto;padding:8px 16px;background:#1f6feb;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer">💾 Save Summary</button>
+    </div>
+    
+    <div id="cl-summary-list" style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+        <div style="text-align:center;color:#555;font-size:0.85rem">Loading summaries...</div>
+    </div>
+  </div>
+
   <!-- History log -->
   <div class="cl-section" style="margin-top:20px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -5597,6 +5610,44 @@ function clRenderCharts() {
   });
 }
 
+async function clSaveSummary() {
+    const summary = document.getElementById('cl-summary-input').value.trim();
+    if(!summary) return alert('Please enter a summary before saving.');
+    try {
+        const res = await fetch('/api/checklist/summary/save', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({summary})
+        });
+        const data = await res.json();
+        if(data.ok) {
+            document.getElementById('cl-summary-input').value = '';
+            clLoadSummaries();
+        } else {
+            alert('Error saving summary: ' + (data.error || 'unknown'));
+        }
+    } catch(e) { console.error(e); }
+}
+
+async function clLoadSummaries() {
+    try {
+        const res = await fetch('/api/checklist/summary/history');
+        const data = await res.json();
+        if(data.ok) {
+            const list = document.getElementById('cl-summary-list');
+            if(!data.records || data.records.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:#555;font-size:0.85rem">No past summaries.</div>';
+                return;
+            }
+            list.innerHTML = data.records.map(r => `
+                <div style="background:#161b22; border:1px solid #30363d; border-radius:8px; padding:12px">
+                    <div style="font-size:0.75rem; color:#8b949e; margin-bottom:6px">${r.date} ${r.time}</div>
+                    <div style="font-size:0.88rem; color:#e6edf3; white-space:pre-wrap">${r.summary}</div>
+                </div>
+            `).join('');
+        }
+    } catch(e) { console.error(e); }
+}
+
 async function initChecklist() {
   if(!clInitialized) {
     clInitialized = true;
@@ -5613,6 +5664,7 @@ async function initChecklist() {
     }
   }
   await clLoadHistory();
+  await clLoadSummaries();
   ptrInit();
 }
 

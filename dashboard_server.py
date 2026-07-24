@@ -3160,6 +3160,72 @@ def checklist_comment():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+# ── Checklist Daily Summary ──
+CHECKLIST_SUMMARY_FILE = os.path.join(BASE, "trade_checklist_summary.json")
+
+def load_checklist_summary():
+    if os.path.exists(CHECKLIST_SUMMARY_FILE):
+        try:
+            with open(CHECKLIST_SUMMARY_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+    return []
+
+def save_checklist_summary_file(records):
+    with open(CHECKLIST_SUMMARY_FILE, "w", encoding="utf-8") as f:
+        json.dump(records, f, indent=2)
+
+@app.route("/api/checklist/summary/history", methods=["GET"])
+def checklist_summary_history():
+    try:
+        pacific = pytz.timezone("US/Pacific")
+        utc     = pytz.utc
+        if DB_AVAILABLE:
+            records = db.get_checklist_summaries()
+        else:
+            records = load_checklist_summary()
+            
+        for r in records:
+            ts_str = r.get("timestamp", "")
+            if not ts_str: continue
+            try:
+                ts = datetime.fromisoformat(ts_str)
+                if ts.tzinfo is None: ts = utc.localize(ts)
+                ts_pac = ts.astimezone(pacific)
+                r["date"] = ts_pac.strftime("%Y-%m-%d")
+                r["time"] = ts_pac.strftime("%H:%M")
+            except Exception: pass
+            
+        records_sorted = sorted(records, key=lambda r: r.get("timestamp", ""), reverse=True)
+        return jsonify({"ok": True, "records": records_sorted})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/checklist/summary/save", methods=["POST"])
+def checklist_summary_save():
+    try:
+        req = request.get_json(force=True)
+        summary = req.get("summary", "")
+        now = datetime.now(pytz.timezone("US/Pacific"))
+        record = {
+            "id": int(now.timestamp() * 1000),
+            "date": now.strftime("%Y-%m-%d"),
+            "time": now.strftime("%H:%M"),
+            "timestamp": now.isoformat(),
+            "summary": summary
+        }
+        if DB_AVAILABLE:
+            db.save_checklist_summary(record)
+        else:
+            records = load_checklist_summary()
+            records.append(record)
+            save_checklist_summary_file(records)
+        return jsonify({"ok": True, "record": record})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 
 if __name__ == "__main__":
 

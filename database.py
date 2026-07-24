@@ -631,6 +631,76 @@ class Database:
             logger.error(f"Error updating checklist comment: {e}")
             return False
 
+    # ── CHECKLIST SUMMARY TABLE ──
+    def _ensure_checklist_summary_table(self):
+        """Create checklist summary table if it doesn't exist yet."""
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS trade_checklist_summary (
+                        id          BIGINT PRIMARY KEY,
+                        summary_date DATE NOT NULL,
+                        summary_time VARCHAR(5),
+                        timestamp   VARCHAR(40),
+                        summary     TEXT DEFAULT '',
+                        created_at  TIMESTAMP DEFAULT NOW()
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_checklist_summary_date
+                        ON trade_checklist_summary(summary_date DESC);
+                """)
+        except Exception as e:
+            logger.error(f"Error creating trade_checklist_summary table: {e}")
+
+    def save_checklist_summary(self, record):
+        """Insert one checklist summary record. Returns True on success."""
+        self.ensure_connected()
+        self._ensure_checklist_summary_table()
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO trade_checklist_summary
+                        (id, summary_date, summary_time, timestamp, summary)
+                    VALUES (%s,%s,%s,%s,%s)
+                    ON CONFLICT (id) DO NOTHING
+                """, (
+                    record["id"],
+                    record.get("date"),
+                    record.get("time"),
+                    record.get("timestamp"),
+                    record.get("summary", ""),
+                ))
+            return True
+        except Exception as e:
+            logger.error(f"Error saving checklist summary: {e}")
+            return False
+
+    def get_checklist_summaries(self):
+        """Return all checklist summaries as list of dicts, newest first."""
+        self.ensure_connected()
+        self._ensure_checklist_summary_table()
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT id,
+                           summary_date  AS date,
+                           summary_time  AS time,
+                           timestamp,
+                           summary,
+                           created_at
+                    FROM trade_checklist_summary
+                    ORDER BY timestamp DESC
+                """)
+                rows = cur.fetchall() or []
+                result = []
+                for row in rows:
+                    r = dict(row)
+                    r["date"] = str(r["date"]) if r["date"] else ""
+                    result.append(r)
+                return result
+        except Exception as e:
+            logger.error(f"Error fetching checklist summaries: {e}")
+            return []
+
 
 # Global database instance
 db = Database()
