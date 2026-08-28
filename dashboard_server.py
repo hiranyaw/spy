@@ -41,6 +41,53 @@ def save_b_trade_flags(flags):
 
 b_trade_flags = load_b_trade_flags()
 
+# Trade Classification persistence (B-trade, 9/21 cross, early exit, direction right/wrong)
+TRADE_CLASSIFICATIONS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "trade_classifications.json")
+
+def load_trade_classifications():
+    classifications = {}
+    if DB_AVAILABLE:
+        try:
+            db_classifications = db.get_all_trade_classifications()
+            if db_classifications:
+                classifications.update(db_classifications)
+        except Exception as e:
+            print(f"Error loading trade classifications from DB: {e}")
+    try:
+        if os.path.exists(TRADE_CLASSIFICATIONS_PATH):
+            with open(TRADE_CLASSIFICATIONS_PATH, "r", encoding="utf-8") as f:
+                json_data = json.load(f)
+                for k, v in json_data.items():
+                    if k not in classifications:
+                        classifications[k] = v
+    except Exception as e:
+        print(f"Error loading local trade classifications JSON: {e}")
+    return classifications
+
+def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes=""):
+    classifications = load_trade_classifications()
+    entry = {
+        "trade_key": key,
+        "filename": filename,
+        "trade_index": trade_index,
+        "is_b_trade": bool(is_b_trade),
+        "is_9_21_cross": bool(is_9_21_cross),
+        "early_exit": bool(early_exit),
+        "direction_right": bool(direction_right),
+        "notes": notes,
+    }
+    classifications[key] = entry
+    try:
+        with open(TRADE_CLASSIFICATIONS_PATH, "w", encoding="utf-8") as f:
+            json.dump(classifications, f, indent=2)
+    except Exception as e:
+        print(f"Error saving trade classifications JSON: {e}")
+    if DB_AVAILABLE:
+        try:
+            db.save_trade_classification(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes)
+        except Exception as e:
+            print(f"Error saving trade classification to DB: {e}")
+
 def sanitize(obj):
     """Recursively replace NaN/Infinity with None, and convert date/time/Decimal to JSON-serializable types."""
     import datetime as dt
@@ -1389,6 +1436,7 @@ def analysis_trades():
     try:
         trades = tos_parser.load_and_parse_trades(filepath)
         
+        classifications = load_trade_classifications()
         serialized_trades = []
         for idx, t in enumerate(trades):
             t_copy = t.copy()
@@ -1404,8 +1452,18 @@ def analysis_trades():
                 {"time": ex["time"].strftime("%Y-%m-%d %H:%M:%S"), "price": ex["price"], "qty": ex["qty"]}
                 for ex in t["exits"]
             ]
-            # Add B‑trade flag from persisted flags
-            t_copy["is_b_trade"] = b_trade_flags.get(f"{filename}::{idx}", False)
+            trade_key = f"{filename}::{idx}"
+            cls_item = classifications.get(trade_key, {})
+            
+            t_copy["trade_index"] = idx
+            t_copy["is_b_trade"] = cls_item.get("is_b_trade", b_trade_flags.get(trade_key, False))
+            t_copy["is_9_21_cross"] = cls_item.get("is_9_21_cross", False)
+            t_copy["early_exit"] = cls_item.get("early_exit", False)
+            
+            pnl_val = t.get("pnl") or 0.0
+            default_dir_right = t.get("win", False) if t.get("win") is not None else (pnl_val >= 0)
+            t_copy["direction_right"] = cls_item.get("direction_right", default_dir_right)
+            t_copy["classification_notes"] = cls_item.get("notes", "")
             t_copy["trade_cost"] = 1.0
             serialized_trades.append(t_copy)
             
@@ -2065,10 +2123,130 @@ def set_btrade():
     flag = data.get("is_b_trade")
     if filename is None or idx is None or flag is None:
         return jsonify({"ok": False, "error": "Missing required fields"}), 400
-    key = f"{os.path.basename(filename)}::{idx}"
+    base_file = os.path.basename(filename)
+    key = f"{base_file}::{idx}"
     b_trade_flags[key] = bool(flag)
     save_b_trade_flags(b_trade_flags)
+    
+    # Also update classification store
+    classifications = load_trade_classifications()
+    cur = classifications.get(key, {})
+    save_trade_classification_item(
+        key, base_file, idx,
+        is_b_trade=bool(flag),
+        is_9_21_cross=cur.get("is_9_21_cross", False),
+        early_exit=cur.get("early_exit", False),
+        direction_right=cur.get("direction_right", True),
+        notes=cur.get("notes", "")
+    )
     return jsonify({"ok": True})
+
+@app.route("/api/analysis/classify", methods=["POST"])
+def classify_trade():
+    """Save full trade condition classification: B-trade, 9/21 cross, early exit, direction right/wrong"""
+    try:
+        data = request.get_json(force=True)
+        filename = os.path.basename(data.get("filename", ""))
+        idx = data.get("trade_index")
+        if not filename or idx is None:
+            return jsonify({"ok": False, "error": "filename and trade_index are required"}), 400
+            
+        trade_key = f"{filename}::{idx}"
+        is_b_trade = bool(data.get("is_b_trade", False))
+        is_9_21_cross = bool(data.get("is_9_21_cross", False))
+        early_exit = bool(data.get("early_exit", False))
+        direction_right = bool(data.get("direction_right", True))
+        notes = str(data.get("notes", ""))
+        
+        save_trade_classification_item(
+            trade_key, filename, idx,
+            is_b_trade, is_9_21_cross, early_exit, direction_right, notes
+        )
+        
+        # Keep b_trade_flags in sync
+        b_trade_flags[trade_key] = is_b_trade
+        save_b_trade_flags(b_trade_flags)
+        
+        return jsonify({"ok": True, "message": "Classification saved successfully"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/analysis/condition_stats")
+def api_condition_stats():
+    """Aggregate performance and win rate for each condition across all files/trades"""
+    try:
+        classifications = load_trade_classifications()
+        local_files = set(f for f in os.listdir(TOS_DIR) if f.endswith(".csv"))
+        if DB_AVAILABLE:
+            try:
+                db_rows = db.get_all_uploaded_tos_files()
+                for row in db_rows:
+                    local_files.add(row["filename"])
+            except Exception:
+                pass
+                
+        all_parsed_trades = []
+        for filename in sorted(local_files):
+            filepath = os.path.join(TOS_DIR, filename)
+            if not os.path.exists(filepath) and DB_AVAILABLE:
+                try:
+                    db_rows = db.get_all_uploaded_tos_files()
+                    for row in db_rows:
+                        if row["filename"] == filename:
+                            with open(filepath, "w", encoding="utf-8") as fout:
+                                fout.write(row["file_content"])
+                            break
+                except Exception:
+                    pass
+            if os.path.exists(filepath):
+                try:
+                    executions = tos_parser.parse_tos_csv(filepath)
+                    trades = tos_parser.pair_trades(executions)
+                    spy_trades = [t for t in trades if t.get("underlying") == "SPY" and t.get("closed")]
+                    for idx, t in enumerate(spy_trades):
+                        t_copy = t.copy()
+                        key = f"{filename}::{idx}"
+                        cls_item = classifications.get(key, {})
+                        t_copy["is_b_trade"] = cls_item.get("is_b_trade", b_trade_flags.get(key, False))
+                        t_copy["is_9_21_cross"] = cls_item.get("is_9_21_cross", False)
+                        t_copy["early_exit"] = cls_item.get("early_exit", False)
+                        pnl = t.get("pnl") or 0.0
+                        t_copy["direction_right"] = cls_item.get("direction_right", pnl >= 0)
+                        all_parsed_trades.append(t_copy)
+                except Exception as e:
+                    print(f"Error parsing {filename} for condition stats: {e}")
+                    
+        def calc_group(subset):
+            total = len(subset)
+            if total == 0:
+                return {"count": 0, "wins": 0, "losses": 0, "win_rate": 0.0, "total_pnl": 0.0}
+            wins = sum(1 for t in subset if (t.get("pnl") or 0.0) > 0)
+            losses = sum(1 for t in subset if (t.get("pnl") or 0.0) < 0)
+            win_rate = (wins / total * 100.0) if total > 0 else 0.0
+            total_pnl = sum(t.get("pnl") or 0.0 for t in subset)
+            return {
+                "count": total,
+                "wins": wins,
+                "losses": losses,
+                "win_rate": round(win_rate, 1),
+                "total_pnl": round(total_pnl, 2),
+            }
+
+        stats = {
+            "all": calc_group(all_parsed_trades),
+            "b_trade": calc_group([t for t in all_parsed_trades if t.get("is_b_trade")]),
+            "non_b_trade": calc_group([t for t in all_parsed_trades if not t.get("is_b_trade")]),
+            "cross_9_21": calc_group([t for t in all_parsed_trades if t.get("is_9_21_cross")]),
+            "non_cross_9_21": calc_group([t for t in all_parsed_trades if not t.get("is_9_21_cross")]),
+            "early_exit": calc_group([t for t in all_parsed_trades if t.get("early_exit")]),
+            "normal_exit": calc_group([t for t in all_parsed_trades if not t.get("early_exit")]),
+            "direction_right": calc_group([t for t in all_parsed_trades if t.get("direction_right")]),
+            "direction_wrong": calc_group([t for t in all_parsed_trades if not t.get("direction_right")]),
+            "total_trades": len(all_parsed_trades)
+        }
+        return jsonify({"ok": True, "stats": stats})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 @app.route("/api/analysis/monthly")
 def api_analysis_monthly():

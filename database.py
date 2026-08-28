@@ -840,6 +840,60 @@ class Database:
             logger.error(f"Error deleting journal entry: {e}")
             return False
 
+    def _ensure_trade_classifications_table(self):
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS trade_classifications (
+                        trade_key VARCHAR(255) PRIMARY KEY,
+                        filename VARCHAR(255),
+                        trade_index INT,
+                        is_b_trade BOOLEAN DEFAULT FALSE,
+                        is_9_21_cross BOOLEAN DEFAULT FALSE,
+                        early_exit BOOLEAN DEFAULT FALSE,
+                        direction_right BOOLEAN DEFAULT TRUE,
+                        notes TEXT,
+                        updated_at TIMESTAMP DEFAULT NOW()
+                    );
+                """)
+        except Exception as e:
+            logger.error(f"Error ensuring trade_classifications table: {e}")
+
+    def save_trade_classification(self, trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes=""):
+        self.ensure_connected()
+        self._ensure_trade_classifications_table()
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO trade_classifications (trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    ON CONFLICT (trade_key) DO UPDATE SET
+                        filename = EXCLUDED.filename,
+                        trade_index = EXCLUDED.trade_index,
+                        is_b_trade = EXCLUDED.is_b_trade,
+                        is_9_21_cross = EXCLUDED.is_9_21_cross,
+                        early_exit = EXCLUDED.early_exit,
+                        direction_right = EXCLUDED.direction_right,
+                        notes = EXCLUDED.notes,
+                        updated_at = NOW();
+                """, (trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes))
+            return True
+        except Exception as e:
+            logger.error(f"Error saving trade classification: {e}")
+            return False
+
+    def get_all_trade_classifications(self):
+        self.ensure_connected()
+        self._ensure_trade_classifications_table()
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes FROM trade_classifications")
+                rows = cur.fetchall() or []
+                return {r["trade_key"]: dict(r) for r in rows}
+        except Exception as e:
+            logger.error(f"Error fetching trade classifications: {e}")
+            return {}
+
 
 # Global database instance
 db = Database()

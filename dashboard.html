@@ -1548,6 +1548,54 @@ Only B Trades with FULL confirmation."></textarea>
         </div>
       </div>
       
+      <!-- Setup Classification & Conditions Editor Card -->
+      <div id="ana-classification-card" style="background:#161b22;border:1.5px solid #238636;border-radius:10px;padding:16px;box-shadow:0 2px 10px rgba(0,0,0,0.3)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #21262d;padding-bottom:8px">
+          <h4 style="margin:0;font-size:0.92rem;color:#58a6ff;font-weight:700;display:flex;align-items:center;gap:6px">
+            <span>🎯</span> Setup Classification &amp; Trade Conditions
+          </h4>
+          <span id="ana-classify-selected-trade" style="font-size:0.75rem;color:#8b949e;font-family:monospace">Select a trade</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:12px">
+          <label style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;cursor:pointer;user-select:none;transition:all 0.15s">
+            <input type="checkbox" id="ana-edit-btrade" style="width:17px;height:17px;cursor:pointer;accent-color:#3fb950">
+            <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">🏷️ B-Trade Setup</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;cursor:pointer;user-select:none;transition:all 0.15s">
+            <input type="checkbox" id="ana-edit-921cross" style="width:17px;height:17px;cursor:pointer;accent-color:#ff9e2c">
+            <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">⚡ 9 / 21 EMA Cross</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;cursor:pointer;user-select:none;transition:all 0.15s">
+            <input type="checkbox" id="ana-edit-earlyexit" style="width:17px;height:17px;cursor:pointer;accent-color:#f85149">
+            <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">⏱️ Early Exit</span>
+          </label>
+        </div>
+
+        <div style="display:flex;gap:20px;align-items:center;margin-bottom:12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 14px">
+          <span style="font-size:0.85rem;color:#8b949e;font-weight:700">🧭 Direction:</span>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+            <input type="radio" name="ana-edit-direction" id="ana-edit-dir-right" value="right" checked style="width:16px;height:16px;cursor:pointer;accent-color:#3fb950">
+            <span style="color:#3fb950;font-weight:700;font-size:0.85rem">✅ Right Direction (Followed Plan)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+            <input type="radio" name="ana-edit-direction" id="ana-edit-dir-wrong" value="wrong" style="width:16px;height:16px;cursor:pointer;accent-color:#f85149">
+            <span style="color:#f85149;font-weight:700;font-size:0.85rem">❌ Wrong Direction (Against Plan)</span>
+          </label>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <input type="text" id="ana-edit-notes" placeholder="Optional notes for this trade (e.g., trendline break confirmation, level bounce)..." style="width:100%;padding:8px 12px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;border-radius:6px;font-size:0.85rem;font-family:inherit;box-sizing:border-box">
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:14px">
+          <span id="ana-classify-save-msg" style="font-size:0.85rem;color:#3fb950;font-weight:700;opacity:0;transition:opacity 0.3s"></span>
+          <button onclick="saveTradeClassification()" style="padding:9px 24px;background:linear-gradient(135deg,#0d4429,#196c2e);border:1.5px solid #3fb950;color:#fff;border-radius:6px;font-size:0.88rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+            <span>💾</span> Save Trade Classification
+          </button>
+        </div>
+      </div>
+      
       <!-- Bottom Section: Daily Summary & Recommendations -->
       <div id="ana-summary-box" style="margin-top:20px;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px;display:none">
         <h3 style="margin-top:0;margin-bottom:15px;color:#c9d1d9;font-size:1.1rem;display:flex;align-items:center;gap:8px">
@@ -1687,6 +1735,26 @@ Only B Trades with FULL confirmation."></textarea>
       <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
         <div style="font-size:0.75rem;color:#bc8cff;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Sim: Hold 5m</div>
         <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-month-stat-sim5m">$0.00</div>
+      </div>
+    </div>
+
+    <!-- Strategy Conditions Win Rate & Analytics Section -->
+    <div style="background:#161b22;border:1.5px solid #1e3a5f;border-radius:10px;padding:20px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h4 style="margin:0;color:#58a6ff;font-size:1rem;font-weight:700;display:flex;align-items:center;gap:8px">
+          <span>📊</span> Win Rate % by Trade Condition (B-Trade, 9/21 Cross, Early Exit, Direction)
+        </h4>
+        <span id="ana-conditions-total-badge" style="font-size:0.8rem;color:#8b949e;background:#0d1117;padding:3px 10px;border-radius:6px;border:1px solid #30363d">Loading conditions...</span>
+      </div>
+
+      <!-- Condition Summary Cards -->
+      <div id="ana-condition-cards-container" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:10px;margin-bottom:16px">
+        <!-- Injected via JS -->
+      </div>
+
+      <!-- Condition Win Rate Bar Chart -->
+      <div style="position:relative;height:260px;width:100%;background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;box-sizing:border-box">
+        <canvas id="ana-month-chart-conditions"></canvas>
       </div>
     </div>
 
@@ -4011,6 +4079,7 @@ let ema21Series = null;
 
 let anaMonthPnlChart = null;
 let anaMonthDirChart = null;
+let anaMonthConditionChart = null;
 
 function switchAnaSubTab(tab) {
   try {
@@ -4257,6 +4326,8 @@ async function loadAnaMonthly() {
       console.warn('Monthly charts unavailable (Chart.js load failed):', chartErr.message);
       // Data table + stat cards are already visible — just skip charts silently
     });
+
+    renderConditionStatsSection();
 
   } catch (renderErr) {
     console.error('Error rendering monthly data:', renderErr);
@@ -4588,9 +4659,9 @@ function renderAnaTradeList(trades) {
   }
   
   trades.forEach((t, idx) => {
+    t.trade_index = idx;
     const div = document.createElement('div');
-    console.log('Trade object with cost', t);
-    div.style.cssText = 'background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px;cursor:pointer;transition:border-color 0.2s;display:flex;flex-direction:column;gap:4px';
+    div.style.cssText = 'background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px;cursor:pointer;transition:border-color 0.2s;display:flex;flex-direction:column;gap:5px';
     div.className = 'ana-trade-item';
     div.setAttribute('data-id', idx);
     
@@ -4605,41 +4676,30 @@ function renderAnaTradeList(trades) {
     const dateStr = t.entry_time.split(' ')[0];
     const timeStr = formatTo12Hour(t.entry_time.split(' ')[1]);
     
+    // Condition badges
+    const bBadge = t.is_b_trade ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#1c2d52;color:#58a6ff;border:1px solid #388bfd;font-weight:700">🏷️ B</span>' : '';
+    const crossBadge = t.is_9_21_cross ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#2d2200;color:#ff9e2c;border:1px solid #ff9e2c;font-weight:700">⚡ 9/21</span>' : '';
+    const earlyBadge = t.early_exit ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#381313;color:#ff7b72;border:1px solid #f85149;font-weight:700">⏱️ Early</span>' : '';
+    const dirBadge = t.direction_right !== false ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#0d3320;color:#3fb950;border:1px solid #3fb950;font-weight:700">✅ Dir</span>' : '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#3d1515;color:#f85149;border:1px solid #f85149;font-weight:700">❌ Dir</span>';
+
     div.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:0.75rem;color:#8b949e">${dateStr} ${timeStr}</span>
         <span style="font-size:0.85rem;font-weight:700;color:${pnlColor}">${pnlStr}</span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-weight:700;color:#e6edf3;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">${t.symbol}</span>
+        <span style="font-weight:700;color:#e6edf3;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">${t.symbol}</span>
         <span style="font-size:0.7rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(${displayDir==='LONG'?'63,185,80':'248,81,73'},0.15);color:${directionColor}">${displayDir}</span>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-        <span style="font-size:0.7rem;color:#8b949e">Cost: $${t.trade_cost}</span>
-        <span style="font-size:0.7rem;color:#8b949e">Net: $${t.pnl !== null ? (t.pnl - t.trade_cost).toFixed(2) : '--'}</span>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">
+        ${bBadge} ${crossBadge} ${earlyBadge} ${dirBadge}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;font-size:0.7rem;color:#8b949e">
+        <span>Cost: $${t.trade_cost || 1.0}</span>
+        <span>Net: $${t.pnl !== null ? (t.pnl - (t.trade_cost || 1.0)).toFixed(2) : '--'}</span>
       </div>
     `;
 
-    // B‑trade checkbox
-    const bCheckbox = document.createElement('input');
-    bCheckbox.type = 'checkbox';
-    bCheckbox.className = 'btrade-checkbox';
-    bCheckbox.dataset.index = idx;
-    bCheckbox.title = 'Mark as B‑trade';
-    bCheckbox.checked = t.is_b_trade;
-    bCheckbox.addEventListener('change', (e) => {
-      fetch('/api/analysis/btrade', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: document.getElementById('ana-file-select').value,
-          trade_index: idx,
-          is_b_trade: e.target.checked
-        })
-      }).catch(err => console.error('B‑trade save error:', err));
-    });
-    div.appendChild(bCheckbox);
-    
     div.addEventListener('click', () => {
       document.querySelectorAll('.ana-trade-item').forEach(item => item.style.borderColor = '#30363d');
       div.style.borderColor = '#58a6ff';
@@ -4657,6 +4717,28 @@ function renderAnaTradeList(trades) {
 async function selectAnaTrade(trade) {
   selectedAnaTrade = trade;
   
+  const selectBadge = document.getElementById('ana-classify-selected-trade');
+  if (selectBadge) {
+    selectBadge.textContent = `${trade.symbol} (${trade.entry_time})`;
+  }
+  
+  // Populate Setup Classification form
+  const cbB = document.getElementById('ana-edit-btrade');
+  const cbCross = document.getElementById('ana-edit-921cross');
+  const cbEarly = document.getElementById('ana-edit-earlyexit');
+  const radioDirRight = document.getElementById('ana-edit-dir-right');
+  const radioDirWrong = document.getElementById('ana-edit-dir-wrong');
+  const notesInput = document.getElementById('ana-edit-notes');
+
+  if (cbB) cbB.checked = !!trade.is_b_trade;
+  if (cbCross) cbCross.checked = !!trade.is_9_21_cross;
+  if (cbEarly) cbEarly.checked = !!trade.early_exit;
+  if (radioDirRight && radioDirWrong) {
+    radioDirRight.checked = trade.direction_right !== false;
+    radioDirWrong.checked = trade.direction_right === false;
+  }
+  if (notesInput) notesInput.value = trade.classification_notes || '';
+
   const container = document.getElementById('ana-chart-container');
   container.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#8b949e;font-size:0.9rem">
     <span class="ind ind-g" style="animation:pulse 1s infinite"></span> Loading chart for ${trade.symbol}...
@@ -5066,6 +5148,192 @@ async function updateStoppedStats() {
   
   const stopped = Object.values(window.analyzedTradesVerdicts).filter(v => v === "stopped").length;
   document.getElementById('ana-stat-stopped').textContent = stopped;
+}
+
+async function saveTradeClassification() {
+  if (!selectedAnaTrade) {
+    alert("Please select a trade from the list first.");
+    return;
+  }
+  const filename = document.getElementById('ana-file-select').value;
+  if (!filename) {
+    alert("No file selected.");
+    return;
+  }
+  const tradeIndex = selectedAnaTrade.trade_index !== undefined ? selectedAnaTrade.trade_index : anaTrades.indexOf(selectedAnaTrade);
+  const isBTrade = document.getElementById('ana-edit-btrade').checked;
+  const is921Cross = document.getElementById('ana-edit-921cross').checked;
+  const isEarlyExit = document.getElementById('ana-edit-earlyexit').checked;
+  const dirRight = document.getElementById('ana-edit-dir-right').checked;
+  const notes = document.getElementById('ana-edit-notes').value.trim();
+
+  const msgEl = document.getElementById('ana-classify-save-msg');
+  try {
+    const res = await (await fetch('/api/analysis/classify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: filename,
+        trade_index: tradeIndex,
+        is_b_trade: isBTrade,
+        is_9_21_cross: is921Cross,
+        early_exit: isEarlyExit,
+        direction_right: dirRight,
+        notes: notes
+      })
+    })).json();
+
+    if (res.ok) {
+      selectedAnaTrade.is_b_trade = isBTrade;
+      selectedAnaTrade.is_9_21_cross = is921Cross;
+      selectedAnaTrade.early_exit = isEarlyExit;
+      selectedAnaTrade.direction_right = dirRight;
+      selectedAnaTrade.classification_notes = notes;
+
+      if (msgEl) {
+        msgEl.textContent = '✅ Saved!';
+        msgEl.style.opacity = '1';
+        setTimeout(() => { msgEl.style.opacity = '0'; }, 2500);
+      }
+      
+      // Update the trade list display
+      renderAnaTradeList(anaTrades);
+      const items = document.querySelectorAll('.ana-trade-item');
+      if (items[tradeIndex]) {
+        items[tradeIndex].style.borderColor = '#58a6ff';
+      }
+    } else {
+      alert('Save failed: ' + (res.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Error saving classification: ' + err.message);
+  }
+}
+
+async function renderConditionStatsSection() {
+  try {
+    const res = await (await fetch('/api/analysis/condition_stats')).json();
+    if (!res.ok || !res.stats) return;
+    const s = res.stats;
+
+    const badge = document.getElementById('ana-conditions-total-badge');
+    if (badge) badge.textContent = `${s.total_trades} Total Trades Analyzed`;
+
+    const container = document.getElementById('ana-condition-cards-container');
+    if (container) {
+      const _cCard = (title, data, color) => {
+        const pnlSign = data.total_pnl >= 0 ? '+$' : '-$';
+        const pnlColor = data.total_pnl >= 0 ? '#3fb950' : '#f85149';
+        return `
+          <div style="background:#0d1117;border:1px solid #30363d;border-top:3px solid ${color};border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">${title}</div>
+            <div style="font-size:1.35rem;font-weight:800;color:${color};margin:4px 0">${data.win_rate.toFixed(1)}% WR</div>
+            <div style="font-size:0.8rem;color:${pnlColor};font-weight:700">${pnlSign}$${Math.abs(data.total_pnl).toFixed(0)} <span style="color:#8b949e;font-size:0.7rem">(${data.wins}W / ${data.losses}L)</span></div>
+          </div>
+        `;
+      };
+      container.innerHTML = `
+        ${_cCard('All Trades', s.all, '#58a6ff')}
+        ${_cCard('B-Trade Setup', s.b_trade, '#3fb950')}
+        ${_cCard('9/21 EMA Cross', s.cross_9_21, '#ff9e2c')}
+        ${_cCard('Early Exit', s.early_exit, '#ff7b72')}
+        ${_cCard('Direction Right', s.direction_right, '#3fb950')}
+      `;
+    }
+
+    // Render Bar Chart
+    const canvas = document.getElementById('ana-month-chart-conditions');
+    if (!canvas) return;
+
+    if (typeof Chart === 'undefined') {
+      await new Promise((resolve, reject) => {
+        const sc = document.createElement('script');
+        sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js';
+        sc.onload = resolve;
+        sc.onerror = () => reject(new Error('Chart.js CDN error'));
+        document.head.appendChild(sc);
+      });
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (anaMonthConditionChart) anaMonthConditionChart.destroy();
+
+    const condLabels = ['All Trades', 'B-Trade', 'Non B-Trade', '9/21 Cross', 'Non 9/21 Cross', 'Early Exit', 'Normal Exit', 'Dir Right', 'Dir Wrong'];
+    const condRates = [
+      s.all.win_rate,
+      s.b_trade.win_rate,
+      s.non_b_trade.win_rate,
+      s.cross_9_21.win_rate,
+      s.non_cross_9_21.win_rate,
+      s.early_exit.win_rate,
+      s.normal_exit.win_rate,
+      s.direction_right.win_rate,
+      s.direction_wrong.win_rate
+    ];
+    const condCounts = [
+      s.all.count, s.b_trade.count, s.non_b_trade.count,
+      s.cross_9_21.count, s.non_cross_9_21.count,
+      s.early_exit.count, s.normal_exit.count,
+      s.direction_right.count, s.direction_wrong.count
+    ];
+    const condPnls = [
+      s.all.total_pnl, s.b_trade.total_pnl, s.non_b_trade.total_pnl,
+      s.cross_9_21.total_pnl, s.non_cross_9_21.total_pnl,
+      s.early_exit.total_pnl, s.normal_exit.total_pnl,
+      s.direction_right.total_pnl, s.direction_wrong.total_pnl
+    ];
+
+    const barColors = condRates.map((r, i) => {
+      if (condCounts[i] === 0) return '#21262d';
+      if (condLabels[i].includes('Right') || condLabels[i].includes('B-Trade') || condLabels[i].includes('9/21 Cross')) {
+        return r >= 50 ? 'rgba(63,185,80,0.85)' : 'rgba(255,158,44,0.85)';
+      }
+      if (condLabels[i].includes('Wrong') || condLabels[i].includes('Early Exit')) {
+        return r < 50 ? 'rgba(248,81,73,0.85)' : 'rgba(255,158,44,0.85)';
+      }
+      return r >= 50 ? 'rgba(88,166,255,0.85)' : 'rgba(255,158,44,0.85)';
+    });
+
+    anaMonthConditionChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: condLabels,
+        datasets: [{
+          label: 'Win Rate (%)',
+          data: condRates,
+          backgroundColor: barColors,
+          borderRadius: 6,
+          borderSkipped: false,
+          borderWidth: 1,
+          borderColor: '#30363d'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (c) => {
+                const i = c.dataIndex;
+                const cnt = condCounts[i];
+                const pnl = condPnls[i];
+                const pnlStr = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(0);
+                return `Win Rate: ${c.parsed.y.toFixed(1)}% | ${cnt} trade${cnt !== 1 ? 's' : ''} | P&L: ${pnlStr}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: '#21262d' }, ticks: { color: '#c9d1d9', font: { size: 11, weight: 'bold' } } },
+          y: { min: 0, max: 100, grid: { color: '#21262d' }, ticks: { color: '#8b949e', font: { size: 10 }, callback: v => v + '%' } }
+        }
+      }
+    });
+  } catch (err) {
+    console.error("Error rendering condition stats:", err);
+  }
 }
 
 
