@@ -1658,6 +1658,46 @@ Only B Trades with FULL confirmation."></textarea>
             </div>
           </div>
         </div>
+
+        <!-- Daily Strategy Conditions Breakdown (B-Trade, 9/21 Cross, Early Exit, Direction) -->
+        <div style="background:#0d1117;border:1.5px solid #1e3a5f;border-radius:10px;padding:16px;margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h4 style="margin:0;color:#58a6ff;font-size:0.95rem;font-weight:700;display:flex;align-items:center;gap:8px">
+              <span>🎯</span> Daily Strategy Conditions Breakdown
+            </h4>
+            <span id="ana-daily-cond-total-badge" style="font-size:0.75rem;color:#8b949e;background:#161b22;border:1px solid #30363d;border-radius:6px;padding:2px 10px">0 trades</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px">
+            <!-- B-Trade Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #58a6ff;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">🏷️ B-Trade Setups</div>
+              <div id="ana-daily-cond-btrade-wr" style="font-size:1.35rem;font-weight:800;color:#58a6ff;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-btrade-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- 9/21 Cross Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #ff9e2c;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">⚡ 9/21 EMA Cross</div>
+              <div id="ana-daily-cond-921-wr" style="font-size:1.35rem;font-weight:800;color:#ff9e2c;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-921-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- Early Exit Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #ff7b72;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">⏱️ Early Exits</div>
+              <div id="ana-daily-cond-early-wr" style="font-size:1.35rem;font-weight:800;color:#ff7b72;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-early-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- Direction Accuracy Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #3fb950;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">✅ Direction Right</div>
+              <div id="ana-daily-cond-dir-wr" style="font-size:1.35rem;font-weight:800;color:#3fb950;margin:4px 0">0.0% Acc</div>
+              <div id="ana-daily-cond-dir-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+          </div>
+        </div>
         
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
           <!-- Suggested Improvements -->
@@ -4888,6 +4928,44 @@ async function loadAnaSummary(filename) {
   }
 }
 
+function renderDailyConditionSummary(trades) {
+  const closedTrades = (trades || []).filter(t => t.closed && t.pnl !== null);
+  const total = closedTrades.length;
+  const badge = document.getElementById('ana-daily-cond-total-badge');
+  if (badge) badge.textContent = `${total} closed trade${total !== 1 ? 's' : ''}`;
+
+  const _calc = (subset) => {
+    const cnt = subset.length;
+    if (cnt === 0) return { count: 0, wins: 0, losses: 0, wr: 0, pnl: 0 };
+    const wins = subset.filter(t => (t.pnl || 0) > 0).length;
+    const losses = subset.filter(t => (t.pnl || 0) < 0).length;
+    const wr = (wins / cnt) * 100;
+    const pnl = subset.reduce((acc, t) => acc + (t.pnl || 0), 0);
+    return { count: cnt, wins, losses, wr, pnl };
+  };
+
+  const bTrades = _calc(closedTrades.filter(t => t.is_b_trade));
+  const crossTrades = _calc(closedTrades.filter(t => t.is_9_21_cross));
+  const earlyTrades = _calc(closedTrades.filter(t => t.early_exit));
+  const dirRightTrades = _calc(closedTrades.filter(t => t.direction_right !== false));
+
+  const _updateCard = (prefix, data, isDir) => {
+    const wrEl = document.getElementById(`ana-daily-cond-${prefix}-wr`);
+    const subEl = document.getElementById(`ana-daily-cond-${prefix}-sub`);
+    if (!wrEl || !subEl) return;
+    const labelSuffix = isDir ? 'Acc' : 'WR';
+    wrEl.textContent = data.count > 0 ? `${data.wr.toFixed(1)}% ${labelSuffix}` : `--% ${labelSuffix}`;
+    const pnlSign = data.pnl >= 0 ? '+$' : '-$';
+    const pnlColor = data.pnl >= 0 ? '#3fb950' : '#f85149';
+    subEl.innerHTML = `${data.count} trade${data.count!==1?'s':''} (${data.wins}W / ${data.losses}L) &nbsp;|&nbsp; <span style="color:${pnlColor};font-weight:700">${pnlSign}$${Math.abs(data.pnl).toFixed(0)}</span>`;
+  };
+
+  _updateCard('btrade', bTrades, false);
+  _updateCard('921', crossTrades, false);
+  _updateCard('early', earlyTrades, false);
+  _updateCard('dir', dirRightTrades, true);
+}
+
 function renderAnaStats(trades) {
   const total = trades.length;
   const closedTrades = trades.filter(t => t.closed && t.pnl !== null);
@@ -4903,6 +4981,7 @@ function renderAnaStats(trades) {
   pnlEl.style.color = totalPnl >= 0 ? '#3fb950' : '#f85149';
   
   document.getElementById('ana-stat-stopped').textContent = '0';
+  renderDailyConditionSummary(trades);
 }
 
 function renderAnaTradeList(trades) {
@@ -5452,11 +5531,12 @@ async function saveTradeClassification() {
         setTimeout(() => { msgEl.style.opacity = '0'; }, 2500);
       }
       
-      // Update the trade list display
+      // Update the trade list display and daily condition summary
       renderAnaTradeList(anaTrades);
+      renderDailyConditionSummary(anaTrades);
       const items = document.querySelectorAll('.ana-trade-item');
       if (items[tradeIndex]) {
-        items[tradeIndex].style.borderColor = '#58a6ff';
+        items[tradeIndex].style.borderColor = '#3fb950';
       }
     } else {
       alert('Save failed: ' + (res.error || 'Unknown error'));
