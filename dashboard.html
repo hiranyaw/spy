@@ -4625,14 +4625,6 @@ async function loadAnaMonthly() {
   }
 }
 
-  } catch (renderErr) {
-    console.error('Error rendering monthly data:', renderErr);
-    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#f85149;padding:20px">
-      ⚠️ Error rendering monthly stats: ${renderErr.message}
-    </td></tr>`;
-  }
-}
-
 let currentAnaDate = '';
 
 function getAnaActiveDate(filename) {
