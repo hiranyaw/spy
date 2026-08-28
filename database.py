@@ -631,6 +631,68 @@ class Database:
             logger.error(f"Error updating checklist comment: {e}")
             return False
 
+    # ── ANALYSIS RECORDS TABLE ──
+    def _ensure_analysis_table(self):
+        """Create analysis_records table if it doesn't exist yet."""
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS analysis_records (
+                        id          BIGINT PRIMARY KEY,
+                        timestamp   VARCHAR(40),
+                        image_path  TEXT,
+                        analysis    TEXT,
+                        created_at  TIMESTAMP DEFAULT NOW()
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_analysis_timestamp
+                        ON analysis_records(timestamp DESC);
+                """)
+        except Exception as e:
+            logger.error(f"Error creating analysis_records table: {e}")
+
+    def save_analysis_record(self, record):
+        """Insert an analysis record (id, timestamp, image_path, analysis)."""
+        self.ensure_connected()
+        self._ensure_analysis_table()
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO analysis_records (id, timestamp, image_path, analysis)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (id) DO NOTHING
+                """, (
+                    record["id"],
+                    record.get("timestamp"),
+                    record.get("image_path"),
+                    record.get("analysis"),
+                ))
+            return True
+        except Exception as e:
+            logger.error(f"Error saving analysis record: {e}")
+            return False
+
+    def get_analysis_records(self, limit=20):
+        """Return recent analysis records, newest first, up to limit."""
+        self.ensure_connected()
+        self._ensure_analysis_table()
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT id, timestamp, image_path, analysis, created_at
+                    FROM analysis_records
+                    ORDER BY timestamp DESC
+                    LIMIT %s
+                """, (limit,))
+                rows = cur.fetchall() or []
+                result = []
+                for row in rows:
+                    r = dict(row)
+                    result.append(r)
+                return result
+        except Exception as e:
+            logger.error(f"Error fetching analysis records: {e}")
+            return []
+
     # ── CHECKLIST SUMMARY TABLE ──
     def _ensure_checklist_summary_table(self):
         """Create checklist summary table if it doesn't exist yet."""
@@ -700,6 +762,83 @@ class Database:
         except Exception as e:
             logger.error(f"Error fetching checklist summaries: {e}")
             return []
+
+
+    # ── TRADE JOURNAL TABLE ──
+    def _ensure_journal_table(self):
+        """Create trade_journal table if it doesn't exist yet."""
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS trade_journal (
+                        date        VARCHAR(20) PRIMARY KEY,
+                        content     TEXT DEFAULT '',
+                        pnl         DECIMAL(10,2),
+                        created_at  TIMESTAMP DEFAULT NOW(),
+                        updated_at  TIMESTAMP DEFAULT NOW()
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_trade_journal_date
+                        ON trade_journal(date DESC);
+                """)
+        except Exception as e:
+            logger.error(f"Error creating trade_journal table: {e}")
+
+    def save_journal_entry(self, date_str, content, pnl=None):
+        """Insert or update one journal entry."""
+        self.ensure_connected()
+        self._ensure_journal_table()
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO trade_journal (date, content, pnl, updated_at)
+                    VALUES (%s, %s, %s, NOW())
+                    ON CONFLICT (date) DO UPDATE
+                    SET content = EXCLUDED.content,
+                        pnl = COALESCE(EXCLUDED.pnl, trade_journal.pnl),
+                        updated_at = NOW()
+                """, (date_str, content, pnl))
+            return True
+        except Exception as e:
+            logger.error(f"Error saving journal entry: {e}")
+            return False
+
+    def get_journal_entries(self, date_str=None):
+        """Return list of journal entries, optionally filtered by date."""
+        self.ensure_connected()
+        self._ensure_journal_table()
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                if date_str:
+                    cur.execute("SELECT date, content, pnl, created_at, updated_at FROM trade_journal WHERE date = %s", (date_str,))
+                else:
+                    cur.execute("SELECT date, content, pnl, created_at, updated_at FROM trade_journal ORDER BY date DESC")
+                rows = cur.fetchall() or []
+                result = []
+                for row in rows:
+                    r = dict(row)
+                    if r.get("pnl") is not None:
+                        r["pnl"] = float(r["pnl"])
+                    if r.get("created_at"):
+                        r["created_at"] = r["created_at"].isoformat()
+                    if r.get("updated_at"):
+                        r["updated_at"] = r["updated_at"].isoformat()
+                    result.append(r)
+                return result
+        except Exception as e:
+            logger.error(f"Error fetching journal entries: {e}")
+            return []
+
+    def delete_journal_entry(self, date_str):
+        """Delete one journal entry by date."""
+        self.ensure_connected()
+        self._ensure_journal_table()
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("DELETE FROM trade_journal WHERE date = %s", (date_str,))
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting journal entry: {e}")
+            return False
 
 
 # Global database instance

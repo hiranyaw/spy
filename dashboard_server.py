@@ -6,6 +6,8 @@ Open: http://localhost:5000
 from flask import Flask, jsonify, send_from_directory, request
 import json, os, subprocess, signal, sys, time, math
 import psutil
+import logging
+logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta
 import pytz
 import pandas as pd
@@ -24,6 +26,20 @@ try:
 except:
     DB_AVAILABLE = False
     print("⚠️  Database not available, using JSON fallback")
+# B‑trade flag persistence
+B_TRADE_FLAGS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "b_trade_flags.json")
+def load_b_trade_flags():
+    try:
+        with open(B_TRADE_FLAGS_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_b_trade_flags(flags):
+    with open(B_TRADE_FLAGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(flags, f, indent=2)
+
+b_trade_flags = load_b_trade_flags()
 
 def sanitize(obj):
     """Recursively replace NaN/Infinity with None, and convert date/time/Decimal to JSON-serializable types."""
@@ -155,6 +171,53 @@ TOS_DIR      = os.path.join(BASE, "TOS")
 SCREENSHOTS_DIR = os.path.join(BASE, "screenshots")
 os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 BOT_DIR = BASE  # alias for diagnostics
+import threading, time
+from capture_tv import capture_tradingview, save_image
+from claude_client import send_image
+
+# Analysis configuration
+ANALYSIS_INTERVAL = int(os.getenv('ANALYSIS_INTERVAL', '300'))  # seconds
+
+def analysis_worker():
+    while True:
+        try:
+            # Capture TradingView screenshot
+            img_bytes = capture_tradingview()
+            # Timestamp for filename
+            timestamp = time.time()
+            filename = f'tv_capture_{int(timestamp)}.png'
+            # Save screenshot to the dedicated screenshots directory
+            img_path = os.path.join(SCREENSHOTS_DIR, filename)
+            save_image(img_bytes, img_path)
+            # URL for front‑end to request
+            image_url = f'/screenshots/{filename}'
+            # Run Claude analysis on the image bytes
+            analysis_text = send_image(img_bytes)
+            now = datetime.now(pytz.timezone('US/Pacific'))
+            record = {
+                'id': int(now.timestamp() * 1000),
+                'timestamp': now.isoformat(),
+                'image_path': image_url,
+                'analysis': analysis_text,
+            }
+            if DB_AVAILABLE:
+                db.save_analysis_record(record)
+        except Exception as e:
+            logger.error(f"Error in analysis worker: {e}")
+        time.sleep(ANALYSIS_INTERVAL)
+    # (duplicate analysis block removed)
+
+# Start background analysis thread when the server module is imported
+threading.Thread(target=analysis_worker, daemon=True).start()
+
+# API endpoint to retrieve recent analysis records
+@app.route("/api/analysis/recent", methods=["GET"])
+def analysis_recent():
+    try:
+        records = db.get_analysis_records()
+        return jsonify({"ok": True, "records": records})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 def restore_tos_files_from_db():
     if not DB_AVAILABLE:
@@ -208,6 +271,13 @@ def save_trendline_breaks(data):
         json.dump(data, f, indent=2)
 
 def load_journal():
+    if DB_AVAILABLE:
+        try:
+            db_entries = db.get_journal_entries()
+            if db_entries:
+                return db_entries
+        except Exception as e:
+            logger.error(f"Error loading journal from DB: {e}")
     try:
         with open(TRADE_JOURNAL) as f:
             return json.load(f)
@@ -215,8 +285,18 @@ def load_journal():
         return []
 
 def save_journal(entries):
-    with open(TRADE_JOURNAL, "w") as f:
-        json.dump(entries, f, indent=2)
+    try:
+        with open(TRADE_JOURNAL, "w") as f:
+            json.dump(entries, f, indent=2)
+    except Exception as e:
+        logger.error(f"Error writing to local journal file: {e}")
+    if DB_AVAILABLE:
+        try:
+            for e in entries:
+                if e.get("date"):
+                    db.save_journal_entry(e.get("date"), e.get("content", ""), e.get("pnl"))
+        except Exception as e:
+            logger.error(f"Error saving journal to DB: {e}")
 
 def get_today_journal_entry():
     today = datetime.now().strftime("%Y-%m-%d")
@@ -1163,6 +1243,11 @@ def journal_delete():
         entries = load_journal()
         entries = [e for e in entries if e.get("date") != date]
         save_journal(entries)
+        if DB_AVAILABLE:
+            try:
+                db.delete_journal_entry(date)
+            except Exception as e:
+                logger.error(f"Error deleting journal from DB: {e}")
 
         return jsonify({"ok": True, "message": "Journal entry deleted"})
     except Exception as e:
@@ -1299,7 +1384,7 @@ def analysis_trades():
         trades = tos_parser.load_and_parse_trades(filepath)
         
         serialized_trades = []
-        for t in trades:
+        for idx, t in enumerate(trades):
             t_copy = t.copy()
             t_copy["entry_time"] = t["entry_time"].strftime("%Y-%m-%d %H:%M:%S")
             if t.get("exit_time"):
@@ -1313,6 +1398,9 @@ def analysis_trades():
                 {"time": ex["time"].strftime("%Y-%m-%d %H:%M:%S"), "price": ex["price"], "qty": ex["qty"]}
                 for ex in t["exits"]
             ]
+            # Add B‑trade flag from persisted flags
+            t_copy["is_b_trade"] = b_trade_flags.get(f"{filename}::{idx}", False)
+            t_copy["trade_cost"] = 1.0
             serialized_trades.append(t_copy)
             
         return jsonify({"ok": True, "trades": serialized_trades})
@@ -1959,6 +2047,22 @@ def analysis_summary():
         import traceback
         traceback.print_exc()
         return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/analysis/btrade", methods=["POST"])
+def set_btrade():
+    """Set or clear the B‑trade flag for a specific trade in a file.
+    Expects JSON: {"filename": str, "trade_index": int, "is_b_trade": bool}
+    """
+    data = request.get_json(force=True)
+    filename = data.get("filename")
+    idx = data.get("trade_index")
+    flag = data.get("is_b_trade")
+    if filename is None or idx is None or flag is None:
+        return jsonify({"ok": False, "error": "Missing required fields"}), 400
+    key = f"{os.path.basename(filename)}::{idx}"
+    b_trade_flags[key] = bool(flag)
+    save_b_trade_flags(b_trade_flags)
+    return jsonify({"ok": True})
 
 @app.route("/api/analysis/monthly")
 def api_analysis_monthly():
@@ -3147,15 +3251,10 @@ def checklist_comment():
                 return jsonify({"ok": False, "error": "Record not found or DB error"}), 404
         else:
             records = load_checklist()
-            updated = False
-            for r in records:
-                if r.get("id") == record_id:
-                    r["comment"] = comment
-                    updated = True
-                    break
-            if not updated:
-                return jsonify({"ok": False, "error": "Record not found"}), 404
-            save_checklist(records)
+# Analysis code moved to module level
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
         return jsonify({"ok": True, "comment": comment})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500

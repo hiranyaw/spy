@@ -339,6 +339,11 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
       </div>
 
       <!-- Bottom Row: News & Tracker side-by-side -->
+      <div id="live-screenshot-section" style="margin-top:10px;">
+        <h4 style="margin:0 0 5px 0;color:#e6edf3;font-size:0.85rem;">Latest Signal Screenshot</h4>
+        <img id="live-screenshot-img" src="" style="width:100%;max-height:200px;object-fit:contain;background:#0d1117;border-radius:6px;" />
+        <div id="live-analysis-text" style="margin-top:5px;color:#c9d1d9;font-size:0.80rem;"></div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;height:165px;flex-shrink:0">
         
         <!-- Real-time Market News -->
@@ -1507,7 +1512,8 @@ Only B Trades with FULL confirmation."></textarea>
             <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Entry Cost (Avg)</td><td style="padding:6px 0;text-align:right;font-weight:700" id="ana-det-entry-price">--</td></tr>
             <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Exit Cost (Avg)</td><td style="padding:6px 0;text-align:right;font-weight:700" id="ana-det-exit-price">--</td></tr>
             <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Realized P&amp;L</td><td style="padding:6px 0;text-align:right;font-weight:700" id="ana-det-pnl">--</td></tr>
-            <tr><td style="padding:6px 0;color:#8b949e">Time Window</td><td style="padding:6px 0;text-align:right;font-size:0.75rem" id="ana-det-time">--</td></tr>
+            <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Commission</td><td style="padding:6px 0;text-align:right;font-weight:700" id="ana-det-commission">--</td></tr>
+<tr><td style="padding:6px 0;color:#8b949e">Time Window</td><td style="padding:6px 0;text-align:right;font-size:0.75rem" id="ana-det-time">--</td></tr>
           </table>
         </div>
 
@@ -1614,6 +1620,25 @@ Only B Trades with FULL confirmation."></textarea>
         </div>
       </div>
       
+      <!-- ── Daily Summary Text Box ──────────────────────────────── -->
+      <div id="ana-daily-notes-box" style="margin-top:20px;background:#161b22;border:1px solid #30363d;border-radius:10px;padding:20px">
+        <h3 style="margin-top:0;margin-bottom:12px;color:#58a6ff;font-size:1rem;display:flex;align-items:center;gap:8px">
+          <span>✍️</span> Daily Summary &amp; Notes
+          <span id="ana-notes-date-badge" style="margin-left:auto;font-size:0.75rem;font-weight:600;color:#8b949e;background:#21262d;border:1px solid #30363d;border-radius:6px;padding:2px 10px"></span>
+        </h3>
+        <textarea id="ana-daily-summary-text" style="width:100%;height:200px;padding:12px;background:#0d1117;border:2px solid #30363d;color:#e6edf3;border-radius:8px;font-size:0.92rem;font-family:'Segoe UI',sans-serif;box-sizing:border-box;resize:vertical;line-height:1.6;transition:border-color .2s" placeholder="Write your daily trading summary here...
+
+• What was the market direction today?
+• What setups worked / didn't work?
+• Key lessons learned?
+• Emotional state & discipline notes
+• Plan for tomorrow"></textarea>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+          <button onclick="anaNoteSave()" style="padding:10px 24px;background:linear-gradient(135deg,#0d4429,#196c2e);border:2px solid #3fb950;color:#3fb950;border-radius:8px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">💾 Save Summary</button>
+          <span id="ana-notes-save-msg" style="font-size:0.8rem;color:#3fb950;opacity:0;transition:opacity .3s"></span>
+        </div>
+      </div>
+
       </div>
     </div>
   </div> <!-- Close grid: 300px 1fr -->
@@ -1699,6 +1724,7 @@ Only B Trades with FULL confirmation."></textarea>
             <th style="padding:8px;text-align:right">Actual P&amp;L</th>
             <th style="padding:8px;text-align:right">Sim: Stop @ 3</th>
             <th style="padding:8px;text-align:right">Sim: Stop @ 2L</th>
+            <th style="padding:8px;text-align:left;min-width:200px">Daily Summary</th>
           </tr>
         </thead>
         <tbody id="ana-month-table-body">
@@ -1961,6 +1987,8 @@ function sw(n){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',['live','guide','paper','tl','journal','ctrl','analysis','checklist'][i]===n));
   document.querySelectorAll('.tc').forEach(c=>c.classList.remove('on'));
   document.getElementById('tab-'+n).classList.add('on');
+  // Clear any existing live interval when switching tabs
+  if (window.liveIntervalId) { clearInterval(window.liveIntervalId); window.liveIntervalId = null; }
   if(n==='ctrl') refreshStatus();
   if(n==='journal') loadJournal();
   if(n==='analysis') initAnalysis();
@@ -1974,6 +2002,9 @@ function sw(n){
     } else {
       initLiveChart();
     }
+    // Load screenshot and analysis immediately and start polling
+    loadLiveScreenshot();
+    window.liveIntervalId = setInterval(loadLiveScreenshot, 15000);
   }
 }
 
@@ -4014,33 +4045,45 @@ function switchAnaSubTab(tab) {
 
 async function loadAnaMonthly() {
   const tableBody = document.getElementById('ana-month-table-body');
-  tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#8b949e;padding:20px">
+  tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:#8b949e;padding:20px">
     <span class="ind ind-g" style="animation:pulse 1s infinite"></span> Loading monthly stats...
   </td></tr>`;
   
   // ── 1. Fetch data ────────────────────────────────────────────────────────
   let res;
+  let journalMap = {};
   try {
     const cb = document.getElementById('ana-month-include-manual');
     const includeManual = cb ? cb.checked : true;
-    const fetchObj = await fetch(`/api/analysis/monthly?include_manual=${includeManual}&t=${Date.now()}`);
+    const [fetchObj, jObj] = await Promise.all([
+      fetch(`/api/analysis/monthly?include_manual=${includeManual}&t=${Date.now()}`),
+      fetch(`/journal/get?date=all&t=${Date.now()}`).catch(() => null)
+    ]);
     res = await fetchObj.json();
+    if (jObj) {
+      const jRes = await jObj.json();
+      if (jRes && jRes.ok && Array.isArray(jRes.entries)) {
+        jRes.entries.forEach(e => {
+          if (e.date) journalMap[e.date] = e.content || '';
+        });
+      }
+    }
   } catch (fetchErr) {
-    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#f85149;padding:20px">
+    tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:#f85149;padding:20px">
       ⚠️ Network error fetching monthly data: ${fetchErr.message}
     </td></tr>`;
     return;
   }
 
   if (!res.ok) {
-    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#f85149;padding:20px">
+    tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:#f85149;padding:20px">
       ⚠️ Error loading monthly data: ${res.error || 'Unknown error'}
     </td></tr>`;
     return;
   }
 
   if (!res.data || res.data.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#8b949e;padding:20px">
+    tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:#8b949e;padding:20px">
       📭 No trade data found yet. Log trades in Paper Trading or Trade Journal, or upload TOS statements.
     </td></tr>`;
     return;
@@ -4105,10 +4148,17 @@ async function loadAnaMonthly() {
       const sim3Sign    = day.sim_3_pnl  >= 0 ? '+$' : '-$';
       const sim2lSign   = day.sim_2l_pnl >= 0 ? '+$' : '-$';
 
+      const rawSummary = journalMap[day.date] || '';
+      const cleanSummary = rawSummary.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const previewSummary = cleanSummary.length > 70 ? cleanSummary.substring(0, 70) + '…' : cleanSummary;
+      const summaryHtml = cleanSummary
+        ? `<div style="cursor:pointer;line-height:1.4" title="${cleanSummary.replace(/"/g, '&quot;')}" onclick="openDailyReviewForDate('${day.date}')"><span style="color:#58a6ff">✍️</span> <span style="color:#c9d1d9">${previewSummary}</span></div>`
+        : `<button onclick="openDailyReviewForDate('${day.date}')" style="background:#21262d;border:1px solid #30363d;color:#8b949e;border-radius:4px;padding:2px 8px;font-size:0.75rem;cursor:pointer">+ Write</button>`;
+
       const tr = document.createElement('tr');
       tr.style.background = isManual ? 'rgba(255,158,44,0.03)' : '';
       tr.innerHTML = `
-        <td style="padding:8px;white-space:nowrap">${day.date}</td>
+        <td style="padding:8px;white-space:nowrap"><a href="javascript:void(0)" onclick="openDailyReviewForDate('${day.date}')" style="color:#58a6ff;text-decoration:none;font-weight:600">${day.date}</a></td>
         <td style="padding:8px;text-align:center">${sourceBadge}</td>
         <td style="padding:8px;text-align:center;font-weight:700;color:#e6edf3">${day.total_trades}</td>
         <td style="padding:8px;text-align:center">${winRateStr}</td>
@@ -4117,6 +4167,7 @@ async function loadAnaMonthly() {
         <td style="padding:8px;text-align:right;font-weight:700;color:${pnlColor}">${pnlSign}${Math.abs(day.total_pnl).toFixed(2)}</td>
         <td style="padding:8px;text-align:right;font-weight:700;color:${sim3Color}">${sim3Sign}${Math.abs(day.sim_3_pnl).toFixed(2)}</td>
         <td style="padding:8px;text-align:right;font-weight:700;color:${sim2lColor}">${sim2lSign}${Math.abs(day.sim_2l_pnl).toFixed(2)}</td>
+        <td style="padding:8px;font-size:0.8rem">${summaryHtml}</td>
       `;
       tableBody.appendChild(tr);
     });
@@ -4215,6 +4266,94 @@ async function loadAnaMonthly() {
   }
 }
 
+let currentAnaDate = '';
+
+function getAnaActiveDate(filename) {
+  if (filename) {
+    const match = filename.match(/(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
+  if (window.anaTrades && window.anaTrades.length > 0 && window.anaTrades[0].entry_time) {
+    return window.anaTrades[0].entry_time.split(' ')[0];
+  }
+  const now = new Date();
+  return now.toISOString().split('T')[0];
+}
+
+async function loadAnaDailyNote(filename) {
+  const dateStr = getAnaActiveDate(filename || document.getElementById('ana-file-select')?.value);
+  currentAnaDate = dateStr;
+  
+  const badge = document.getElementById('ana-notes-date-badge');
+  if (badge) badge.textContent = dateStr ? `Date: ${dateStr}` : '';
+  
+  const textArea = document.getElementById('ana-daily-summary-text');
+  if (!textArea) return;
+  textArea.value = '';
+  
+  try {
+    const res = await (await fetch(`/journal/get?date=${encodeURIComponent(dateStr)}&t=${Date.now()}`)).json();
+    if (res.ok && res.entry && res.entry.content) {
+      textArea.value = res.entry.content;
+    }
+  } catch (err) {
+    console.error('Error loading daily note:', err);
+  }
+}
+
+async function anaNoteSave() {
+  const textArea = document.getElementById('ana-daily-summary-text');
+  const msgEl = document.getElementById('ana-notes-save-msg');
+  if (!textArea) return;
+  
+  const content = textArea.value.trim();
+  const dateStr = currentAnaDate || getAnaActiveDate(document.getElementById('ana-file-select')?.value);
+  
+  try {
+    const res = await (await fetch('/journal/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: dateStr,
+        content: content
+      })
+    })).json();
+    
+    if (res.ok) {
+      if (msgEl) {
+        msgEl.textContent = `✅ Summary saved for ${dateStr}`;
+        msgEl.style.opacity = '1';
+        setTimeout(() => { msgEl.style.opacity = '0'; }, 3000);
+      }
+      const monthlyView = document.getElementById('ana-view-monthly');
+      if (monthlyView && monthlyView.style.display !== 'none') {
+        loadAnaMonthly();
+      }
+    } else {
+      alert('Failed to save summary: ' + (res.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Save error: ' + err.message);
+  }
+}
+
+function openDailyReviewForDate(dateStr) {
+  switchAnaSubTab('daily');
+  const select = document.getElementById('ana-file-select');
+  if (select) {
+    for (let i = 0; i < select.options.length; i++) {
+      const opt = select.options[i];
+      if (opt.value && opt.value.includes(dateStr)) {
+        select.selectedIndex = i;
+        loadAnaTrades();
+        return;
+      }
+    }
+  }
+  currentAnaDate = dateStr;
+  loadAnaDailyNote();
+}
+
 async function initAnalysis() {
   switchAnaSubTab('daily');
   if (typeof LightweightCharts === 'undefined') {
@@ -4253,27 +4392,27 @@ async function uploadTOSFile(input) {
     })).json();
     
     if (res.ok) {
+      input.value = '';
       await loadAnaFiles();
-      select.value = res.filename;
-      loadAnaTrades();
+      if (res.filename) {
+        select.value = res.filename;
+        loadAnaTrades();
+      }
     } else {
-      alert("Upload failed: " + (res.error || "Unknown error"));
       select.innerHTML = originalHtml;
+      alert("Upload failed: " + (res.error || "Unknown error"));
     }
   } catch (err) {
-    console.error("Error uploading file:", err);
-    alert("Error uploading file: " + err.message);
     select.innerHTML = originalHtml;
+    console.error("Upload error:", err);
+    alert("Error uploading file: " + err.message);
   }
-  
-  input.value = '';
 }
 
 function formatTo12Hour(timeStr) {
-  if (!timeStr || timeStr === '--') return '--';
+  if (!timeStr) return '';
   const parts = timeStr.split(':');
-  if (parts.length < 2) return timeStr;
-  let hour = parseInt(parts[0]);
+  let hour = parseInt(parts[0], 10);
   const minute = parts[1];
   const ampm = hour >= 12 ? 'PM' : 'AM';
   hour = hour % 12;
@@ -4309,9 +4448,11 @@ async function loadAnaFiles() {
           Click <strong>📤 Upload Local CSV</strong> to add your TOS export.<br>
           <span style="font-size:0.75rem;color:#555">Files are saved to the database and persist across restarts.</span>
         </div>`;
+      loadAnaDailyNote();
     }
   } catch (err) {
     console.error("Error loading TOS files:", err);
+    loadAnaDailyNote();
   }
 }
 
@@ -4343,6 +4484,7 @@ async function loadAnaTrades() {
       renderAnaStats(anaTrades);
       renderAnaTradeList(anaTrades);
       loadAnaSummary(filename);
+      loadAnaDailyNote(filename);
     } else {
       alert("Error loading trades: " + (res.error || "Unknown error"));
     }
@@ -4447,6 +4589,7 @@ function renderAnaTradeList(trades) {
   
   trades.forEach((t, idx) => {
     const div = document.createElement('div');
+    console.log('Trade object with cost', t);
     div.style.cssText = 'background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px;cursor:pointer;transition:border-color 0.2s;display:flex;flex-direction:column;gap:4px';
     div.className = 'ana-trade-item';
     div.setAttribute('data-id', idx);
@@ -4471,7 +4614,31 @@ function renderAnaTradeList(trades) {
         <span style="font-weight:700;color:#e6edf3;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px">${t.symbol}</span>
         <span style="font-size:0.7rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(${displayDir==='LONG'?'63,185,80':'248,81,73'},0.15);color:${directionColor}">${displayDir}</span>
       </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+        <span style="font-size:0.7rem;color:#8b949e">Cost: $${t.trade_cost}</span>
+        <span style="font-size:0.7rem;color:#8b949e">Net: $${t.pnl !== null ? (t.pnl - t.trade_cost).toFixed(2) : '--'}</span>
+      </div>
     `;
+
+    // B‑trade checkbox
+    const bCheckbox = document.createElement('input');
+    bCheckbox.type = 'checkbox';
+    bCheckbox.className = 'btrade-checkbox';
+    bCheckbox.dataset.index = idx;
+    bCheckbox.title = 'Mark as B‑trade';
+    bCheckbox.checked = t.is_b_trade;
+    bCheckbox.addEventListener('change', (e) => {
+      fetch('/api/analysis/btrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: document.getElementById('ana-file-select').value,
+          trade_index: idx,
+          is_b_trade: e.target.checked
+        })
+      }).catch(err => console.error('B‑trade save error:', err));
+    });
+    div.appendChild(bCheckbox);
     
     div.addEventListener('click', () => {
       document.querySelectorAll('.ana-trade-item').forEach(item => item.style.borderColor = '#30363d');
@@ -4502,13 +4669,19 @@ async function selectAnaTrade(trade) {
   document.getElementById('ana-det-direction').textContent = displayDir;
   document.getElementById('ana-det-direction').style.color = directionColor;
   document.getElementById('ana-det-qty').textContent = trade.qty;
+  const commissionEl = document.getElementById('ana-det-commission');
+  const commission = 1; // flat $1 commission per trade
+  commissionEl.textContent = `$${commission.toFixed(2)}`;
   document.getElementById('ana-det-entry-price').textContent = `$${trade.entry_price.toFixed(2)}`;
   document.getElementById('ana-det-exit-price').textContent = trade.exit_price !== null ? `$${trade.exit_price.toFixed(2)}` : '--';
   
   const pnlEl = document.getElementById('ana-det-pnl');
   if (trade.pnl !== null) {
-    pnlEl.textContent = (trade.pnl >= 0 ? '+$' : '-$') + Math.abs(trade.pnl).toFixed(2) + ` (${trade.pnl_pct.toFixed(1)}%)`;
-    pnlEl.style.color = trade.win ? '#3fb950' : '#f85149';
+    const commission = 1; // flat $1 commission per trade
+    const netPnl = trade.pnl - commission;
+    const netPnlPct = ((netPnl / trade.entry_price) * 100) || 0;
+    pnlEl.textContent = (netPnl >= 0 ? '+$' : '-$') + Math.abs(netPnl).toFixed(2) + ` (${netPnlPct.toFixed(1)}%)`;
+    pnlEl.style.color = netPnl >= 0 ? '#3fb950' : '#f85149';
   } else {
     pnlEl.textContent = 'Open';
     pnlEl.style.color = '#8b949e';
@@ -5046,6 +5219,25 @@ async function loadScreenshots() {
     }).join('');
   } catch(e) {
     grid.innerHTML = `<div style="color:#f85149;font-size:12px;padding:10px;grid-column:1/-1">Error loading screenshots: ${e.message}</div>`;
+  }
+}
+// ── Live Screenshot & Analysis Loader ────────────────────────
+async function loadLiveScreenshot() {
+  try {
+    const res = await fetch('/api/analysis/recent');
+    const data = await res.json();
+    const imgEl = document.getElementById('live-screenshot-img');
+    const txtEl = document.getElementById('live-analysis-text');
+    if (data.ok && data.records && data.records.length) {
+      const rec = data.records[0];
+      imgEl.src = rec.image_path || '';
+      txtEl.textContent = rec.analysis || '';
+    } else {
+      imgEl.src = '';
+      txtEl.textContent = 'No recent signal yet. Awaiting BUY/SELL trigger.';
+    }
+  } catch (e) {
+    console.error('Error loading live screenshot:', e);
   }
 }
 
