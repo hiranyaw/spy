@@ -172,13 +172,19 @@ SCREENSHOTS_DIR = os.path.join(BASE, "screenshots")
 os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 BOT_DIR = BASE  # alias for diagnostics
 import threading, time
-from capture_tv import capture_tradingview, save_image
-from claude_client import send_image
+try:
+    from capture_tv import capture_tradingview, save_image
+    from claude_client import send_image
+    CAPTURE_AVAILABLE = True
+except ImportError:
+    CAPTURE_AVAILABLE = False
 
 # Analysis configuration
 ANALYSIS_INTERVAL = int(os.getenv('ANALYSIS_INTERVAL', '300'))  # seconds
 
 def analysis_worker():
+    if not CAPTURE_AVAILABLE:
+        return
     while True:
         try:
             # Capture TradingView screenshot
@@ -205,10 +211,10 @@ def analysis_worker():
         except Exception as e:
             logger.error(f"Error in analysis worker: {e}")
         time.sleep(ANALYSIS_INTERVAL)
-    # (duplicate analysis block removed)
 
-# Start background analysis thread when the server module is imported
-threading.Thread(target=analysis_worker, daemon=True).start()
+# Start background analysis thread when capture is available
+if CAPTURE_AVAILABLE:
+    threading.Thread(target=analysis_worker, daemon=True).start()
 
 # API endpoint to retrieve recent analysis records
 @app.route("/api/analysis/recent", methods=["GET"])
