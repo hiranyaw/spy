@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';">
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; frame-src https://accounts.google.com;">
 <title>Hiranya — SPY Trader</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' fill='%230d1117'/><rect width='64' height='64' rx='12' fill='%233fb950' opacity='0.15'/><text x='32' y='22' font-family='Segoe UI,sans-serif' font-size='11' font-weight='700' fill='%233fb950' text-anchor='middle' letter-spacing='0.5'>SPY</text><text x='32' y='44' font-family='Segoe UI,sans-serif' font-size='10' font-weight='500' fill='%238b949e' text-anchor='middle'>Hiranya</text><rect x='10' y='48' width='44' height='2' rx='1' fill='%233fb950' opacity='0.6'/></svg>">
 <style>
 .news-link-hover:hover{text-decoration:underline !important;color:#79c0ff !important;transition:color 0.2s;}
@@ -254,13 +255,24 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
 </head>
 <body>
 <div style="flex-shrink:0">
-<div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
-  <div style="width:34px;height:34px;border-radius:8px;background:#0d3320;border:1.5px solid #3fb950;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><polyline points="3,16 8,9 13,13 19,5" stroke="#3fb950" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="5" r="2" fill="#3fb950"/></svg>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="width:34px;height:34px;border-radius:8px;background:#0d3320;border:1.5px solid #3fb950;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><polyline points="3,16 8,9 13,13 19,5" stroke="#3fb950" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="5" r="2" fill="#3fb950"/></svg>
+    </div>
+    <div>
+      <h1 style="margin:0">Hiranya's SPY Trader</h1>
+      <p class="sub" style="margin:0">AK MACD BB v2.0 — Reversal Edition &nbsp;|&nbsp; LA: 6:30–8:15 AM PT &nbsp;|&nbsp; 5-Factor Trend + 6-Method Reversal</p>
+    </div>
   </div>
-  <div>
-    <h1 style="margin:0">Hiranya's SPY Trader</h1>
-    <p class="sub" style="margin:0">AK MACD BB v2.0 — Reversal Edition &nbsp;|&nbsp; LA: 6:30–8:15 AM PT &nbsp;|&nbsp; 5-Factor Trend + 6-Method Reversal</p>
+
+  <!-- User Profile & Auth Widget -->
+  <div id="auth-nav-user" style="display:none;align-items:center;gap:10px;background:#161b22;border:1px solid #30363d;border-radius:20px;padding:3px 10px">
+    <img id="auth-nav-avatar" src="" alt="Avatar" style="width:22px;height:22px;border-radius:50%;border:1.5px solid #3fb950">
+    <span id="auth-nav-name" style="font-size:0.75rem;font-weight:700;color:#e6edf3;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <button onclick="googleLogout()" style="background:none;border:none;color:#f85149;font-size:0.72rem;font-weight:700;cursor:pointer;padding:2px 6px;border-radius:4px;display:flex;align-items:center;gap:3px;font-family:inherit">
+      <span>🚪</span> Logout
+    </button>
   </div>
 </div>
 
@@ -2020,6 +2032,173 @@ Only B Trades with FULL confirmation."></textarea>
 </div> <!-- Close main-content wrapper -->
 
 <script>
+// ══════════════════════════════════════════════
+//  GOOGLE AUTHENTICATION & LOGIN MANAGEMENT
+// ══════════════════════════════════════════════
+let googleAuthConfig = { client_id: '', require_auth: true };
+let currentAuthUser = null;
+
+async function checkAuthAndInitGoogle() {
+  try {
+    const res = await (await fetch('/api/auth/config')).json();
+    if (res.ok) {
+      googleAuthConfig = res;
+      if (res.logged_in && res.user) {
+        currentAuthUser = res.user;
+        updateAuthUI(res.user);
+        hideLoginOverlay();
+      } else {
+        currentAuthUser = null;
+        updateAuthUI(null);
+        if (res.require_auth) {
+          showLoginOverlay();
+          setupGoogleButton(res.client_id);
+        } else {
+          hideLoginOverlay();
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Auth check error:", err);
+  }
+}
+
+function showLoginOverlay() {
+  const overlay = document.getElementById('google-login-overlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function hideLoginOverlay() {
+  const overlay = document.getElementById('google-login-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function updateAuthUI(user) {
+  const navWidget = document.getElementById('auth-nav-user');
+  const avatarEl = document.getElementById('auth-nav-avatar');
+  const nameEl = document.getElementById('auth-nav-name');
+
+  if (user) {
+    if (navWidget) navWidget.style.display = 'flex';
+    if (avatarEl) {
+      avatarEl.src = user.picture || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%233fb950"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>';
+    }
+    if (nameEl) nameEl.textContent = user.name || user.email;
+  } else {
+    if (navWidget) navWidget.style.display = 'none';
+  }
+}
+
+function setupGoogleButton(clientId) {
+  const container = document.getElementById('google-btn-wrapper');
+  const helper = document.getElementById('google-client-id-helper');
+  const statusMsg = document.getElementById('google-auth-status-msg');
+
+  // Check if client ID is saved in localStorage as fallback
+  const effectiveClientId = clientId || localStorage.getItem('spy_google_client_id') || '';
+
+  if (!effectiveClientId) {
+    if (helper) helper.style.display = 'block';
+    if (statusMsg) {
+      statusMsg.innerHTML = '<span style="color:#f0883e">⚠️ Google Client ID not configured yet.</span>';
+    }
+    return;
+  }
+
+  if (helper) helper.style.display = 'none';
+  if (statusMsg) statusMsg.textContent = '';
+
+  // Wait for Google GSI client library to load if needed
+  const initGsi = () => {
+    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+      try {
+        google.accounts.id.initialize({
+          client_id: effectiveClientId,
+          callback: handleGoogleCredentialResponse,
+          auto_select: false,
+          cancel_on_tap_outside: false
+        });
+
+        if (container) {
+          container.innerHTML = '';
+          google.accounts.id.renderButton(container, {
+            theme: 'filled_black',
+            size: 'large',
+            shape: 'pill',
+            text: 'signin_with',
+            logo_alignment: 'left',
+            width: 280
+          });
+        }
+
+        google.accounts.id.prompt(); // Also display One Tap prompt if available
+      } catch (gErr) {
+        console.error("Google GSI initialization error:", gErr);
+        if (statusMsg) statusMsg.textContent = "Google Sign-In initialization error: " + gErr.message;
+      }
+    } else {
+      setTimeout(initGsi, 200);
+    }
+  };
+
+  initGsi();
+}
+
+async function handleGoogleCredentialResponse(response) {
+  const statusMsg = document.getElementById('google-auth-status-msg');
+  if (statusMsg) statusMsg.innerHTML = '<span style="color:#58a6ff">Verifying with server...</span>';
+
+  try {
+    const res = await (await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential })
+    })).json();
+
+    if (res.ok && res.user) {
+      currentAuthUser = res.user;
+      updateAuthUI(res.user);
+      hideLoginOverlay();
+      if (statusMsg) statusMsg.textContent = '';
+    } else {
+      if (statusMsg) {
+        statusMsg.innerHTML = `<span style="color:#f85149">⚠️ ${res.error || 'Authentication failed'}</span>`;
+      }
+    }
+  } catch (err) {
+    if (statusMsg) {
+      statusMsg.innerHTML = `<span style="color:#f85149">⚠️ Error: ${err.message}</span>`;
+    }
+  }
+}
+
+async function googleLogout() {
+  if (!confirm('Log out of SPY Trader Dashboard?')) return;
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    currentAuthUser = null;
+    updateAuthUI(null);
+    showLoginOverlay();
+    setupGoogleButton(googleAuthConfig.client_id);
+    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+      google.accounts.id.disableAutoSelect();
+    }
+  } catch (err) {
+    console.error("Logout error:", err);
+  }
+}
+
+function saveManualClientId() {
+  const input = document.getElementById('manual-client-id-input');
+  if (!input || !input.value.trim()) return alert('Please enter a Google Client ID');
+  const val = input.value.trim();
+  localStorage.setItem('spy_google_client_id', val);
+  setupGoogleButton(val);
+}
+
+// Check authentication on startup
+checkAuthAndInitGoogle();
+
 // Chart.js removed - using localStorage for journal instead
 let eqChart=null, trChart=null, compareChart=null, dailyChart=null;
 let lastUpdateStr = null;
@@ -6346,6 +6525,42 @@ function ptrUpdateProgress() {
     <div style="margin-top:20px;display:flex;justify-content:flex-end">
       <button onclick="closeTvModal()" style="background:#21262d;border:1px solid #30363d;color:#c9d1d9;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;outline:none;font-family:inherit">Dismiss</button>
     </div>
+  </div>
+</div>
+
+<!-- Google Login Modal Overlay -->
+<div id="google-login-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(13,17,23,0.96);backdrop-filter:blur(10px);z-index:999999;align-items:center;justify-content:center">
+  <div style="background:#161b22;border:1.5px solid #30363d;border-radius:18px;padding:36px;max-width:440px;width:90%;box-shadow:0 24px 70px rgba(0,0,0,0.85);text-align:center;display:flex;flex-direction:column;align-items:center;gap:20px">
+    
+    <div style="width:64px;height:64px;border-radius:16px;background:#0d3320;border:2px solid #3fb950;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px rgba(63,185,80,0.2)">
+      <svg width="36" height="36" viewBox="0 0 22 22" fill="none"><polyline points="3,16 8,9 13,13 19,5" stroke="#3fb950" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="5" r="2.2" fill="#3fb950"/></svg>
+    </div>
+
+    <div>
+      <h2 style="margin:0 0 6px 0;font-size:1.45rem;color:#e6edf3;font-weight:800">SPY Trader Dashboard</h2>
+      <p style="margin:0;font-size:0.84rem;color:#8b949e;line-height:1.45">Sign in with your Google account to access real-time signals, analysis, and trade execution.</p>
+    </div>
+
+    <!-- Google Sign In Button Container -->
+    <div id="google-signin-btn-container" style="margin-top:6px;min-height:44px;display:flex;justify-content:center;width:100%">
+      <div id="g_id_onload"></div>
+      <div id="google-btn-wrapper"></div>
+    </div>
+
+    <div id="google-auth-status-msg" style="font-size:0.8rem;color:#8b949e;min-height:18px"></div>
+
+    <!-- Client ID Setup Helper Box if Client ID is missing -->
+    <div id="google-client-id-helper" style="display:none;background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:left;font-size:0.75rem;color:#8b949e;width:100%;box-sizing:border-box">
+      <div style="font-weight:700;color:#58a6ff;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+        <span>⚙️</span> Google Client ID Setup
+      </div>
+      <p style="margin:0 0 8px 0;line-height:1.4">To enable Google Sign-In, enter your Google OAuth 2.0 Client ID below (or configure <code style="color:#3fb950">GOOGLE_CLIENT_ID</code> in Railway):</p>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="manual-client-id-input" placeholder="e.g. 123456...apps.googleusercontent.com" style="flex:1;background:#161b22;border:1px solid #30363d;color:#e6edf3;border-radius:6px;padding:7px 10px;font-size:0.75rem;outline:none">
+        <button onclick="saveManualClientId()" style="background:#238636;border:1px solid #2ea44f;color:#fff;border-radius:6px;padding:7px 14px;font-size:0.75rem;font-weight:700;cursor:pointer">Save</button>
+      </div>
+    </div>
+
   </div>
 </div>
 

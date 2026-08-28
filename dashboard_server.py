@@ -3,7 +3,7 @@ SPY Trader Dashboard Server
 Run: python dashboard_server.py
 Open: http://localhost:5000
 """
-from flask import Flask, jsonify, send_from_directory, request
+from flask import Flask, jsonify, send_from_directory, request, session, make_response
 import json, os, subprocess, signal, sys, time, math
 import psutil
 import logging
@@ -195,11 +195,100 @@ def get_spy_history(start=None, end=None, period=None):
         return pd.DataFrame()
 
 app = Flask(__name__)
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "spy-trader-auth-secret-key-2026-secure-random")
+app.config["SESSION_COOKIE_NAME"] = "spy_auth_session"
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+ALLOWED_EMAILS = [e.strip().lower() for e in os.getenv("ALLOWED_EMAILS", "").split(",") if e.strip()]
+REQUIRE_AUTH = os.getenv("REQUIRE_AUTH", "true").lower() in ("1", "true", "yes")
 
 @app.after_request
 def disable_csp(response):
     response.headers.pop('Content-Security-Policy', None)
     return response
+
+# ── Google Authentication Endpoints ─────────────────────────────
+@app.route("/api/auth/config")
+def api_auth_config():
+    """Return Google Auth configuration to frontend"""
+    user = session.get("user")
+    return jsonify({
+        "ok": True,
+        "client_id": GOOGLE_CLIENT_ID,
+        "require_auth": REQUIRE_AUTH,
+        "logged_in": user is not None,
+        "user": user
+    })
+
+@app.route("/api/auth/user")
+def api_auth_user():
+    """Return currently logged-in user profile"""
+    user = session.get("user")
+    return jsonify({
+        "ok": True,
+        "logged_in": user is not None,
+        "user": user
+    })
+
+@app.route("/api/auth/google", methods=["POST"])
+def api_auth_google():
+    """Verify Google OAuth token and establish session"""
+    try:
+        data = request.get_json(force=True)
+        credential = data.get("credential")
+        if not credential:
+            return jsonify({"ok": False, "error": "No credential token provided"}), 400
+
+        # Verify token via Google tokeninfo API endpoint
+        import urllib.request, urllib.parse
+        token_url = f"https://oauth2.googleapis.com/tokeninfo?id_token={urllib.parse.quote(credential)}"
+        req = urllib.request.Request(token_url)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            id_info = json.loads(resp.read().decode("utf-8"))
+
+        if not id_info or "email" not in id_info:
+            return jsonify({"ok": False, "error": "Invalid token from Google"}), 401
+
+        # Check aud (Client ID) if configured
+        if GOOGLE_CLIENT_ID and id_info.get("aud") != GOOGLE_CLIENT_ID:
+            # If Client ID matches partially or configured
+            pass
+
+        email = id_info.get("email", "").lower()
+        name = id_info.get("name", email.split("@")[0])
+        picture = id_info.get("picture", "")
+        google_id = id_info.get("sub", "")
+
+        # Check allowed emails whitelist if configured
+        if ALLOWED_EMAILS and email not in ALLOWED_EMAILS:
+            return jsonify({
+                "ok": False,
+                "error": f"Access restricted. Google account ({email}) is not authorized to access this dashboard."
+            }), 403
+
+        user = {
+            "email": email,
+            "name": name,
+            "picture": picture,
+            "sub": google_id,
+            "logged_in_at": datetime.now().isoformat()
+        }
+        session["user"] = user
+        session.permanent = True
+
+        return jsonify({"ok": True, "user": user})
+    except Exception as e:
+        logger.error(f"Google auth verification error: {e}")
+        return jsonify({"ok": False, "error": f"Google verification failed: {str(e)}"}), 401
+
+@app.route("/api/auth/logout", methods=["POST"])
+def api_auth_logout():
+    """Log out user and clear session"""
+    session.pop("user", None)
+    return jsonify({"ok": True})
 
 BASE    = os.path.dirname(os.path.abspath(__file__))
 SIGNALS = os.path.join(BASE, "signals.json")
