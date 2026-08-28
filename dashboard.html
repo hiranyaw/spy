@@ -1707,10 +1707,26 @@ Only B Trades with FULL confirmation."></textarea>
   <!-- Monthly View Section -->
   <div id="ana-view-monthly" style="display:none">
     
-    <!-- Controls -->
-    <div style="text-align:right; margin-bottom:15px">
-      <input type="checkbox" id="ana-month-include-manual" onchange="loadAnaMonthly()" style="cursor:pointer; width:16px; height:16px; vertical-align:middle; margin-right:5px">
-      <label for="ana-month-include-manual" style="cursor:pointer; font-size:0.9rem; color:#c9d1d9; vertical-align:middle">Include Manual Trades</label>
+    <!-- Controls & Month Filter Toolbar -->
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#161b22; border:1px solid #30363d; border-radius:10px; padding:12px 18px; margin-bottom:20px; flex-wrap:wrap; gap:12px">
+      <div style="display:flex; align-items:center; gap:12px">
+        <span style="font-size:0.85rem; font-weight:700; color:#58a6ff; display:flex; align-items:center; gap:6px">
+          <span>📅</span> Filter Month:
+        </span>
+        <div style="display:flex; align-items:center; gap:6px">
+          <button onclick="changeAnaMonthStep(-1)" style="background:#0d1117; border:1px solid #30363d; color:#c9d1d9; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:0.85rem; font-weight:bold" title="Previous Month">◀</button>
+          <select id="ana-month-select" onchange="onAnaMonthChange()" style="background:#0d1117; border:1.5px solid #388bfd; color:#e6edf3; border-radius:6px; padding:6px 14px; font-size:0.85rem; font-weight:700; cursor:pointer; outline:none">
+            <option value="all">🌐 All Months (Lifetime)</option>
+          </select>
+          <button onclick="changeAnaMonthStep(1)" style="background:#0d1117; border:1px solid #30363d; color:#c9d1d9; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:0.85rem; font-weight:bold" title="Next Month">▶</button>
+        </div>
+        <span id="ana-month-active-badge" style="font-size:0.75rem; color:#8b949e; background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:3px 10px">Showing all data</span>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:8px">
+        <input type="checkbox" id="ana-month-include-manual" onchange="loadAnaMonthly()" style="cursor:pointer; width:16px; height:16px; accent-color:#3fb950">
+        <label for="ana-month-include-manual" style="cursor:pointer; font-size:0.85rem; color:#c9d1d9; user-select:none">Include Manual Trades</label>
+      </div>
     </div>
 
     <!-- Monthly Stats Grid -->
@@ -4291,12 +4307,31 @@ function switchAnaSubTab(tab) {
   }
 }
 
+function onAnaMonthChange() {
+  loadAnaMonthly();
+}
+
+function changeAnaMonthStep(delta) {
+  const select = document.getElementById('ana-month-select');
+  if (!select || select.options.length <= 1) return;
+  let nextIdx = select.selectedIndex + delta;
+  if (nextIdx < 0) nextIdx = 0;
+  if (nextIdx >= select.options.length) nextIdx = select.options.length - 1;
+  if (nextIdx !== select.selectedIndex) {
+    select.selectedIndex = nextIdx;
+    onAnaMonthChange();
+  }
+}
+
 async function loadAnaMonthly() {
   const tableBody = document.getElementById('ana-month-table-body');
   tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:#8b949e;padding:20px">
     <span class="ind ind-g" style="animation:pulse 1s infinite"></span> Loading monthly stats...
   </td></tr>`;
   
+  const monthSelect = document.getElementById('ana-month-select');
+  const selectedMonth = monthSelect ? monthSelect.value : 'all';
+
   // ── 1. Fetch data ────────────────────────────────────────────────────────
   let res;
   let journalMap = {};
@@ -4304,7 +4339,7 @@ async function loadAnaMonthly() {
     const cb = document.getElementById('ana-month-include-manual');
     const includeManual = cb ? cb.checked : true;
     const [fetchObj, jObj] = await Promise.all([
-      fetch(`/api/analysis/monthly?include_manual=${includeManual}&t=${Date.now()}`),
+      fetch(`/api/analysis/monthly?include_manual=${includeManual}&month=${encodeURIComponent(selectedMonth)}&t=${Date.now()}`),
       fetch(`/journal/get?date=all&t=${Date.now()}`).catch(() => null)
     ]);
     res = await fetchObj.json();
@@ -4330,10 +4365,44 @@ async function loadAnaMonthly() {
     return;
   }
 
+  // Populate/refresh month selector options dynamically
+  if (monthSelect && res.available_months && res.available_months.length > 0) {
+    const curVal = monthSelect.value;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const formatMonthName = (mStr) => {
+      const parts = mStr.split('-');
+      const y = parts[0];
+      const m = parseInt(parts[1], 10);
+      const mName = monthNames[m - 1] || parts[1];
+      return `${mName} ${y} (${mStr})`;
+    };
+
+    let optsHtml = '<option value="all">🌐 All Months (Lifetime)</option>';
+    res.available_months.forEach(m => {
+      optsHtml += `<option value="${m}">${formatMonthName(m)}</option>`;
+    });
+    monthSelect.innerHTML = optsHtml;
+    if (curVal && Array.from(monthSelect.options).some(o => o.value === curVal)) {
+      monthSelect.value = curVal;
+    }
+
+    const badge = document.getElementById('ana-month-active-badge');
+    if (badge) {
+      badge.textContent = monthSelect.value === 'all' ? 'Showing all data' : `Filtered: ${formatMonthName(monthSelect.value)}`;
+      badge.style.color = monthSelect.value === 'all' ? '#8b949e' : '#388bfd';
+    }
+  }
+
   if (!res.data || res.data.length === 0) {
     tableBody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:#8b949e;padding:20px">
-      📭 No trade data found yet. Log trades in Paper Trading or Trade Journal, or upload TOS statements.
+      📭 No trade data found for ${selectedMonth === 'all' ? 'the selected period' : selectedMonth}.
     </td></tr>`;
+    // Update stat cards to zero
+    document.getElementById('ana-month-stat-days').textContent = '0';
+    document.getElementById('ana-month-stat-dir').textContent  = '0%';
+    const actualEl = document.getElementById('ana-month-stat-actual');
+    if (actualEl) { actualEl.textContent = '$0.00'; actualEl.style.color = '#8b949e'; }
+    renderConditionStatsSection(selectedMonth);
     return;
   }
 
@@ -4506,7 +4575,15 @@ async function loadAnaMonthly() {
       // Data table + stat cards are already visible — just skip charts silently
     });
 
-    renderConditionStatsSection();
+    renderConditionStatsSection(selectedMonth);
+
+  } catch (renderErr) {
+    console.error('Error rendering monthly data:', renderErr);
+    tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#f85149;padding:20px">
+      ⚠️ Error rendering monthly stats: ${renderErr.message}
+    </td></tr>`;
+  }
+}
 
   } catch (renderErr) {
     console.error('Error rendering monthly data:', renderErr);
@@ -5389,14 +5466,18 @@ async function saveTradeClassification() {
   }
 }
 
-async function renderConditionStatsSection() {
+async function renderConditionStatsSection(month) {
   try {
-    const res = await (await fetch('/api/analysis/condition_stats')).json();
+    const selectedMonth = month || document.getElementById('ana-month-select')?.value || 'all';
+    const res = await (await fetch(`/api/analysis/condition_stats?month=${encodeURIComponent(selectedMonth)}&t=${Date.now()}`)).json();
     if (!res.ok || !res.stats) return;
     const s = res.stats;
 
     const badge = document.getElementById('ana-conditions-total-badge');
-    if (badge) badge.textContent = `${s.total_trades} Total Trades Analyzed`;
+    if (badge) {
+      const monthLabel = selectedMonth === 'all' ? 'Lifetime' : selectedMonth;
+      badge.textContent = `${s.total_trades} Trades Analyzed (${monthLabel})`;
+    }
 
     const container = document.getElementById('ana-condition-cards-container');
     if (container) {

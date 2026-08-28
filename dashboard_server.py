@@ -2262,8 +2262,9 @@ def classify_trade():
 
 @app.route("/api/analysis/condition_stats")
 def api_condition_stats():
-    """Aggregate performance and win rate for each condition across all files/trades"""
+    """Aggregate performance and win rate for each condition across all files/trades, optionally filtered by month"""
     try:
+        month = request.args.get("month", "").strip()
         classifications = load_trade_classifications()
         local_files = set(f for f in os.listdir(TOS_DIR) if f.endswith(".csv"))
         if DB_AVAILABLE:
@@ -2293,6 +2294,11 @@ def api_condition_stats():
                     trades = tos_parser.pair_trades(executions)
                     spy_trades = [t for t in trades if t.get("underlying") == "SPY" and t.get("closed")]
                     for idx, t in enumerate(spy_trades):
+                        if month and month != "all":
+                            t_entry_month = t["entry_time"].strftime("%Y-%m")
+                            if t_entry_month != month:
+                                continue
+
                         t_copy = t.copy()
                         key = f"{filename}::{idx}"
                         cls_item = classifications.get(key, {})
@@ -2707,9 +2713,25 @@ def api_analysis_monthly():
         
         # Safe sort: push errors to the end
         monthly_data.sort(key=lambda x: x.get("date", "9999-12-31"))
-        
-        has_tos = any(d.get("source") != "manual" and not d.get("error") for d in monthly_data)
-        return jsonify({"ok": True, "data": monthly_data, "has_tos": has_tos})
+
+        # Collect distinct available months (sorted reverse chronological)
+        available_months = sorted(list(set(
+            d["date"][:7] for d in monthly_data if d.get("date") and len(d["date"]) >= 7
+        )), reverse=True)
+
+        month_filter = request.args.get("month", "all").strip()
+        filtered_data = monthly_data
+        if month_filter and month_filter != "all":
+            filtered_data = [d for d in monthly_data if d.get("date", "").startswith(month_filter)]
+
+        has_tos = any(d.get("source") != "manual" and not d.get("error") for d in filtered_data)
+        return jsonify({
+            "ok": True,
+            "data": filtered_data,
+            "available_months": available_months,
+            "selected_month": month_filter,
+            "has_tos": has_tos
+        })
     except Exception as e:
         import traceback
         traceback.print_exc()
