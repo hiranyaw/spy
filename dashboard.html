@@ -1695,7 +1695,31 @@ Only B Trades with FULL confirmation."></textarea>
               <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">✅ Direction Right</div>
               <div id="ana-daily-cond-dir-wr" style="font-size:1.35rem;font-weight:800;color:#3fb950;margin:4px 0">0.0% Acc</div>
               <div id="ana-daily-cond-dir-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+          </div>
+        </div>
+
+        <!-- ── AI Best Time to Trade Summary ──────────────────────── -->
+        <div id="ana-ai-timing-box" style="background:#0d1117;border:1.5px solid #238636;border-radius:10px;padding:16px;margin-bottom:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+            <h4 style="margin:0;color:#3fb950;font-size:0.95rem;font-weight:700;display:flex;align-items:center;gap:8px">
+              <span>⏰</span> AI Best Time to Trade — Daily Timing Intelligence
+            </h4>
+            <span id="ana-ai-golden-badge" style="font-size:0.75rem;font-weight:700;color:#3fb950;background:#0d2818;border:1px solid #238636;border-radius:6px;padding:3px 12px">
+              🏆 Optimal: 08:00 - 09:00 PT
+            </span>
+          </div>
+
+          <!-- 5 Time Windows Performance Grid -->
+          <div id="ana-ai-timing-grid" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:10px;margin-bottom:14px">
+          </div>
+
+          <!-- AI Timing Insights & Today's Critique -->
+          <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px">
+            <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:8px">
+              🤖 AI Timing Verdict & Today's Execution Review
             </div>
+            <ul id="ana-ai-timing-insights" style="margin:0;padding-left:20px;font-size:0.85rem;color:#c9d1d9;line-height:1.6">
+            </ul>
           </div>
         </div>
         
@@ -4914,9 +4938,74 @@ async function loadAnaSummary(filename) {
         
         summaryBox.style.display = 'block';
       }
+
+      // Render AI Best Time to Trade Summary
+      if (sum.timing_analysis) {
+        renderAiTimingSummary(sum.timing_analysis);
+      }
     }
   } catch (err) {
     console.error("Error loading daily summary:", err);
+  }
+}
+
+function renderAiTimingSummary(timingData) {
+  if (!timingData) return;
+  const goldenBadge = document.getElementById('ana-ai-golden-badge');
+  const timingGrid = document.getElementById('ana-ai-timing-grid');
+  const insightsList = document.getElementById('ana-ai-timing-insights');
+  if (!timingGrid || !insightsList) return;
+
+  // 1. Golden Badge
+  if (goldenBadge && timingData.best_window) {
+    goldenBadge.textContent = `🏆 AI Golden Window: ${timingData.best_window.label}`;
+  }
+
+  // 2. 5 Time Windows Performance Grid
+  timingGrid.innerHTML = '';
+  const histList = timingData.historical_stats || [];
+  const todayList = timingData.today_stats || [];
+
+  histList.forEach((hw) => {
+    const tw = todayList.find(t => t.id === hw.id) || { count: 0, total_pnl: 0, win_rate: 0 };
+    const card = document.createElement('div');
+    const isBest = timingData.best_window && timingData.best_window.id === hw.id;
+    const borderCol = isBest ? '#3fb950' : (hw.theme || '#30363d');
+    
+    card.style.cssText = `background:#161b22;border:1px solid #30363d;border-top:3px solid ${borderCol};border-radius:8px;padding:10px 8px;text-align:center;position:relative;`;
+    
+    const todayPnlStr = tw.count > 0 ? ((tw.total_pnl >= 0 ? '+$' : '-$') + Math.abs(tw.total_pnl).toFixed(0)) : '$0';
+    const todayPnlColor = tw.total_pnl > 0 ? '#3fb950' : (tw.total_pnl < 0 ? '#f85149' : '#8b949e');
+    const histPnlStr = (hw.total_pnl >= 0 ? '+$' : '-$') + Math.abs(hw.total_pnl).toFixed(0);
+    const subLabel = hw.sub.split('(')[1] ? hw.sub.split('(')[1].replace(')', '') : hw.sub;
+
+    card.innerHTML = `
+      <div style="font-size:0.75rem;color:#e6edf3;font-weight:700;margin-bottom:2px">${hw.label}</div>
+      <div style="font-size:0.65rem;color:#8b949e;margin-bottom:6px">${subLabel}</div>
+      <div style="font-size:1.15rem;font-weight:800;color:${borderCol};margin-bottom:2px">${hw.win_rate.toFixed(1)}% WR</div>
+      <div style="font-size:0.7rem;color:#8b949e;margin-bottom:8px">Hist: ${hw.count} trades | <span style="color:${hw.total_pnl >= 0 ? '#3fb950' : '#f85149'};font-weight:600">${histPnlStr}</span></div>
+      <div style="background:#0d1117;border:1px solid #21262d;border-radius:6px;padding:4px 6px;font-size:0.72rem">
+        <span style="color:#8b949e">Today: </span>
+        <strong style="color:#e6edf3">${tw.count} trade${tw.count !== 1 ? 's' : ''}</strong> | <strong style="color:${todayPnlColor}">${todayPnlStr}</strong>
+      </div>
+    `;
+    timingGrid.appendChild(card);
+  });
+
+  // 3. AI Timing Insights List
+  insightsList.innerHTML = '';
+  const insights = timingData.ai_insights || [];
+  if (insights.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = 'Upload or select trade statements to generate AI optimal timing analysis.';
+    insightsList.appendChild(li);
+  } else {
+    insights.forEach(ins => {
+      const li = document.createElement('li');
+      li.style.marginBottom = '6px';
+      li.innerHTML = ins.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      insightsList.appendChild(li);
+    });
   }
 }
 

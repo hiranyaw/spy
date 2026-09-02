@@ -4,7 +4,7 @@ Run: python dashboard_server.py
 Open: http://localhost:5000
 """
 from flask import Flask, jsonify, send_from_directory, request, session, make_response
-import json, os, subprocess, signal, sys, time, math
+import json, os, subprocess, signal, sys, time, math, glob
 import psutil
 import logging
 logger = logging.getLogger(__name__)
@@ -1926,6 +1926,154 @@ def save_analysis_cache(cache):
     except Exception as e:
         print(f"Error saving cache: {e}")
 
+def compute_ai_timing_analysis(day_trades, all_history_trades=None):
+    """
+    Computes time-of-day performance windows and generates AI-driven
+    timing recommendations based on both historical edge and today's execution.
+    """
+    if all_history_trades is None:
+        all_history_trades = []
+        for fp in glob.glob(os.path.join(TOS_DIR, "*.csv")):
+            if "mock_trades" in os.path.basename(fp):
+                continue
+            try:
+                t_list = tos_parser.load_and_parse_trades(fp)
+                for t in t_list:
+                    if t.get("closed") and t.get("pnl") is not None and t.get("entry_time"):
+                        all_history_trades.append(t)
+            except Exception:
+                pass
+
+    from datetime import time as dt_time
+
+    # 5 standard market time intervals (Pacific Time)
+    time_windows = [
+        {"id": "open", "label": "06:30 - 07:00 PT", "sub": "09:30 - 10:00 ET (Market Open / Discovery)", "start": dt_time(6, 30), "end": dt_time(7, 0), "theme": "#f85149"},
+        {"id": "early_trend", "label": "07:00 - 07:30 PT", "sub": "10:00 - 10:30 ET (Early Trend Formation)", "start": dt_time(7, 0), "end": dt_time(7, 30), "theme": "#ff9e2c"},
+        {"id": "mid_morning", "label": "07:30 - 08:00 PT", "sub": "10:30 - 11:00 ET (Peak Follow-Through)", "start": dt_time(7, 30), "end": dt_time(8, 0), "theme": "#3fb950"},
+        {"id": "midday", "label": "08:00 - 09:00 PT", "sub": "11:00 - 12:00 ET (Midday Continuation)", "start": dt_time(8, 0), "end": dt_time(9, 0), "theme": "#58a6ff"},
+        {"id": "afternoon", "label": "09:00+ PT", "sub": "12:00+ ET (Afternoon / Power Hour)", "start": dt_time(9, 0), "end": dt_time(13, 0), "theme": "#a371f7"},
+    ]
+
+    def _get_window_id(t_time):
+        if not t_time:
+            return "open"
+        t_val = t_time.time() if hasattr(t_time, "time") else t_time
+        for w in time_windows:
+            if w["start"] <= t_val < w["end"]:
+                return w["id"]
+        return "afternoon" if t_val >= dt_time(9, 0) else "open"
+
+    # 1. Historical Stats
+    hist_stats = {}
+    for w in time_windows:
+        w_trades = [t for t in all_history_trades if _get_window_id(t["entry_time"]) == w["id"]]
+        cnt = len(w_trades)
+        wins = sum(1 for t in w_trades if (t.get("pnl") or 0) > 0)
+        losses = sum(1 for t in w_trades if (t.get("pnl") or 0) < 0)
+        total_pnl = sum((t.get("pnl") or 0) for t in w_trades)
+        wr = (wins / cnt * 100) if cnt > 0 else 0.0
+        avg_pnl = (total_pnl / cnt) if cnt > 0 else 0.0
+        hist_stats[w["id"]] = {
+            "id": w["id"],
+            "label": w["label"],
+            "sub": w["sub"],
+            "theme": w["theme"],
+            "count": cnt,
+            "wins": wins,
+            "losses": losses,
+            "win_rate": round(wr, 1),
+            "total_pnl": round(total_pnl, 2),
+            "avg_pnl": round(avg_pnl, 2),
+        }
+
+    # 2. Today's Stats
+    day_closed = [t for t in day_trades if t.get("closed") and t.get("pnl") is not None and t.get("entry_time")]
+    today_stats = {}
+    for w in time_windows:
+        w_trades = [t for t in day_closed if _get_window_id(t["entry_time"]) == w["id"]]
+        cnt = len(w_trades)
+        wins = sum(1 for t in w_trades if (t.get("pnl") or 0) > 0)
+        losses = sum(1 for t in w_trades if (t.get("pnl") or 0) < 0)
+        total_pnl = sum((t.get("pnl") or 0) for t in w_trades)
+        wr = (wins / cnt * 100) if cnt > 0 else 0.0
+        today_stats[w["id"]] = {
+            "id": w["id"],
+            "label": w["label"],
+            "theme": w["theme"],
+            "count": cnt,
+            "wins": wins,
+            "losses": losses,
+            "win_rate": round(wr, 1),
+            "total_pnl": round(total_pnl, 2),
+        }
+
+    # 3. Identify Golden Window
+    valid_hist = [h for h in hist_stats.values() if h["count"] >= 5]
+    if valid_hist:
+        best_window = max(valid_hist, key=lambda x: (x["total_pnl"] > 0, x["avg_pnl"], x["win_rate"]))
+    else:
+        best_window = hist_stats["midday"]
+
+    # 4. Generate AI Timing Insights
+    ai_insights = []
+    ai_insights.append(
+        f"🎯 **AI Recommended Golden Window**: **{best_window['label']}** ({best_window['sub']}) "
+        f"— Historically generates your highest edge with **{best_window['win_rate']}% Win Rate** "
+        f"and **+${best_window['avg_pnl']:.2f} avg P&L per trade**."
+    )
+
+    today_open_trades = [t for t in day_closed if (t["entry_time"].time() if hasattr(t["entry_time"], "time") else t["entry_time"]) < dt_time(7, 0)]
+    today_prime_trades = [t for t in day_closed if (t["entry_time"].time() if hasattr(t["entry_time"], "time") else t["entry_time"]) >= dt_time(7, 30)]
+
+    if today_open_trades:
+        open_pnl = sum((t.get("pnl") or 0) for t in today_open_trades)
+        pnl_str = f"+${open_pnl:.2f}" if open_pnl >= 0 else f"-${abs(open_pnl):.2f}"
+        if open_pnl < 0:
+            ai_insights.append(
+                f"⚠️ **Opening Friction (<07:00 AM PT)**: You took {len(today_open_trades)} early trade(s) resulting in **{pnl_str}**. "
+                f"The first 30 minutes carry wider option spreads and fast whipsaws. Allowing the initial range to settle before entry prevents premature stop-outs."
+            )
+        else:
+            ai_insights.append(
+                f"✅ **Early Session Execution**: {len(today_open_trades)} trade(s) before 07:00 AM PT captured **{pnl_str}**."
+            )
+
+    if today_prime_trades:
+        prime_pnl = sum((t.get("pnl") or 0) for t in today_prime_trades)
+        pnl_str = f"+${prime_pnl:.2f}" if prime_pnl >= 0 else f"-${abs(prime_pnl):.2f}"
+        ai_insights.append(
+            f"🚀 **Prime Follow-Through Window (≥07:30 AM PT)**: Trades entered during confirmed morning momentum generated **{pnl_str}**. "
+            f"Focusing your position sizing in this sweet spot maximizes your reward-to-risk ratio."
+        )
+
+    return {
+        "best_window": best_window,
+        "historical_stats": list(hist_stats.values()),
+        "today_stats": list(today_stats.values()),
+        "ai_insights": ai_insights
+    }
+
+@app.route("/api/analysis/best_time")
+def api_analysis_best_time():
+    """Return AI Best Time to Trade analytics for a specific statement or all history"""
+    try:
+        filename = request.args.get("filename")
+        if filename:
+            filename = os.path.basename(filename)
+            filepath = os.path.join(TOS_DIR, filename)
+            if os.path.exists(filepath):
+                day_trades = tos_parser.load_and_parse_trades(filepath)
+            else:
+                day_trades = []
+        else:
+            day_trades = []
+            
+        timing_data = compute_ai_timing_analysis(day_trades)
+        return jsonify({"ok": True, "timing_analysis": timing_data})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/analysis/summary")
 def analysis_summary():
     """Generate daily summary and recommendations for a selected TOS CSV file"""
@@ -1970,7 +2118,8 @@ def analysis_summary():
                 "sim_2l_losses": 0,
                 "sim_2l_pnl": 0.0,
                 "recommendations": ["No closed SPY trades found in this statement."],
-                "donts": []
+                "donts": [],
+                "timing_analysis": compute_ai_timing_analysis([])
             }
             # Cache empty state
             cache[filename] = {
@@ -2165,6 +2314,7 @@ def analysis_summary():
             donts.append("DO NOT enter trades during the first 5 minutes of market open (before 6:35 AM PT / 9:35 AM ET) when volatility and options spreads are widest.")
             recommendations.append("Wait at least 5-15 minutes after market open for initial range discovery before taking a position.")
             
+        timing_analysis = compute_ai_timing_analysis(trades)
         summary = {
             "total_trades": len(spy_trades),
             "win_rate": round(win_rate, 1),
@@ -2186,7 +2336,8 @@ def analysis_summary():
             "sim_2l_losses": sim_2l_losses,
             "sim_2l_pnl": round(sim_2l_pnl, 2),
             "recommendations": recommendations,
-            "donts": donts
+            "donts": donts,
+            "timing_analysis": timing_analysis
         }
         
         # Save cache
