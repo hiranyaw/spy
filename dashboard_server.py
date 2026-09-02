@@ -2002,6 +2002,7 @@ def analysis_summary():
         stopped_out_correct_count = 0
         wrong_direction_count = 0
         early_exits_count = 0
+        total_missed_profit = 0
         total_missed_profit_1m = 0
         total_missed_profit_2m = 0
         total_missed_profit_5m = 0

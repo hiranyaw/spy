@@ -96,33 +96,44 @@ def parse_date(date_str):
             pass
     raise ValueError(f"Could not parse date: {date_str}")
 
+# Regex for Cash Balance transaction descriptions (e.g. BOT +1 SPY 100 (Weeklys) 1 SEP 26 762 CALL @1.36 CBOE)
+TRD_DESC_REGEX = re.compile(
+    r'^(BOT|SOLD|SLD)\s+([+-]?\d+)\s+(.+?)\s+@\s*([\d.]+)(?:\s+.*)?$',
+    re.IGNORECASE
+)
+
 def parse_tos_csv(filepath):
     """
-    Parse TOS CSV file to retrieve executions.
+    Parse TOS CSV file to retrieve executions from both
+    Account Trade History and Cash Balance TRD sections.
     """
-    executions = []
-    
     if not os.path.exists(filepath):
         return []
         
     with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
         lines = f.readlines()
         
+    # 1. Parse Account Trade History / Executions table
+    th_executions = []
     in_executions = False
     headers = None
-    
-    # Store detected column mappings
     time_col = None
     symbol_col = None
     price_col = None
     qty_col = None
     side_col = None
+
+    # 2. Parse Cash Balance TRD lines
+    cb_executions = []
+    in_cash = False
     
     for line in lines:
         line_str = line.strip()
         if not line_str:
             if in_executions:
                 in_executions = False
+            if in_cash:
+                in_cash = False
             continue
             
         reader = csv.reader([line_str])
@@ -132,8 +143,42 @@ def parse_tos_csv(filepath):
             continue
             
         parts = [p.strip() for p in parts]
+        if not parts:
+            continue
+
+        # Check for Cash Balance section
+        if "Cash Balance" in parts[0] or (len(parts) > 1 and "Cash Balance" in parts[1]):
+            in_cash = True
+            in_executions = False
+            continue
+
+        if in_cash and len(parts) >= 5 and parts[2] == "TRD":
+            date_str = parts[0]
+            time_str = parts[1]
+            desc = parts[4]
+            m = TRD_DESC_REGEX.match(desc)
+            if m:
+                action = "BUY" if m.group(1).upper() == "BOT" else "SELL"
+                qty = abs(int(m.group(2)))
+                raw_sym = m.group(3).strip()
+                price = float(m.group(4))
+                clean_sym = re.sub(r'\s*\([^)]*\)', '', raw_sym)
+                clean_sym = re.sub(r'\s+', ' ', clean_sym).strip()
+                try:
+                    dt = parse_date(f"{date_str} {time_str}")
+                    cb_executions.append({
+                        "time": dt,
+                        "side": action,
+                        "qty": qty,
+                        "price": price,
+                        "symbol": clean_sym,
+                        "pos_effect": "TO OPEN" if action == "BUY" else "TO CLOSE"
+                    })
+                except:
+                    pass
+            continue
         
-        # Look for headers dynamically
+        # Look for Trade History headers dynamically
         time_key = next((p for p in parts if p in ("Time", "Execution Time", "Exec Time")), None)
         symbol_key = next((p for p in parts if p == "Symbol"), None)
         price_key = next((p for p in parts if p in ("Price", "Net Price")), None)
@@ -142,6 +187,7 @@ def parse_tos_csv(filepath):
         
         if not in_executions and time_key and symbol_key and price_key and qty_key and side_key:
             in_executions = True
+            in_cash = False
             headers = parts
             time_col = time_key
             symbol_col = symbol_key
@@ -217,9 +263,37 @@ def parse_tos_csv(filepath):
                 norm_exec["symbol"] = symbol_val
                 
             norm_exec["pos_effect"] = exec_dict.get("Pos Effect", "").upper()
-            executions.append(norm_exec)
+            th_executions.append(norm_exec)
             
-    return executions
+    def normalize_sym(s):
+        return re.sub(r'\s+', ' ', s.upper()).strip()
+
+    # Merge TH and CB executions, deduplicating
+    seen = set()
+    merged = []
+
+    for ex in th_executions:
+        key = (ex["time"].strftime("%Y-%m-%d %H:%M:%S"), normalize_sym(ex["symbol"]), ex["side"], ex["qty"], round(ex["price"], 2))
+        seen.add(key)
+        merged.append(ex)
+
+    for ex in cb_executions:
+        key = (ex["time"].strftime("%Y-%m-%d %H:%M:%S"), normalize_sym(ex["symbol"]), ex["side"], ex["qty"], round(ex["price"], 2))
+        if key not in seen:
+            fuzzy_match = False
+            for s_key in seen:
+                s_time_str, s_sym, s_side, s_qty, s_price = s_key
+                s_time = datetime.strptime(s_time_str, "%Y-%m-%d %H:%M:%S")
+                if s_sym == normalize_sym(ex["symbol"]) and s_side == ex["side"] and s_qty == ex["qty"] and s_price == round(ex["price"], 2):
+                    if abs((s_time - ex["time"]).total_seconds()) <= 2:
+                        fuzzy_match = True
+                        break
+            if not fuzzy_match:
+                seen.add(key)
+                merged.append(ex)
+
+    merged.sort(key=lambda x: x["time"])
+    return merged
 
 def pair_trades(executions):
     """
