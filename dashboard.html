@@ -1438,8 +1438,9 @@ Only B Trades with FULL confirmation."></textarea>
       <div style="font-size:1.8rem;font-weight:700;color:#3fb950" id="ana-stat-winrate">0%</div>
     </div>
     <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
-      <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Total P&amp;L</div>
+      <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Net P&amp;L ($1 Trade Cost)</div>
       <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-stat-pnl">$0.00</div>
+      <div style="font-size:0.7rem;color:#8b949e;margin-top:2px" id="ana-stat-pnl-sub">Gross: $0.00 | Cost: $0.00</div>
     </div>
     <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
       <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Stopped Out but Correct</div>
@@ -1523,9 +1524,10 @@ Only B Trades with FULL confirmation."></textarea>
             <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Quantity</td><td style="padding:6px 0;text-align:right" id="ana-det-qty">--</td></tr>
             <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Entry Cost (Avg)</td><td style="padding:6px 0;text-align:right;font-weight:700" id="ana-det-entry-price">--</td></tr>
             <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Exit Cost (Avg)</td><td style="padding:6px 0;text-align:right;font-weight:700" id="ana-det-exit-price">--</td></tr>
-            <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Realized P&amp;L</td><td style="padding:6px 0;text-align:right;font-weight:700" id="ana-det-pnl">--</td></tr>
-            <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Commission</td><td style="padding:6px 0;text-align:right;font-weight:700" id="ana-det-commission">--</td></tr>
-<tr><td style="padding:6px 0;color:#8b949e">Time Window</td><td style="padding:6px 0;text-align:right;font-size:0.75rem" id="ana-det-time">--</td></tr>
+            <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Gross P&amp;L</td><td style="padding:6px 0;text-align:right;font-weight:700" id="ana-det-gross-pnl">--</td></tr>
+            <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Trade Cost</td><td style="padding:6px 0;text-align:right;font-weight:700;color:#ff9e2c" id="ana-det-commission">$1.00</td></tr>
+            <tr style="border-bottom:1px solid #21262d"><td style="padding:6px 0;color:#8b949e">Net Realized P&amp;L</td><td style="padding:6px 0;text-align:right;font-weight:700" id="ana-det-pnl">--</td></tr>
+            <tr><td style="padding:6px 0;color:#8b949e">Time Window</td><td style="padding:6px 0;text-align:right;font-size:0.75rem" id="ana-det-time">--</td></tr>
           </table>
         </div>
 
@@ -5015,14 +5017,18 @@ function renderDailyConditionSummary(trades) {
   const badge = document.getElementById('ana-daily-cond-total-badge');
   if (badge) badge.textContent = `${total} closed trade${total !== 1 ? 's' : ''}`;
 
+  const tradeCostPerTrade = 1.0;
   const _calc = (subset) => {
     const cnt = subset.length;
-    if (cnt === 0) return { count: 0, wins: 0, losses: 0, wr: 0, pnl: 0 };
-    const wins = subset.filter(t => (t.pnl || 0) > 0).length;
-    const losses = subset.filter(t => (t.pnl || 0) < 0).length;
+    if (cnt === 0) return { count: 0, wins: 0, losses: 0, wr: 0, pnl: 0, gross: 0, cost: 0 };
+    const netPnls = subset.map(t => (t.pnl || 0) - tradeCostPerTrade);
+    const wins = netPnls.filter(p => p > 0).length;
+    const losses = netPnls.filter(p => p < 0).length;
     const wr = (wins / cnt) * 100;
-    const pnl = subset.reduce((acc, t) => acc + (t.pnl || 0), 0);
-    return { count: cnt, wins, losses, wr, pnl };
+    const gross = subset.reduce((acc, t) => acc + (t.pnl || 0), 0);
+    const cost = cnt * tradeCostPerTrade;
+    const pnl = gross - cost;
+    return { count: cnt, wins, losses, wr, pnl, gross, cost };
   };
 
   const bTrades = _calc(closedTrades.filter(t => t.is_b_trade));
@@ -5038,7 +5044,7 @@ function renderDailyConditionSummary(trades) {
     wrEl.textContent = data.count > 0 ? `${data.wr.toFixed(1)}% ${labelSuffix}` : `--% ${labelSuffix}`;
     const pnlSign = data.pnl >= 0 ? '+$' : '-$';
     const pnlColor = data.pnl >= 0 ? '#3fb950' : '#f85149';
-    subEl.innerHTML = `${data.count} trade${data.count!==1?'s':''} (${data.wins}W / ${data.losses}L) &nbsp;|&nbsp; <span style="color:${pnlColor};font-weight:700">${pnlSign}$${Math.abs(data.pnl).toFixed(0)}</span>`;
+    subEl.innerHTML = `${data.count} trade${data.count!==1?'s':''} (${data.wins}W / ${data.losses}L) &nbsp;|&nbsp; <span style="color:${pnlColor};font-weight:700">${pnlSign}$${Math.abs(data.pnl).toFixed(0)} Net</span> <span style="font-size:0.68rem;color:#ff9e2c">($${data.cost.toFixed(0)} cost)</span>`;
   };
 
   _updateCard('btrade', bTrades, false);
@@ -5050,16 +5056,25 @@ function renderDailyConditionSummary(trades) {
 function renderAnaStats(trades) {
   const total = trades.length;
   const closedTrades = trades.filter(t => t.closed && t.pnl !== null);
-  const wins = closedTrades.filter(t => t.win).length;
+  const tradeCostPerTrade = 1.0;
+  const netPnls = closedTrades.map(t => (t.pnl || 0) - tradeCostPerTrade);
+  const wins = netPnls.filter(p => p > 0).length;
   const winRate = closedTrades.length > 0 ? ((wins / closedTrades.length) * 100).toFixed(1) : "0.0";
-  const totalPnl = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+  const totalGrossPnl = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
+  const totalCost = closedTrades.length * tradeCostPerTrade;
+  const totalNetPnl = totalGrossPnl - totalCost;
   
   document.getElementById('ana-stat-total').textContent = total;
   document.getElementById('ana-stat-winrate').textContent = `${winRate}%`;
   
   const pnlEl = document.getElementById('ana-stat-pnl');
-  pnlEl.textContent = (totalPnl >= 0 ? '+$' : '-$') + Math.abs(totalPnl).toFixed(2);
-  pnlEl.style.color = totalPnl >= 0 ? '#3fb950' : '#f85149';
+  pnlEl.textContent = (totalNetPnl >= 0 ? '+$' : '-$') + Math.abs(totalNetPnl).toFixed(2);
+  pnlEl.style.color = totalNetPnl >= 0 ? '#3fb950' : '#f85149';
+  
+  const pnlSubEl = document.getElementById('ana-stat-pnl-sub');
+  if (pnlSubEl) {
+    pnlSubEl.textContent = `Gross: $${totalGrossPnl.toFixed(2)} | Cost: -$${totalCost.toFixed(2)}`;
+  }
   
   document.getElementById('ana-stat-stopped').textContent = '0';
   renderDailyConditionSummary(trades);
@@ -5081,9 +5096,11 @@ function renderAnaTradeList(trades) {
     div.className = 'ana-trade-item';
     div.setAttribute('data-id', idx);
     
-    const pnlVal = t.pnl !== null ? t.pnl : 0;
-    const pnlStr = t.pnl !== null ? ((pnlVal >= 0 ? '+$' : '-$') + Math.abs(pnlVal).toFixed(2)) : 'Open';
-    const pnlColor = t.pnl !== null ? (t.win ? '#3fb950' : '#f85149') : '#8b949e';
+    const grossPnl = t.pnl !== null ? t.pnl : 0;
+    const cost = 1.0;
+    const netPnl = t.pnl !== null ? (grossPnl - cost) : 0;
+    const netPnlStr = t.pnl !== null ? ((netPnl >= 0 ? '+$' : '-$') + Math.abs(netPnl).toFixed(2)) : 'Open';
+    const netPnlColor = t.pnl !== null ? (netPnl > 0 ? '#3fb950' : '#f85149') : '#8b949e';
     
     // Resolve underlying market direction instead of option position direction
     const displayDir = (t.option_type === 'PUT') ? (t.direction === 'LONG' ? 'SHORT' : 'LONG') : t.direction;
@@ -5101,7 +5118,7 @@ function renderAnaTradeList(trades) {
     div.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:0.75rem;color:#8b949e">${dateStr} ${timeStr}</span>
-        <span style="font-size:0.85rem;font-weight:700;color:${pnlColor}">${pnlStr}</span>
+        <span style="font-size:0.85rem;font-weight:700;color:${netPnlColor}">${netPnlStr}</span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-weight:700;color:#e6edf3;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">${t.symbol}</span>
@@ -5110,9 +5127,9 @@ function renderAnaTradeList(trades) {
       <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">
         ${bBadge} ${crossBadge} ${earlyBadge} ${dirBadge}
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;font-size:0.7rem;color:#8b949e">
-        <span>Cost: $${t.trade_cost || 1.0}</span>
-        <span>Net: $${t.pnl !== null ? (t.pnl - (t.trade_cost || 1.0)).toFixed(2) : '--'}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #21262d;font-size:0.7rem;color:#8b949e">
+        <span>Gross: ${grossPnl >= 0 ? '+$' : '-$'}${Math.abs(grossPnl).toFixed(2)}</span>
+        <span style="color:#ff9e2c;font-weight:700">Cost: $1.00</span>
       </div>
     `;
 
@@ -5167,16 +5184,28 @@ async function selectAnaTrade(trade) {
   document.getElementById('ana-det-direction').textContent = displayDir;
   document.getElementById('ana-det-direction').style.color = directionColor;
   document.getElementById('ana-det-qty').textContent = trade.qty;
+
+  const grossPnl = trade.pnl !== null ? trade.pnl : 0;
+  const cost = 1.0;
+  const netPnl = trade.pnl !== null ? (grossPnl - cost) : 0;
+
+  const grossEl = document.getElementById('ana-det-gross-pnl');
+  if (grossEl) {
+    grossEl.textContent = trade.pnl !== null ? ((grossPnl >= 0 ? '+$' : '-$') + Math.abs(grossPnl).toFixed(2)) : '--';
+    grossEl.style.color = grossPnl >= 0 ? '#3fb950' : '#f85149';
+  }
+
   const commissionEl = document.getElementById('ana-det-commission');
-  const commission = 1; // flat $1 commission per trade
-  commissionEl.textContent = `$${commission.toFixed(2)}`;
+  if (commissionEl) {
+    commissionEl.textContent = `$${cost.toFixed(2)}`;
+    commissionEl.style.color = '#ff9e2c';
+  }
+
   document.getElementById('ana-det-entry-price').textContent = `$${trade.entry_price.toFixed(2)}`;
   document.getElementById('ana-det-exit-price').textContent = trade.exit_price !== null ? `$${trade.exit_price.toFixed(2)}` : '--';
   
   const pnlEl = document.getElementById('ana-det-pnl');
   if (trade.pnl !== null) {
-    const commission = 1; // flat $1 commission per trade
-    const netPnl = trade.pnl - commission;
     const netPnlPct = ((netPnl / trade.entry_price) * 100) || 0;
     pnlEl.textContent = (netPnl >= 0 ? '+$' : '-$') + Math.abs(netPnl).toFixed(2) + ` (${netPnlPct.toFixed(1)}%)`;
     pnlEl.style.color = netPnl >= 0 ? '#3fb950' : '#f85149';

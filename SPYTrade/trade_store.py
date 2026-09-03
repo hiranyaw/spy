@@ -80,6 +80,7 @@ def save_or_update_trade(trade: dict[str, Any]) -> dict[str, Any]:
 
     # Ensure numeric fields
     trade["pnl"] = float(trade.get("pnl", 0.0))
+    trade["trade_cost"] = float(trade.get("trade_cost", 1.0))
     trade["entry_price"] = float(trade.get("entry_price", 0.0))
     trade["exit_price"] = float(trade.get("exit_price", 0.0))
     trade["qty"] = float(trade.get("qty", 1.0))
@@ -164,7 +165,7 @@ def get_trades(
 
 
 def _calc_stats_for_subset(subset: list[dict[str, Any]]) -> dict[str, Any]:
-    """Calculate win rate, total P&L, wins, losses, even trades for a subset."""
+    """Calculate win rate, total Net P&L (after $1 trade cost/trade), gross P&L, total cost, wins, losses."""
     total = len(subset)
     if total == 0:
         return {
@@ -174,19 +175,28 @@ def _calc_stats_for_subset(subset: list[dict[str, Any]]) -> dict[str, Any]:
             "even": 0,
             "win_rate": 0.0,
             "total_pnl": 0.0,
+            "gross_pnl": 0.0,
+            "total_cost": 0.0,
             "avg_pnl": 0.0,
             "profit_factor": 0.0,
         }
 
-    wins = sum(1 for t in subset if t.get("pnl", 0.0) > 0)
-    losses = sum(1 for t in subset if t.get("pnl", 0.0) < 0)
-    even = sum(1 for t in subset if t.get("pnl", 0.0) == 0)
-    win_rate = (wins / total * 100.0) if total > 0 else 0.0
-    total_pnl = sum(t.get("pnl", 0.0) for t in subset)
-    avg_pnl = total_pnl / total if total > 0 else 0.0
+    # Net PnL per trade = gross pnl - trade_cost ($1 default)
+    net_pnls = [float(t.get("pnl", 0.0)) - float(t.get("trade_cost", 1.0)) for t in subset]
+    gross_pnls = [float(t.get("pnl", 0.0)) for t in subset]
+    costs = [float(t.get("trade_cost", 1.0)) for t in subset]
 
-    gross_profit = sum(t.get("pnl", 0.0) for t in subset if t.get("pnl", 0.0) > 0)
-    gross_loss = abs(sum(t.get("pnl", 0.0) for t in subset if t.get("pnl", 0.0) < 0))
+    wins = sum(1 for npnl in net_pnls if npnl > 0)
+    losses = sum(1 for npnl in net_pnls if npnl < 0)
+    even = sum(1 for npnl in net_pnls if npnl == 0)
+    win_rate = (wins / total * 100.0) if total > 0 else 0.0
+    total_net_pnl = sum(net_pnls)
+    total_gross_pnl = sum(gross_pnls)
+    total_cost = sum(costs)
+    avg_pnl = total_net_pnl / total if total > 0 else 0.0
+
+    gross_profit = sum(npnl for npnl in net_pnls if npnl > 0)
+    gross_loss = abs(sum(npnl for npnl in net_pnls if npnl < 0))
     profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (99.9 if gross_profit > 0 else 0.0)
 
     return {
@@ -195,7 +205,9 @@ def _calc_stats_for_subset(subset: list[dict[str, Any]]) -> dict[str, Any]:
         "losses": losses,
         "even": even,
         "win_rate": round(win_rate, 1),
-        "total_pnl": round(total_pnl, 2),
+        "total_pnl": round(total_net_pnl, 2),
+        "gross_pnl": round(total_gross_pnl, 2),
+        "total_cost": round(total_cost, 2),
         "avg_pnl": round(avg_pnl, 2),
         "profit_factor": round(profit_factor, 2),
     }
@@ -285,6 +297,7 @@ def import_trades_from_csv(file_path: str | pathlib.Path) -> tuple[int, int, lis
     qty_col = find_col(["qty", "quantity", "contracts", "shares", "size"])
     entry_col = find_col(["entry price", "open price", "buy price", "entry", "avg price"])
     exit_col = find_col(["exit price", "close price", "sell price", "exit"])
+    cost_col = find_col(["trade cost", "cost", "fee", "commission", "comm", "trade_cost"])
     b_trade_col = find_col(["b_trade", "b trade", "b-trade"])
     cross_col = find_col(["9_21", "9 21", "9/21", "cross"])
     early_col = find_col(["early", "early exit", "early_exit"])
@@ -353,6 +366,14 @@ def import_trades_from_csv(file_path: str | pathlib.Path) -> tuple[int, int, lis
         except ValueError:
             pnl_val = 0.0
 
+        # Cost parse (defaults to $1.00 per trade)
+        raw_cost = get_val(cost_col, "1.0")
+        raw_cost = raw_cost.replace("$", "").replace(",", "").replace(" ", "")
+        try:
+            cost_val = float(raw_cost) if raw_cost else 1.0
+        except ValueError:
+            cost_val = 1.0
+
         # Qty
         raw_qty = get_val(qty_col, "1")
         try:
@@ -397,6 +418,7 @@ def import_trades_from_csv(file_path: str | pathlib.Path) -> tuple[int, int, lis
             "entry_price": entry_price,
             "exit_price": exit_price,
             "pnl": pnl_val,
+            "trade_cost": cost_val,
             "is_b_trade": is_b,
             "is_9_21_cross": is_cross,
             "early_exit": is_early,

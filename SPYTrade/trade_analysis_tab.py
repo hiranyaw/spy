@@ -272,9 +272,9 @@ class TradeAnalysisTab(QWidget):
 
         # Trades Table
         self.table = QTableWidget()
-        self.table.setColumnCount(8)
+        self.table.setColumnCount(10)
         self.table.setHorizontalHeaderLabels([
-            "Date / Time", "Symbol", "Side", "P&L ($)", "B-Trade", "9/21", "Early", "Direction"
+            "Date / Time", "Symbol", "Side", "Gross ($)", "Cost ($)", "Net P&L ($)", "B-Trade", "9/21", "Early", "Direction"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -371,7 +371,7 @@ class TradeAnalysisTab(QWidget):
 
         right_layout.addLayout(sym_row)
 
-        # Entry Price, Exit Price, Net P&L
+        # Entry Price, Exit Price
         price_row = QHBoxLayout()
         price_row.setSpacing(8)
 
@@ -391,15 +391,38 @@ class TradeAnalysisTab(QWidget):
         self.edit_exit.setPrefix("$ ")
         price_row.addWidget(self.edit_exit)
 
-        price_row.addWidget(QLabel("<b>P&L ($):</b>"))
+        right_layout.addLayout(price_row)
+
+        # Gross P&L, Trade Cost ($1.00 per trade), and Net P&L
+        pnl_row = QHBoxLayout()
+        pnl_row.setSpacing(8)
+
+        pnl_row.addWidget(QLabel("<b>Gross P&L:</b>"))
         self.edit_pnl = QDoubleSpinBox()
         self.edit_pnl.setObjectName("journal_input")
         self.edit_pnl.setRange(-999999.0, 999999.0)
         self.edit_pnl.setDecimals(2)
         self.edit_pnl.setPrefix("$ ")
-        price_row.addWidget(self.edit_pnl)
+        self.edit_pnl.valueChanged.connect(self._update_net_pnl_preview)
+        pnl_row.addWidget(self.edit_pnl)
 
-        right_layout.addLayout(price_row)
+        pnl_row.addWidget(QLabel("<b>Cost:</b>"))
+        self.edit_cost = QDoubleSpinBox()
+        self.edit_cost.setObjectName("journal_input")
+        self.edit_cost.setRange(0.0, 9999.0)
+        self.edit_cost.setDecimals(2)
+        self.edit_cost.setPrefix("$ ")
+        self.edit_cost.setValue(1.0)
+        self.edit_cost.setFixedWidth(80)
+        self.edit_cost.setToolTip("Trade commission / exchange cost (defaults to $1.00 per trade)")
+        self.edit_cost.valueChanged.connect(self._update_net_pnl_preview)
+        pnl_row.addWidget(self.edit_cost)
+
+        self.lbl_net_pnl = QLabel("<b>Net:</b> $ -1.00")
+        self.lbl_net_pnl.setStyleSheet("color:#ff9800;font-size:12px;font-weight:bold;")
+        pnl_row.addWidget(self.lbl_net_pnl)
+
+        right_layout.addLayout(pnl_row)
 
         # ── PROMINENT TRADE CONDITIONS SELECTION ─────────────────────────────
         cond_box = QGroupBox("🏷️ Trade Conditions & Strategy Rules")
@@ -567,6 +590,14 @@ class TradeAnalysisTab(QWidget):
         self._render_metric_cards(stats)
         self.chart_canvas.render_stats(stats, title_suffix=stats_title)
 
+    def _update_net_pnl_preview(self):
+        gross = self.edit_pnl.value()
+        cost = self.edit_cost.value()
+        net = gross - cost
+        sign = "+" if net >= 0 else ""
+        col = "#00e676" if net >= 0 else "#f44336"
+        self.lbl_net_pnl.setText(f"<b>Net:</b> <span style='color:{col};font-weight:bold;'>{sign}${net:,.2f}</span>")
+
     def _load_table_data(self):
         year_filter = None if self._show_all_months else self._cur_year
         month_filter = None if self._show_all_months else self._cur_month
@@ -591,9 +622,9 @@ class TradeAnalysisTab(QWidget):
         elif filter_mode == "Direction Wrong Only":
             trades = [t for t in trades if not t.get("direction_right", True)]
         elif filter_mode == "Wins Only (+$)":
-            trades = [t for t in trades if t.get("pnl", 0.0) > 0]
+            trades = [t for t in trades if (float(t.get("pnl", 0.0)) - float(t.get("trade_cost", 1.0))) > 0]
         elif filter_mode == "Losses Only (-$)":
-            trades = [t for t in trades if t.get("pnl", 0.0) < 0]
+            trades = [t for t in trades if (float(t.get("pnl", 0.0)) - float(t.get("trade_cost", 1.0))) < 0]
 
         self.table.blockSignals(True)
         self.table.setRowCount(len(trades))
@@ -625,40 +656,57 @@ class TradeAnalysisTab(QWidget):
                 item_side.setForeground(QColor("#f44336"))
             self.table.setItem(r, 2, item_side)
 
-            # P&L
-            pnl = t.get("pnl", 0.0)
-            pnl_str = f"+${pnl:,.2f}" if pnl >= 0 else f"-${abs(pnl):,.2f}"
-            item_pnl = QTableWidgetItem(pnl_str)
-            item_pnl.setFont(QFont("Courier New", 9, QFont.Bold))
-            item_pnl.setForeground(QColor("#00e676" if pnl >= 0 else "#f44336"))
-            self.table.setItem(r, 3, item_pnl)
+            # Gross P&L, Cost, Net P&L
+            gross_pnl = float(t.get("pnl", 0.0))
+            cost = float(t.get("trade_cost", 1.0))
+            net_pnl = gross_pnl - cost
+
+            # Gross ($)
+            gross_str = f"+${gross_pnl:,.2f}" if gross_pnl >= 0 else f"-${abs(gross_pnl):,.2f}"
+            item_gross = QTableWidgetItem(gross_str)
+            item_gross.setFont(QFont("Courier New", 9))
+            item_gross.setForeground(QColor("#8b949e"))
+            self.table.setItem(r, 3, item_gross)
+
+            # Cost ($)
+            item_cost = QTableWidgetItem(f"${cost:,.2f}")
+            item_cost.setFont(QFont("Courier New", 9))
+            item_cost.setForeground(QColor("#ffb74d"))
+            self.table.setItem(r, 4, item_cost)
+
+            # Net P&L ($)
+            net_str = f"+${net_pnl:,.2f}" if net_pnl >= 0 else f"-${abs(net_pnl):,.2f}"
+            item_net = QTableWidgetItem(net_str)
+            item_net.setFont(QFont("Courier New", 9, QFont.Bold))
+            item_net.setForeground(QColor("#00e676" if net_pnl >= 0 else "#f44336"))
+            self.table.setItem(r, 5, item_net)
 
             # B-Trade badge
             is_b = t.get("is_b_trade", False)
             item_b = QTableWidgetItem("🏷️ Yes" if is_b else "—")
             if is_b:
                 item_b.setForeground(QColor("#58a6ff"))
-            self.table.setItem(r, 4, item_b)
+            self.table.setItem(r, 6, item_b)
 
             # 9/21 Cross badge
             is_cross = t.get("is_9_21_cross", False)
             item_cross = QTableWidgetItem("⚡ Yes" if is_cross else "—")
             if is_cross:
                 item_cross.setForeground(QColor("#ffeb3b"))
-            self.table.setItem(r, 5, item_cross)
+            self.table.setItem(r, 7, item_cross)
 
             # Early Exit badge
             is_early = t.get("early_exit", False)
             item_early = QTableWidgetItem("⏱️ Early" if is_early else "—")
             if is_early:
                 item_early.setForeground(QColor("#ff9800"))
-            self.table.setItem(r, 6, item_early)
+            self.table.setItem(r, 8, item_early)
 
             # Direction badge
             dir_right = t.get("direction_right", True)
             item_dir = QTableWidgetItem("✅ Right" if dir_right else "❌ Wrong")
             item_dir.setForeground(QColor("#00e676" if dir_right else "#f44336"))
-            self.table.setItem(r, 7, item_dir)
+            self.table.setItem(r, 9, item_dir)
 
         self.table.blockSignals(False)
 
@@ -667,9 +715,9 @@ class TradeAnalysisTab(QWidget):
 
     def _render_metric_cards(self, stats: dict[str, Any]):
         """Render top summary HTML cards."""
-        def _card(title: str, winrate: float, pnl: float, wins: int, losses: int, count: int, color: str) -> str:
-            pnl_sign = "+" if pnl >= 0 else ""
-            pnl_col = "#00e676" if pnl >= 0 else "#f44336"
+        def _card(title: str, winrate: float, net_pnl: float, gross_pnl: float, cost: float, wins: int, losses: int, count: int, color: str) -> str:
+            pnl_sign = "+" if net_pnl >= 0 else ""
+            pnl_col = "#00e676" if net_pnl >= 0 else "#f44336"
             return (
                 f"<div style='flex:1;min-width:130px;background:#111d2e;border:1px solid #1e3a5f;"
                 f"border-top:3px solid {color};border-radius:6px;padding:8px 10px;margin:2px;'>"
@@ -677,7 +725,8 @@ class TradeAnalysisTab(QWidget):
                 f"<div style='font-size:16px;font-weight:bold;color:{color};font-family:\"Segoe UI\",sans-serif;margin-top:2px;'>"
                 f"{winrate:.1f}% WR <span style='font-size:11px;color:#8b949e;'>({count} trades)</span></div>"
                 f"<div style='font-size:12px;color:{pnl_col};font-weight:bold;font-family:\"Courier New\",monospace;'>"
-                f"{pnl_sign}${pnl:,.0f} &nbsp;<span style='color:#78909c;font-size:10px;'>({wins}W / {losses}L)</span></div>"
+                f"{pnl_sign}${net_pnl:,.0f} Net &nbsp;<span style='color:#ffb74d;font-size:10px;'>(${cost:,.0f} cost)</span></div>"
+                f"<div style='font-size:10px;color:#78909c;margin-top:2px;'>Gross: ${gross_pnl:,.0f} &nbsp;|&nbsp; {wins}W / {losses}L</div>"
                 f"</div>"
             )
 
@@ -689,11 +738,11 @@ class TradeAnalysisTab(QWidget):
 
         cards_html = (
             f"<div style='display:flex;flex-wrap:wrap;gap:4px;'>"
-            f"{_card('All Trades', all_s['win_rate'], all_s['total_pnl'], all_s['wins'], all_s['losses'], all_s['count'], '#58a6ff')}"
-            f"{_card('B-Trade Setup', b_s['win_rate'], b_s['total_pnl'], b_s['wins'], b_s['losses'], b_s['count'], '#00e676')}"
-            f"{_card('9/21 Cross', cross_s['win_rate'], cross_s['total_pnl'], cross_s['wins'], cross_s['losses'], cross_s['count'], '#ffeb3b')}"
-            f"{_card('Early Exit', early_s['win_rate'], early_s['total_pnl'], early_s['wins'], early_s['losses'], early_s['count'], '#ff9800')}"
-            f"{_card('Direction Right', dir_s['win_rate'], dir_s['total_pnl'], dir_s['wins'], dir_s['losses'], dir_s['count'], '#00e676')}"
+            f"{_card('All Trades', all_s['win_rate'], all_s['total_pnl'], all_s.get('gross_pnl', 0.0), all_s.get('total_cost', 0.0), all_s['wins'], all_s['losses'], all_s['count'], '#58a6ff')}"
+            f"{_card('B-Trade Setup', b_s['win_rate'], b_s['total_pnl'], b_s.get('gross_pnl', 0.0), b_s.get('total_cost', 0.0), b_s['wins'], b_s['losses'], b_s['count'], '#00e676')}"
+            f"{_card('9/21 Cross', cross_s['win_rate'], cross_s['total_pnl'], cross_s.get('gross_pnl', 0.0), cross_s.get('total_cost', 0.0), cross_s['wins'], cross_s['losses'], cross_s['count'], '#ffeb3b')}"
+            f"{_card('Early Exit', early_s['win_rate'], early_s['total_pnl'], early_s.get('gross_pnl', 0.0), early_s.get('total_cost', 0.0), early_s['wins'], early_s['losses'], early_s['count'], '#ff9800')}"
+            f"{_card('Direction Right', dir_s['win_rate'], dir_s['total_pnl'], dir_s.get('gross_pnl', 0.0), dir_s.get('total_cost', 0.0), dir_s['wins'], dir_s['losses'], dir_s['count'], '#00e676')}"
             f"</div>"
         )
         self.cards_label.setText(cards_html)
@@ -742,10 +791,12 @@ class TradeAnalysisTab(QWidget):
         self.edit_side.setCurrentIndex(max(0, side_idx))
         self.edit_qty.setValue(float(target.get("qty", 1.0)))
 
-        # Prices & PnL
+        # Prices, Cost & PnL
         self.edit_entry.setValue(float(target.get("entry_price", 0.0)))
         self.edit_exit.setValue(float(target.get("exit_price", 0.0)))
         self.edit_pnl.setValue(float(target.get("pnl", 0.0)))
+        self.edit_cost.setValue(float(target.get("trade_cost", 1.0)))
+        self._update_net_pnl_preview()
 
         # Conditions
         self.cb_b_trade.setChecked(bool(target.get("is_b_trade", False)))
@@ -773,6 +824,8 @@ class TradeAnalysisTab(QWidget):
         self.edit_entry.setValue(0.0)
         self.edit_exit.setValue(0.0)
         self.edit_pnl.setValue(0.0)
+        self.edit_cost.setValue(1.0)
+        self._update_net_pnl_preview()
         self.cb_b_trade.setChecked(False)
         self.cb_9_21.setChecked(False)
         self.cb_early_exit.setChecked(False)
@@ -796,6 +849,7 @@ class TradeAnalysisTab(QWidget):
         entry_price = self.edit_entry.value()
         exit_price = self.edit_exit.value()
         pnl = self.edit_pnl.value()
+        cost = self.edit_cost.value()
         is_b = self.cb_b_trade.isChecked()
         is_cross = self.cb_9_21.isChecked()
         early = self.cb_early_exit.isChecked()
@@ -812,6 +866,7 @@ class TradeAnalysisTab(QWidget):
             "entry_price": entry_price,
             "exit_price": exit_price,
             "pnl": pnl,
+            "trade_cost": cost,
             "is_b_trade": is_b,
             "is_9_21_cross": is_cross,
             "early_exit": early,
@@ -822,8 +877,9 @@ class TradeAnalysisTab(QWidget):
         saved = trade_store.save_or_update_trade(trade_dict)
         self._current_trade_id = saved["id"]
 
+        net_val = pnl - cost
         if self._status_cb:
-            self._status_cb(f"✅ Saved trade {symbol} on {date_str} (P&L: ${pnl:.2f})")
+            self._status_cb(f"✅ Saved trade {symbol} on {date_str} (Gross: ${pnl:.2f}, Cost: ${cost:.2f}, Net: ${net_val:.2f})")
 
         self._load_and_refresh()
         self.trade_updated.emit()
@@ -898,9 +954,12 @@ class TradeAnalysisTab(QWidget):
                 writer = csv.writer(f)
                 writer.writerow([
                     "Date", "Time", "Symbol", "Side", "Qty", "Entry Price", "Exit Price",
-                    "P&L", "Is B-Trade", "Is 9/21 Cross", "Early Exit", "Direction Right", "Notes"
+                    "Gross P&L", "Trade Cost", "Net P&L", "Is B-Trade", "Is 9/21 Cross", "Early Exit", "Direction Right", "Notes"
                 ])
                 for t in trades:
+                    pnl_val = float(t.get("pnl", 0))
+                    cost_val = float(t.get("trade_cost", 1.0))
+                    net_val = pnl_val - cost_val
                     writer.writerow([
                         t.get("date", ""),
                         t.get("time", ""),
@@ -909,7 +968,9 @@ class TradeAnalysisTab(QWidget):
                         t.get("qty", 1),
                         t.get("entry_price", 0),
                         t.get("exit_price", 0),
-                        t.get("pnl", 0),
+                        pnl_val,
+                        cost_val,
+                        net_val,
                         1 if t.get("is_b_trade") else 0,
                         1 if t.get("is_9_21_cross") else 0,
                         1 if t.get("early_exit") else 0,

@@ -1,6 +1,6 @@
 [
   {
-    "id": "tr_857fd72e2d",
+    "id": "tr_2002f273e2",
     "date": "2026-08-27",
     "time": "13:15:00",
     "symbol": "SPY",
@@ -9,16 +9,17 @@
     "entry_price": 543.0,
     "exit_price": 541.5,
     "pnl": -450.0,
+    "trade_cost": 1.0,
     "is_b_trade": true,
     "is_9_21_cross": false,
     "early_exit": true,
     "direction_right": false,
     "notes": "Cut early on reversal",
-    "created_at": "2026-08-28T10:04:05",
-    "updated_at": "2026-08-28T10:04:05"
+    "created_at": "2026-09-03T12:31:14",
+    "updated_at": "2026-09-03T12:31:14"
   },
   {
-    "id": "tr_1dd9dfbf5b",
+    "id": "tr_61a7ea59ab",
     "date": "2026-08-26",
     "time": "10:30:00",
     "symbol": "SPY",
@@ -27,16 +28,17 @@
     "entry_price": 545.0,
     "exit_price": 543.0,
     "pnl": 1000.0,
+    "trade_cost": 1.0,
     "is_b_trade": false,
     "is_9_21_cross": true,
     "early_exit": false,
     "direction_right": true,
     "notes": "9/21 cross short",
-    "created_at": "2026-08-28T10:04:05",
-    "updated_at": "2026-08-28T10:04:05"
+    "created_at": "2026-09-03T12:31:14",
+    "updated_at": "2026-09-03T12:31:14"
   },
   {
-    "id": "tr_cfd3ad0716",
+    "id": "tr_f205a54dd9",
     "date": "2026-08-25",
     "time": "09:45:00",
     "symbol": "SPY",
@@ -45,13 +47,14 @@
     "entry_price": 542.0,
     "exit_price": 544.5,
     "pnl": 2500.0,
+    "trade_cost": 1.0,
     "is_b_trade": true,
     "is_9_21_cross": true,
     "early_exit": false,
     "direction_right": true,
     "notes": "Strong trend day",
-    "created_at": "2026-08-28T10:04:05",
-    "updated_at": "2026-08-28T10:04:05"
+    "created_at": "2026-09-03T12:31:14",
+    "updated_at": "2026-09-03T12:31:14"
   },
   {
     "date": "2026-08-22",
@@ -67,9 +70,10 @@
     "early_exit": false,
     "direction_right": true,
     "notes": "B-Trade breakdown win",
-    "id": "tr_e0bce0b46e",
-    "created_at": "2026-08-28T10:04:05",
-    "updated_at": "2026-08-28T10:04:05"
+    "id": "tr_68909171f6",
+    "created_at": "2026-09-03T12:31:14",
+    "updated_at": "2026-09-03T12:31:14",
+    "trade_cost": 1.0
   },
   {
     "date": "2026-08-21",
@@ -85,9 +89,10 @@
     "early_exit": true,
     "direction_right": false,
     "notes": "Choppy early exit loss",
-    "id": "tr_19f2a96a1d",
-    "created_at": "2026-08-28T10:04:05",
-    "updated_at": "2026-08-28T10:04:05"
+    "id": "tr_9026643b4b",
+    "created_at": "2026-09-03T12:31:14",
+    "updated_at": "2026-09-03T12:31:14",
+    "trade_cost": 1.0
   },
   {
     "date": "2026-08-20",
@@ -103,8 +108,9 @@
     "early_exit": false,
     "direction_right": true,
     "notes": "9/21 cross test win",
-    "id": "tr_ef46f17839",
-    "created_at": "2026-08-28T10:04:05",
-    "updated_at": "2026-08-28T10:04:05"
+    "id": "tr_a55f23469f",
+    "created_at": "2026-09-03T12:31:14",
+    "updated_at": "2026-09-03T12:31:14",
+    "trade_cost": 1.0
   }
 ]

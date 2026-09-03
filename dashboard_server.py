@@ -2466,17 +2466,23 @@ def api_condition_stats():
         def calc_group(subset):
             total = len(subset)
             if total == 0:
-                return {"count": 0, "wins": 0, "losses": 0, "win_rate": 0.0, "total_pnl": 0.0}
-            wins = sum(1 for t in subset if (t.get("pnl") or 0.0) > 0)
-            losses = sum(1 for t in subset if (t.get("pnl") or 0.0) < 0)
+                return {"count": 0, "wins": 0, "losses": 0, "win_rate": 0.0, "total_pnl": 0.0, "gross_pnl": 0.0, "total_cost": 0.0}
+            trade_cost = 1.0  # $1 per trade cost
+            net_pnls = [(t.get("pnl") or 0.0) - trade_cost for t in subset]
+            wins = sum(1 for p in net_pnls if p > 0)
+            losses = sum(1 for p in net_pnls if p < 0)
             win_rate = (wins / total * 100.0) if total > 0 else 0.0
-            total_pnl = sum(t.get("pnl") or 0.0 for t in subset)
+            total_net_pnl = sum(net_pnls)
+            total_gross_pnl = sum(t.get("pnl") or 0.0 for t in subset)
+            total_cost = total * trade_cost
             return {
                 "count": total,
                 "wins": wins,
                 "losses": losses,
                 "win_rate": round(win_rate, 1),
-                "total_pnl": round(total_pnl, 2),
+                "total_pnl": round(total_net_pnl, 2),
+                "gross_pnl": round(total_gross_pnl, 2),
+                "total_cost": round(total_cost, 2),
             }
 
         stats = {
