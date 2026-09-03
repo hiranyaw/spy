@@ -2503,6 +2503,44 @@ def api_condition_stats():
                 "total_cost": round(total_cost, 2),
             }
 
+        from datetime import time as dt_time
+        ENTRY_INTERVALS = [
+            {"id": "0630_0635", "label": "06:30 - 06:35 PT", "sub": "First 5 min (09:30 - 09:35 ET Open)", "start": dt_time(6, 30), "end": dt_time(6, 35), "action": "⛔ High Risk / Shakeout", "color": "#f85149"},
+            {"id": "0635_0640", "label": "06:35 - 06:40 PT", "sub": "Second 5 min (09:35 - 09:40 ET Discovery)", "start": dt_time(6, 35), "end": dt_time(6, 40), "action": "⚠️ Caution / Wait EMA", "color": "#ff9e2c"},
+            {"id": "0640_0645", "label": "06:40 - 06:45 PT", "sub": "06:40 - 06:45 PT (09:40 - 09:45 ET)", "start": dt_time(6, 40), "end": dt_time(6, 45), "action": "ℹ️ Setup Forming", "color": "#79c0ff"},
+            {"id": "0645_0700", "label": "06:45 - 07:00 PT", "sub": "06:45 to 7:00 PT (09:45 - 10:00 ET)", "start": dt_time(6, 45), "end": dt_time(7, 1), "action": "⚡ Breakout Window", "color": "#58a6ff"},
+            {"id": "0701_0730", "label": "07:01 - 07:30 PT", "sub": "07:01 - 07:30 PT (10:01 - 10:30 ET)", "start": dt_time(7, 1), "end": dt_time(7, 30), "action": "🚀 Prime Trend", "color": "#3fb950"},
+            {"id": "0731_0800", "label": "07:31 - 08:00 PT", "sub": "07:31 - 08:00 PT (10:31 - 11:00 ET)", "start": dt_time(7, 30), "end": dt_time(8, 1), "action": "🚀 Prime Continuation", "color": "#2ea043"},
+            {"id": "0801_0815", "label": "08:01 - 08:15 PT", "sub": "08:01 - 08:15 PT (11:01 - 11:15 ET)", "start": dt_time(8, 1), "end": dt_time(8, 15), "action": "🎯 Late Morning Setup", "color": "#e3b341"},
+            {"id": "0701_0815", "label": "07:01 - 08:15 PT (Full)", "sub": "07:01 to 8:15 PT (Combined Prime)", "start": dt_time(7, 1), "end": dt_time(8, 15), "action": "🏆 Best Trading Window", "color": "#3fb950"},
+            {"id": "after_0815", "label": "08:15+ PT (Stop)", "sub": "After 08:15 PT (11:15+ ET Stop Trading)", "start": dt_time(8, 15), "end": dt_time(13, 0), "action": "🛑 Stop Trading / Chop", "color": "#da3633"},
+        ]
+
+        entry_time_stats = []
+        for interval in ENTRY_INTERVALS:
+            matching = []
+            for t in all_parsed_trades:
+                etime = t.get("entry_time")
+                t_val = etime.time() if hasattr(etime, "time") else etime
+                if t_val and interval["start"] <= t_val < interval["end"]:
+                    matching.append(t)
+            g_data = calc_group(matching)
+            entry_time_stats.append({
+                "id": interval["id"],
+                "label": interval["label"],
+                "sub": interval["sub"],
+                "action": interval["action"],
+                "color": interval["color"],
+                "count": g_data["count"],
+                "wins": g_data["wins"],
+                "losses": g_data["losses"],
+                "win_rate": g_data["win_rate"],
+                "gross_pnl": g_data["gross_pnl"],
+                "total_cost": g_data["total_cost"],
+                "total_pnl": g_data["total_pnl"],
+                "avg_pnl": round((g_data["total_pnl"] / g_data["count"]), 2) if g_data["count"] > 0 else 0.0,
+            })
+
         stats = {
             "all": calc_group(all_parsed_trades),
             "b_trade": calc_group([t for t in all_parsed_trades if t.get("is_b_trade")]),
@@ -2513,7 +2551,8 @@ def api_condition_stats():
             "normal_exit": calc_group([t for t in all_parsed_trades if not t.get("early_exit")]),
             "direction_right": calc_group([t for t in all_parsed_trades if t.get("direction_right")]),
             "direction_wrong": calc_group([t for t in all_parsed_trades if not t.get("direction_right")]),
-            "total_trades": len(all_parsed_trades)
+            "total_trades": len(all_parsed_trades),
+            "entry_time_stats": entry_time_stats
         }
         return jsonify({"ok": True, "stats": stats})
     except Exception as e:
