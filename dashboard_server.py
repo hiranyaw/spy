@@ -1946,34 +1946,38 @@ def compute_ai_timing_analysis(day_trades, all_history_trades=None):
 
     from datetime import time as dt_time
 
-    # 5 standard market time intervals (Pacific Time)
+    # Custom Strategy Time Intervals (Pacific Time)
     time_windows = [
-        {"id": "open", "label": "06:30 - 07:00 PT", "sub": "09:30 - 10:00 ET (Market Open / Discovery)", "start": dt_time(6, 30), "end": dt_time(7, 0), "theme": "#f85149"},
-        {"id": "early_trend", "label": "07:00 - 07:30 PT", "sub": "10:00 - 10:30 ET (Early Trend Formation)", "start": dt_time(7, 0), "end": dt_time(7, 30), "theme": "#ff9e2c"},
-        {"id": "mid_morning", "label": "07:30 - 08:00 PT", "sub": "10:30 - 11:00 ET (Peak Follow-Through)", "start": dt_time(7, 30), "end": dt_time(8, 0), "theme": "#3fb950"},
-        {"id": "midday", "label": "08:00 - 09:00 PT", "sub": "11:00 - 12:00 ET (Midday Continuation)", "start": dt_time(8, 0), "end": dt_time(9, 0), "theme": "#58a6ff"},
-        {"id": "afternoon", "label": "09:00+ PT", "sub": "12:00+ ET (Afternoon / Power Hour)", "start": dt_time(9, 0), "end": dt_time(13, 0), "theme": "#a371f7"},
+        {"id": "first_5m", "label": "06:30 - 06:35 PT", "sub": "First 5 min (09:30 - 09:35 ET Open Volatility)", "start": dt_time(6, 30), "end": dt_time(6, 35), "theme": "#f85149"},
+        {"id": "second_5m", "label": "06:35 - 06:40 PT", "sub": "Second 5 min (09:35 - 09:40 ET Initial Discovery)", "start": dt_time(6, 35), "end": dt_time(6, 40), "theme": "#ff9e2c"},
+        {"id": "window_645_700", "label": "06:40 - 07:00 PT", "sub": "06:45 to 7:00 PT (09:45 - 10:00 ET Trend Setup)", "start": dt_time(6, 40), "end": dt_time(7, 1), "theme": "#58a6ff"},
+        {"id": "window_701_815", "label": "07:01 - 08:15 PT", "sub": "07:01 to 8:15 PT (10:01 - 11:15 ET Prime Trend Window)", "start": dt_time(7, 1), "end": dt_time(8, 15), "theme": "#3fb950"},
+        {"id": "after_815", "label": "08:15+ PT (STOP)", "sub": "After 08:15 PT (11:15+ ET Stop Trading Cutoff)", "start": dt_time(8, 15), "end": dt_time(13, 0), "theme": "#da3633"},
     ]
 
     def _get_window_id(t_time):
         if not t_time:
-            return "open"
+            return "window_701_815"
         t_val = t_time.time() if hasattr(t_time, "time") else t_time
         for w in time_windows:
             if w["start"] <= t_val < w["end"]:
                 return w["id"]
-        return "afternoon" if t_val >= dt_time(9, 0) else "open"
+        return "after_815" if t_val >= dt_time(8, 15) else "first_5m"
+
+    trade_cost = 1.0  # $1 commission per trade
 
     # 1. Historical Stats
     hist_stats = {}
     for w in time_windows:
         w_trades = [t for t in all_history_trades if _get_window_id(t["entry_time"]) == w["id"]]
         cnt = len(w_trades)
-        wins = sum(1 for t in w_trades if (t.get("pnl") or 0) > 0)
-        losses = sum(1 for t in w_trades if (t.get("pnl") or 0) < 0)
-        total_pnl = sum((t.get("pnl") or 0) for t in w_trades)
+        net_pnls = [((t.get("pnl") or 0.0) - trade_cost) for t in w_trades]
+        wins = sum(1 for p in net_pnls if p > 0)
+        losses = sum(1 for p in net_pnls if p < 0)
+        total_net_pnl = sum(net_pnls)
+        total_gross_pnl = sum((t.get("pnl") or 0.0) for t in w_trades)
         wr = (wins / cnt * 100) if cnt > 0 else 0.0
-        avg_pnl = (total_pnl / cnt) if cnt > 0 else 0.0
+        avg_net_pnl = (total_net_pnl / cnt) if cnt > 0 else 0.0
         hist_stats[w["id"]] = {
             "id": w["id"],
             "label": w["label"],
@@ -1983,8 +1987,9 @@ def compute_ai_timing_analysis(day_trades, all_history_trades=None):
             "wins": wins,
             "losses": losses,
             "win_rate": round(wr, 1),
-            "total_pnl": round(total_pnl, 2),
-            "avg_pnl": round(avg_pnl, 2),
+            "total_pnl": round(total_net_pnl, 2),
+            "gross_pnl": round(total_gross_pnl, 2),
+            "avg_pnl": round(avg_net_pnl, 2),
         }
 
     # 2. Today's Stats
@@ -1993,9 +1998,11 @@ def compute_ai_timing_analysis(day_trades, all_history_trades=None):
     for w in time_windows:
         w_trades = [t for t in day_closed if _get_window_id(t["entry_time"]) == w["id"]]
         cnt = len(w_trades)
-        wins = sum(1 for t in w_trades if (t.get("pnl") or 0) > 0)
-        losses = sum(1 for t in w_trades if (t.get("pnl") or 0) < 0)
-        total_pnl = sum((t.get("pnl") or 0) for t in w_trades)
+        net_pnls = [((t.get("pnl") or 0.0) - trade_cost) for t in w_trades]
+        wins = sum(1 for p in net_pnls if p > 0)
+        losses = sum(1 for p in net_pnls if p < 0)
+        total_net_pnl = sum(net_pnls)
+        total_gross_pnl = sum((t.get("pnl") or 0.0) for t in w_trades)
         wr = (wins / cnt * 100) if cnt > 0 else 0.0
         today_stats[w["id"]] = {
             "id": w["id"],
@@ -2005,46 +2012,57 @@ def compute_ai_timing_analysis(day_trades, all_history_trades=None):
             "wins": wins,
             "losses": losses,
             "win_rate": round(wr, 1),
-            "total_pnl": round(total_pnl, 2),
+            "total_pnl": round(total_net_pnl, 2),
+            "gross_pnl": round(total_gross_pnl, 2),
         }
 
     # 3. Identify Golden Window
-    valid_hist = [h for h in hist_stats.values() if h["count"] >= 5]
+    valid_hist = [h for h in hist_stats.values() if h["count"] >= 3]
     if valid_hist:
         best_window = max(valid_hist, key=lambda x: (x["total_pnl"] > 0, x["avg_pnl"], x["win_rate"]))
     else:
-        best_window = hist_stats["midday"]
+        best_window = hist_stats.get("window_701_815") or list(hist_stats.values())[0]
 
     # 4. Generate AI Timing Insights
     ai_insights = []
     ai_insights.append(
-        f"🎯 **AI Recommended Golden Window**: **{best_window['label']}** ({best_window['sub']}) "
-        f"— Historically generates your highest edge with **{best_window['win_rate']}% Win Rate** "
-        f"and **+${best_window['avg_pnl']:.2f} avg P&L per trade**."
+        f"🎯 **Best Time to Trade**: **07:01 - 08:15 PT (10:01 - 11:15 ET)** — Optimal liquidity, established 9/21 EMA trend direction, and highest statistical follow-through."
     )
+    ai_insights.append(
+        f"🛑 **Recommended Stop Trading Time: 08:15 AM PT (11:15 AM ET)** — Hard Cutoff! Volume and volatility contract significantly after 08:15 AM PT, increasing chop risk and giving back morning profits."
+    )
+    
+    first5_trades = [t for t in day_closed if (t["entry_time"].time() if hasattr(t["entry_time"], "time") else t["entry_time"]) < dt_time(6, 35)]
+    second5_trades = [t for t in day_closed if dt_time(6, 35) <= (t["entry_time"].time() if hasattr(t["entry_time"], "time") else t["entry_time"]) < dt_time(6, 40)]
+    after815_trades = [t for t in day_closed if (t["entry_time"].time() if hasattr(t["entry_time"], "time") else t["entry_time"]) >= dt_time(8, 15)]
+    prime_trades = [t for t in day_closed if dt_time(7, 1) <= (t["entry_time"].time() if hasattr(t["entry_time"], "time") else t["entry_time"]) < dt_time(8, 15)]
 
-    today_open_trades = [t for t in day_closed if (t["entry_time"].time() if hasattr(t["entry_time"], "time") else t["entry_time"]) < dt_time(7, 0)]
-    today_prime_trades = [t for t in day_closed if (t["entry_time"].time() if hasattr(t["entry_time"], "time") else t["entry_time"]) >= dt_time(7, 30)]
-
-    if today_open_trades:
-        open_pnl = sum((t.get("pnl") or 0) for t in today_open_trades)
-        pnl_str = f"+${open_pnl:.2f}" if open_pnl >= 0 else f"-${abs(open_pnl):.2f}"
-        if open_pnl < 0:
-            ai_insights.append(
-                f"⚠️ **Opening Friction (<07:00 AM PT)**: You took {len(today_open_trades)} early trade(s) resulting in **{pnl_str}**. "
-                f"The first 30 minutes carry wider option spreads and fast whipsaws. Allowing the initial range to settle before entry prevents premature stop-outs."
-            )
-        else:
-            ai_insights.append(
-                f"✅ **Early Session Execution**: {len(today_open_trades)} trade(s) before 07:00 AM PT captured **{pnl_str}**."
-            )
-
-    if today_prime_trades:
-        prime_pnl = sum((t.get("pnl") or 0) for t in today_prime_trades)
-        pnl_str = f"+${prime_pnl:.2f}" if prime_pnl >= 0 else f"-${abs(prime_pnl):.2f}"
+    if first5_trades:
+        f5_pnl = sum(((t.get("pnl") or 0) - trade_cost) for t in first5_trades)
+        f5_str = f"+${f5_pnl:.2f}" if f5_pnl >= 0 else f"-${abs(f5_pnl):.2f}"
         ai_insights.append(
-            f"🚀 **Prime Follow-Through Window (≥07:30 AM PT)**: Trades entered during confirmed morning momentum generated **{pnl_str}**. "
-            f"Focusing your position sizing in this sweet spot maximizes your reward-to-risk ratio."
+            f"⚠️ **First 5 Min (06:30 - 06:35 PT)**: You took {len(first5_trades)} trade(s) during opening shakeout ({f5_str} Net). High option spreads and false breaks occur here; avoid entering in the first 5 minutes."
+        )
+
+    if second5_trades:
+        s5_pnl = sum(((t.get("pnl") or 0) - trade_cost) for t in second5_trades)
+        s5_str = f"+${s5_pnl:.2f}" if s5_pnl >= 0 else f"-${abs(s5_pnl):.2f}"
+        ai_insights.append(
+            f"ℹ️ **Second 5 Min (06:35 - 06:40 PT)**: {len(second5_trades)} trade(s) entered ({s5_str} Net). Wait for VWAP and 9/21 EMA confirmation before executing."
+        )
+
+    if after815_trades:
+        a_pnl = sum(((t.get("pnl") or 0) - trade_cost) for t in after815_trades)
+        a_str = f"+${a_pnl:.2f}" if a_pnl >= 0 else f"-${abs(a_pnl):.2f}"
+        ai_insights.append(
+            f"⛔ **Late Entries (>08:15 AM PT)**: You executed {len(after815_trades)} trade(s) past the 8:15 AM cutoff ({a_str} Net). Rule: Shut down trading by 08:15 AM PT to protect gains."
+        )
+
+    if prime_trades:
+        p_pnl = sum(((t.get("pnl") or 0) - trade_cost) for t in prime_trades)
+        p_str = f"+${p_pnl:.2f}" if p_pnl >= 0 else f"-${abs(p_pnl):.2f}"
+        ai_insights.append(
+            f"🚀 **Prime Window Execution (07:01 - 08:15 PT)**: {len(prime_trades)} trade(s) captured **{p_str} Net P&L** during the peak momentum sweet spot."
         )
 
     return {
@@ -2531,9 +2549,9 @@ def api_analysis_monthly():
             mtime = os.path.getmtime(filepath)
             
             if f in cache and cache[f].get("mtime") == mtime:
-                # If cached summary doesn't have date, right_direction_count, sim_3_pnl or sim_1m_pnl, force recompute
+                # If cached summary doesn't have date, right_direction_count, sim_3_pnl or sim_5m_pnl, force recompute
                 summary = cache[f]["summary"]
-                if "date" in summary and "right_direction_count" in summary and "sim_3_pnl" in summary and "sim_1m_pnl" in summary:
+                if "date" in summary and "right_direction_count" in summary and "sim_3_pnl" in summary and "sim_5m_pnl" in summary:
                     monthly_data.append(summary)
                     continue
             

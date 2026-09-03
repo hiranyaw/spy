@@ -1,6 +1,6 @@
 [
   {
-    "id": "tr_2002f273e2",
+    "id": "tr_00442d6e0a",
     "date": "2026-08-27",
     "time": "13:15:00",
     "symbol": "SPY",
@@ -15,11 +15,11 @@
     "early_exit": true,
     "direction_right": false,
     "notes": "Cut early on reversal",
-    "created_at": "2026-09-03T12:31:14",
-    "updated_at": "2026-09-03T12:31:14"
+    "created_at": "2026-09-03T13:15:35",
+    "updated_at": "2026-09-03T13:15:35"
   },
   {
-    "id": "tr_61a7ea59ab",
+    "id": "tr_1fadc9dd98",
     "date": "2026-08-26",
     "time": "10:30:00",
     "symbol": "SPY",
@@ -34,11 +34,11 @@
     "early_exit": false,
     "direction_right": true,
     "notes": "9/21 cross short",
-    "created_at": "2026-09-03T12:31:14",
-    "updated_at": "2026-09-03T12:31:14"
+    "created_at": "2026-09-03T13:15:35",
+    "updated_at": "2026-09-03T13:15:35"
   },
   {
-    "id": "tr_f205a54dd9",
+    "id": "tr_93c07cc747",
     "date": "2026-08-25",
     "time": "09:45:00",
     "symbol": "SPY",
@@ -53,8 +53,8 @@
     "early_exit": false,
     "direction_right": true,
     "notes": "Strong trend day",
-    "created_at": "2026-09-03T12:31:14",
-    "updated_at": "2026-09-03T12:31:14"
+    "created_at": "2026-09-03T13:15:35",
+    "updated_at": "2026-09-03T13:15:35"
   },
   {
     "date": "2026-08-22",
@@ -70,9 +70,9 @@
     "early_exit": false,
     "direction_right": true,
     "notes": "B-Trade breakdown win",
-    "id": "tr_68909171f6",
-    "created_at": "2026-09-03T12:31:14",
-    "updated_at": "2026-09-03T12:31:14",
+    "id": "tr_b66b55cc1d",
+    "created_at": "2026-09-03T13:15:35",
+    "updated_at": "2026-09-03T13:15:35",
     "trade_cost": 1.0
   },
   {
@@ -89,9 +89,9 @@
     "early_exit": true,
     "direction_right": false,
     "notes": "Choppy early exit loss",
-    "id": "tr_9026643b4b",
-    "created_at": "2026-09-03T12:31:14",
-    "updated_at": "2026-09-03T12:31:14",
+    "id": "tr_8f970a3313",
+    "created_at": "2026-09-03T13:15:35",
+    "updated_at": "2026-09-03T13:15:35",
     "trade_cost": 1.0
   },
   {
@@ -108,9 +108,9 @@
     "early_exit": false,
     "direction_right": true,
     "notes": "9/21 cross test win",
-    "id": "tr_a55f23469f",
-    "created_at": "2026-09-03T12:31:14",
-    "updated_at": "2026-09-03T12:31:14",
+    "id": "tr_7f05123128",
+    "created_at": "2026-09-03T13:15:35",
+    "updated_at": "2026-09-03T13:15:35",
     "trade_cost": 1.0
   }
 ]
