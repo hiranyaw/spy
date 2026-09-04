@@ -1581,9 +1581,27 @@ Only B Trades with FULL confirmation."></textarea>
             <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">⚡ 9 / 21 EMA Cross</span>
           </label>
           <label style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;cursor:pointer;user-select:none;transition:all 0.15s">
-            <input type="checkbox" id="ana-edit-earlyexit" style="width:17px;height:17px;cursor:pointer;accent-color:#f85149">
+            <input type="checkbox" id="ana-edit-earlyexit" onchange="toggleEarlyExitOptions()" style="width:17px;height:17px;cursor:pointer;accent-color:#f85149">
             <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">⏱️ Early Exit</span>
           </label>
+        </div>
+
+        <!-- Early Exit Amount Option Selector -->
+        <div id="ana-edit-earlyexit-options" style="display:none;margin-bottom:12px;background:#0d1117;border:1px solid #30363d;border-left:3px solid #f85149;border-radius:8px;padding:10px 14px;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:0.82rem;color:#f85149;font-weight:700">⏱️ Early Exit Amount Made:</span>
+          <div style="display:flex;gap:6px;align-items:center" id="ana-earlyexit-btn-group">
+            <button type="button" class="ana-exit-amt-btn" onclick="setEarlyExitAmount(20)" style="padding:4px 12px;background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:4px;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.15s">$20</button>
+            <button type="button" class="ana-exit-amt-btn" onclick="setEarlyExitAmount(50)" style="padding:4px 12px;background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:4px;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.15s">$50</button>
+            <button type="button" class="ana-exit-amt-btn" onclick="setEarlyExitAmount(100)" style="padding:4px 12px;background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:4px;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.15s">$100</button>
+            <button type="button" class="ana-exit-amt-btn" onclick="setEarlyExitAmount(200)" style="padding:4px 12px;background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:4px;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.15s">$200</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+            <span style="font-size:0.8rem;color:#8b949e">Custom:</span>
+            <div style="display:flex;align-items:center;background:#161b22;border:1px solid #30363d;border-radius:4px;padding:2px 8px">
+              <span style="color:#8b949e;font-size:0.8rem">$</span>
+              <input type="number" id="ana-edit-earlyexit-amt" placeholder="50" oninput="onCustomEarlyExitInput()" style="width:65px;background:transparent;border:none;color:#3fb950;font-size:0.85rem;font-weight:700;outline:none;padding-left:2px">
+            </div>
+          </div>
         </div>
 
         <div style="display:flex;gap:20px;align-items:center;margin-bottom:12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 14px">
@@ -1797,7 +1815,7 @@ Only B Trades with FULL confirmation."></textarea>
 
     <!-- Monthly Stats Grid -->
     <div id="ana-month-source-banner" style="display:none;margin-bottom:14px;padding:9px 14px;background:#1c2a1c;border:1px solid #3fb950;border-radius:8px;font-size:0.8rem;color:#8b949e"></div>
-    <div style="display:grid;grid-template-columns:repeat(8, 1fr);gap:12px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;margin-bottom:20px">
       <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
         <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Total Days</div>
         <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-month-stat-days">0</div>
@@ -1829,6 +1847,10 @@ Only B Trades with FULL confirmation."></textarea>
       <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
         <div style="font-size:0.75rem;color:#bc8cff;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Sim: Hold 5m</div>
         <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-month-stat-sim5m">$0.00</div>
+      </div>
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
+        <div style="font-size:0.75rem;color:#e3b341;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Sim: Not Stopped</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-month-stat-sim-stopped">$0.00</div>
       </div>
     </div>
 
@@ -1931,6 +1953,7 @@ Only B Trades with FULL confirmation."></textarea>
             <th style="padding:8px;text-align:right">Sim: Stop @ 3</th>
             <th style="padding:8px;text-align:right">Sim: Stop @ 2L</th>
             <th style="padding:8px;text-align:right">Sim: Hold 5m</th>
+            <th style="padding:8px;text-align:right">Sim: Not Stopped</th>
             <th style="padding:8px;text-align:left;min-width:200px">Daily Summary</th>
           </tr>
         </thead>
@@ -4537,8 +4560,8 @@ async function loadAnaMonthly() {
     }
 
     const totalDays = data.length;
-    let sumDirAcc = 0, sumSim3 = 0, sumSim2l = 0, sumActual = 0, sumSim1m = 0, sumSim2m = 0, sumSim5m = 0, sumTrades = 0;
-    const dates = [], actualPnlData = [], netPnlData = [], sim3PnlData = [], sim2lPnlData = [], sim1mPnlData = [], sim2mPnlData = [], sim5mPnlData = [], dirAccData = [], earlyExitsData = [];
+    let sumDirAcc = 0, sumSim3 = 0, sumSim2l = 0, sumActual = 0, sumSim1m = 0, sumSim2m = 0, sumSim5m = 0, sumSimNotStopped = 0, sumTrades = 0;
+    const dates = [], actualPnlData = [], netPnlData = [], sim3PnlData = [], sim2lPnlData = [], sim1mPnlData = [], sim2mPnlData = [], sim5mPnlData = [], simNotStoppedPnlData = [], dirAccData = [], earlyExitsData = [];
 
     tableBody.innerHTML = '';
 
@@ -4548,6 +4571,7 @@ async function loadAnaMonthly() {
       const dayCost   = tradesCnt * 1.0;
       const dayGross  = day.total_pnl || 0;
       const dayNet    = dayGross - dayCost;
+      const dayNotStopped = day.sim_not_stopped_pnl !== undefined ? day.sim_not_stopped_pnl : dayGross;
 
       sumTrades += tradesCnt;
       sumDirAcc += dirAcc;
@@ -4556,6 +4580,7 @@ async function loadAnaMonthly() {
       sumSim1m  += (day.sim_1m_pnl || 0);
       sumSim2m  += (day.sim_2m_pnl || 0);
       sumSim5m  += (day.sim_5m_pnl || 0);
+      sumSimNotStopped += dayNotStopped;
       sumActual += dayGross;
 
       dates.push(day.date);
@@ -4566,6 +4591,7 @@ async function loadAnaMonthly() {
       sim1mPnlData.push(Number(sumSim1m.toFixed(2)));
       sim2mPnlData.push(Number(sumSim2m.toFixed(2)));
       sim5mPnlData.push(Number(sumSim5m.toFixed(2)));
+      simNotStoppedPnlData.push(Number(sumSimNotStopped.toFixed(2)));
       dirAccData.push(Number(dirAcc.toFixed(1)));
       earlyExitsData.push(day.early_exits || 0);
 
@@ -4581,12 +4607,14 @@ async function loadAnaMonthly() {
       const sim3Color   = day.sim_3_pnl >= 0 ? '#3fb950' : '#f85149';
       const sim2lColor  = day.sim_2l_pnl >= 0 ? '#3fb950' : '#f85149';
       const sim5mColor  = (day.sim_5m_pnl || 0) >= 0 ? '#3fb950' : '#f85149';
+      const simNotStoppedColor = dayNotStopped >= 0 ? '#3fb950' : '#f85149';
       
       const grossSign   = dayGross >= 0 ? '+$' : '-$';
       const netSign     = dayNet >= 0 ? '+$' : '-$';
       const sim3Sign    = day.sim_3_pnl >= 0 ? '+$' : '-$';
       const sim2lSign   = day.sim_2l_pnl >= 0 ? '+$' : '-$';
       const sim5mSign   = (day.sim_5m_pnl || 0) >= 0 ? '+$' : '-$';
+      const simNotStoppedSign = dayNotStopped >= 0 ? '+$' : '-$';
 
       const rawSummary = journalMap[day.date] || '';
       const cleanSummary = rawSummary.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -4610,6 +4638,7 @@ async function loadAnaMonthly() {
         <td style="padding:8px;text-align:right;font-weight:700;color:${sim3Color}">${sim3Sign}${Math.abs(day.sim_3_pnl).toFixed(2)}</td>
         <td style="padding:8px;text-align:right;font-weight:700;color:${sim2lColor}">${sim2lSign}${Math.abs(day.sim_2l_pnl).toFixed(2)}</td>
         <td style="padding:8px;text-align:right;font-weight:700;color:${sim5mColor}">${sim5mSign}${Math.abs(day.sim_5m_pnl || 0).toFixed(2)}</td>
+        <td style="padding:8px;text-align:right;font-weight:700;color:${simNotStoppedColor}">${simNotStoppedSign}${Math.abs(dayNotStopped).toFixed(2)}</td>
         <td style="padding:8px;font-size:0.8rem">${summaryHtml}</td>
       `;
       tableBody.appendChild(tr);
@@ -4636,6 +4665,9 @@ async function loadAnaMonthly() {
 
     const sim5mEl = document.getElementById('ana-month-stat-sim5m');
     if (sim5mEl)  { sim5mEl.textContent  = (sumSim5m  >= 0 ? '+$' : '-$') + Math.abs(sumSim5m).toFixed(2);  sim5mEl.style.color  = sumSim5m  >= 0 ? '#3fb950' : '#f85149'; }
+
+    const simStoppedEl = document.getElementById('ana-month-stat-sim-stopped');
+    if (simStoppedEl) { simStoppedEl.textContent = (sumSimNotStopped >= 0 ? '+$' : '-$') + Math.abs(sumSimNotStopped).toFixed(2); simStoppedEl.style.color = sumSimNotStopped >= 0 ? '#e3b341' : '#f85149'; }
 
     const sim2lEl = document.getElementById('ana-month-stat-sim2l');
     if (sim2lEl)  { sim2lEl.textContent  = (sumSim2l  >= 0 ? '+$' : '-$') + Math.abs(sumSim2l).toFixed(2);  sim2lEl.style.color  = sumSim2l  >= 0 ? '#3fb950' : '#f85149'; }
@@ -4664,7 +4696,8 @@ async function loadAnaMonthly() {
             { label: 'Sim: Stop @ 2 consec L',  data: sim2lPnlData,  borderColor: '#ff9e2c', borderWidth: 2, pointRadius: 4, tension: 0.3, fill: false },
             { label: 'Sim: Hold 1m', data: sim1mPnlData, borderColor: '#ff7b72', borderWidth: 2, borderDash: [2, 2], pointRadius: 4, tension: 0.3, fill: false },
             { label: 'Sim: Hold 2m', data: sim2mPnlData, borderColor: '#ffa657', borderWidth: 2, borderDash: [3, 3], pointRadius: 4, tension: 0.3, fill: false },
-            { label: 'Sim: Hold 5m', data: sim5mPnlData, borderColor: '#bc8cff', borderWidth: 2, borderDash: [5, 5], pointRadius: 4, tension: 0.3, fill: false }
+            { label: 'Sim: Hold 5m', data: sim5mPnlData, borderColor: '#bc8cff', borderWidth: 2, borderDash: [5, 5], pointRadius: 4, tension: 0.3, fill: false },
+            { label: 'Sim: If Not Stopped Out', data: simNotStoppedPnlData, borderColor: '#e3b341', borderWidth: 2.5, borderDash: [4, 4], pointRadius: 4, tension: 0.3, fill: false }
           ]
         },
         options: {
@@ -5228,7 +5261,15 @@ async function selectAnaTrade(trade) {
 
   if (cbB) cbB.checked = !!trade.is_b_trade;
   if (cbCross) cbCross.checked = !!trade.is_9_21_cross;
-  if (cbEarly) cbEarly.checked = !!trade.early_exit;
+  if (cbEarly) {
+    cbEarly.checked = !!trade.early_exit;
+    toggleEarlyExitOptions();
+    const earlyAmtInput = document.getElementById('ana-edit-earlyexit-amt');
+    if (earlyAmtInput) {
+      earlyAmtInput.value = trade.early_exit_amount !== undefined && trade.early_exit_amount !== null ? trade.early_exit_amount : '';
+      highlightEarlyExitButton(trade.early_exit_amount ? parseFloat(trade.early_exit_amount) : null);
+    }
+  }
   if (radioDirRight && radioDirWrong) {
     radioDirRight.checked = trade.direction_right !== false;
     radioDirWrong.checked = trade.direction_right === false;
@@ -5658,6 +5699,46 @@ async function updateStoppedStats() {
   document.getElementById('ana-stat-stopped').textContent = stopped;
 }
 
+function setEarlyExitAmount(amt) {
+  const input = document.getElementById('ana-edit-earlyexit-amt');
+  if (input) input.value = amt;
+  const cbEarly = document.getElementById('ana-edit-earlyexit');
+  if (cbEarly && !cbEarly.checked) {
+    cbEarly.checked = true;
+    toggleEarlyExitOptions();
+  }
+  highlightEarlyExitButton(amt);
+}
+
+function onCustomEarlyExitInput() {
+  const input = document.getElementById('ana-edit-earlyexit-amt');
+  const val = input && input.value ? parseFloat(input.value) : null;
+  highlightEarlyExitButton(val);
+}
+
+function highlightEarlyExitButton(amt) {
+  document.querySelectorAll('.ana-exit-amt-btn').forEach(btn => {
+    const btnAmt = parseFloat(btn.textContent.replace('$', ''));
+    if (btnAmt === amt) {
+      btn.style.background = '#f85149';
+      btn.style.borderColor = '#f85149';
+      btn.style.color = '#fff';
+    } else {
+      btn.style.background = '#21262d';
+      btn.style.borderColor = '#30363d';
+      btn.style.color = '#e6edf3';
+    }
+  });
+}
+
+function toggleEarlyExitOptions() {
+  const cb = document.getElementById('ana-edit-earlyexit');
+  const opt = document.getElementById('ana-edit-earlyexit-options');
+  if (opt) {
+    opt.style.display = (cb && cb.checked) ? 'flex' : 'none';
+  }
+}
+
 async function saveTradeClassification() {
   if (!selectedAnaTrade) {
     alert("Please select a trade from the list first.");
@@ -5672,6 +5753,8 @@ async function saveTradeClassification() {
   const isBTrade = document.getElementById('ana-edit-btrade').checked;
   const is921Cross = document.getElementById('ana-edit-921cross').checked;
   const isEarlyExit = document.getElementById('ana-edit-earlyexit').checked;
+  const earlyAmtInput = document.getElementById('ana-edit-earlyexit-amt');
+  const earlyExitAmount = (isEarlyExit && earlyAmtInput && earlyAmtInput.value) ? parseFloat(earlyAmtInput.value) : null;
   const dirRight = document.getElementById('ana-edit-dir-right').checked;
   const notes = document.getElementById('ana-edit-notes').value.trim();
 
@@ -5686,6 +5769,7 @@ async function saveTradeClassification() {
         is_b_trade: isBTrade,
         is_9_21_cross: is921Cross,
         early_exit: isEarlyExit,
+        early_exit_amount: earlyExitAmount,
         direction_right: dirRight,
         notes: notes
       })
@@ -5695,6 +5779,7 @@ async function saveTradeClassification() {
       selectedAnaTrade.is_b_trade = isBTrade;
       selectedAnaTrade.is_9_21_cross = is921Cross;
       selectedAnaTrade.early_exit = isEarlyExit;
+      selectedAnaTrade.early_exit_amount = earlyExitAmount;
       selectedAnaTrade.direction_right = dirRight;
       selectedAnaTrade.classification_notes = notes;
 

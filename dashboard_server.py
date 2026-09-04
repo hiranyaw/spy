@@ -64,7 +64,7 @@ def load_trade_classifications():
         print(f"Error loading local trade classifications JSON: {e}")
     return classifications
 
-def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes=""):
+def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", early_exit_amount=None):
     classifications = load_trade_classifications()
     entry = {
         "trade_key": key,
@@ -73,6 +73,7 @@ def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_
         "is_b_trade": bool(is_b_trade),
         "is_9_21_cross": bool(is_9_21_cross),
         "early_exit": bool(early_exit),
+        "early_exit_amount": float(early_exit_amount) if early_exit_amount is not None and str(early_exit_amount).strip() != "" else None,
         "direction_right": bool(direction_right),
         "notes": notes,
     }
@@ -2173,6 +2174,7 @@ def analysis_summary():
         total_missed_profit_1m = 0
         total_missed_profit_2m = 0
         total_missed_profit_5m = 0
+        total_stopped_recovered_delta = 0.0
         great_trades_count = 0
         
         stopped_drawdowns = []
@@ -2275,6 +2277,9 @@ def analysis_summary():
                 if overall_max_runup >= MOVE_THRESHOLD:
                     stopped_out_correct_count += 1
                     stopped_drawdowns.append(max_drawdown)
+                    trade_qty = sum(e.get("qty", 1) for e in t.get("entries", [])) if t.get("entries") else 1
+                    recovered_gain = min(overall_max_runup * trade_qty * 50, 150.0 * trade_qty)
+                    total_stopped_recovered_delta += (-t["pnl"]) + max(25.0 * trade_qty, recovered_gain)
                 else:
                     wrong_direction_count += 1
                     
@@ -2353,6 +2358,8 @@ def analysis_summary():
             "sim_2l_wins": sim_2l_wins,
             "sim_2l_losses": sim_2l_losses,
             "sim_2l_pnl": round(sim_2l_pnl, 2),
+            "sim_not_stopped_pnl": round(total_pnl + total_stopped_recovered_delta, 2),
+            "stopped_recovered_amount": round(total_stopped_recovered_delta, 2),
             "recommendations": recommendations,
             "donts": donts,
             "timing_analysis": timing_analysis
@@ -2414,12 +2421,13 @@ def classify_trade():
         is_b_trade = bool(data.get("is_b_trade", False))
         is_9_21_cross = bool(data.get("is_9_21_cross", False))
         early_exit = bool(data.get("early_exit", False))
+        early_exit_amount = data.get("early_exit_amount")
         direction_right = bool(data.get("direction_right", True))
         notes = str(data.get("notes", ""))
         
         save_trade_classification_item(
             trade_key, filename, idx,
-            is_b_trade, is_9_21_cross, early_exit, direction_right, notes
+            is_b_trade, is_9_21_cross, early_exit, direction_right, notes, early_exit_amount
         )
         
         # Keep b_trade_flags in sync
@@ -2588,9 +2596,9 @@ def api_analysis_monthly():
             mtime = os.path.getmtime(filepath)
             
             if f in cache and cache[f].get("mtime") == mtime:
-                # If cached summary doesn't have date, right_direction_count, sim_3_pnl or sim_5m_pnl, force recompute
+                # If cached summary doesn't have date, right_direction_count, sim_3_pnl or sim_not_stopped_pnl, force recompute
                 summary = cache[f]["summary"]
-                if "date" in summary and "right_direction_count" in summary and "sim_3_pnl" in summary and "sim_5m_pnl" in summary:
+                if "date" in summary and "right_direction_count" in summary and "sim_3_pnl" in summary and "sim_5m_pnl" in summary and "sim_not_stopped_pnl" in summary:
                     monthly_data.append(summary)
                     continue
             
@@ -2619,6 +2627,7 @@ def api_analysis_monthly():
                 total_missed_profit_1m = 0
                 total_missed_profit_2m = 0
                 total_missed_profit_5m = 0
+                total_stopped_recovered_delta = 0.0
                 great_trades_count = 0
                 stopped_drawdowns = []
                 early_exit_moves = []
@@ -2725,9 +2734,13 @@ def api_analysis_monthly():
                             else:
                                 great_trades_count += 1
                         else:
-                            if max(max_runup, max_post_runup) >= MOVE_THRESHOLD:
+                            overall_runup = max(max_runup, max_post_runup)
+                            if overall_runup >= MOVE_THRESHOLD:
                                 stopped_out_correct_count += 1
                                 stopped_drawdowns.append(max_drawdown)
+                                trade_qty = sum(e.get("qty", 1) for e in t.get("entries", [])) if t.get("entries") else 1
+                                recovered_gain = min(overall_runup * trade_qty * 50, 150.0 * trade_qty)
+                                total_stopped_recovered_delta += (-t["pnl"]) + max(25.0 * trade_qty, recovered_gain)
                             else:
                                 wrong_direction_count += 1
                     yf_available = True
@@ -2777,7 +2790,7 @@ def api_analysis_monthly():
                 if len(spy_trades) > 5:
                     recommendations.append(f"Limit your trading frequency. You executed {len(spy_trades)} trades in a single session. Aim for 2-3 high-conviction A+ setups.")
                     donts.append(f"DO NOT trade more than 3 positions per session to avoid overtrading, emotional fatigue, and high commission costs.")
-                    
+                
                 early_entries = [t for t in spy_trades if t["entry_time"].time() < datetime.strptime("06:35:00", "%H:%M:%S").time()]
                 if early_entries:
                     donts.append("DO NOT enter trades during the first 5 minutes of market open (before 6:35 AM PT / 9:35 AM ET) when volatility and options spreads are widest.")
@@ -2807,6 +2820,8 @@ def api_analysis_monthly():
                     "sim_1m_pnl": round(total_pnl + total_missed_profit_1m, 2),
                     "sim_2m_pnl": round(total_pnl + total_missed_profit_2m, 2),
                     "sim_5m_pnl": round(total_pnl + total_missed_profit_5m, 2),
+                    "sim_not_stopped_pnl": round(total_pnl + total_stopped_recovered_delta, 2),
+                    "stopped_recovered_amount": round(total_stopped_recovered_delta, 2),
                     "recommendations": recommendations,
                     "donts": donts
                 }
@@ -2912,6 +2927,8 @@ def api_analysis_monthly():
                         "sim_1m_pnl"         : total_pnl,
                         "sim_2m_pnl"         : total_pnl,
                         "sim_5m_pnl"         : total_pnl,
+                        "sim_not_stopped_pnl": total_pnl,
+                        "stopped_recovered_amount": 0.0,
                         "recommendations"    : [],
                         "donts"              : []
                     })
