@@ -468,6 +468,38 @@ class TradeAnalysisTab(QWidget):
         cond_layout.addWidget(self.cb_9_21)
         cond_layout.addWidget(self.cb_early_exit)
 
+        # Early Exit Amount Option Buttons ($20, $50, $100, $200)
+        early_amt_row = QHBoxLayout()
+        early_amt_row.setSpacing(6)
+        early_amt_lbl = QLabel("⏱️ <b>Amount Made:</b>")
+        early_amt_lbl.setStyleSheet("color:#f85149;font-size:11px;")
+        early_amt_row.addWidget(early_amt_lbl)
+
+        self.btn_early_20 = QPushButton("$20")
+        self.btn_early_50 = QPushButton("$50")
+        self.btn_early_100 = QPushButton("$100")
+        self.btn_early_200 = QPushButton("$200")
+        
+        for btn in [self.btn_early_20, self.btn_early_50, self.btn_early_100, self.btn_early_200]:
+            btn.setFixedHeight(24)
+            btn.setStyleSheet("background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:4px;font-weight:bold;font-size:11px;")
+            early_amt_row.addWidget(btn)
+
+        self.btn_early_20.clicked.connect(lambda: self._set_early_amount(20))
+        self.btn_early_50.clicked.connect(lambda: self._set_early_amount(50))
+        self.btn_early_100.clicked.connect(lambda: self._set_early_amount(100))
+        self.btn_early_200.clicked.connect(lambda: self._set_early_amount(200))
+
+        self.edit_early_amt = QDoubleSpinBox()
+        self.edit_early_amt.setRange(0.0, 99999.0)
+        self.edit_early_amt.setPrefix("$ ")
+        self.edit_early_amt.setDecimals(2)
+        self.edit_early_amt.setFixedWidth(75)
+        self.edit_early_amt.setObjectName("journal_input")
+        early_amt_row.addWidget(self.edit_early_amt)
+        early_amt_row.addStretch()
+        cond_layout.addLayout(early_amt_row)
+
         # Direction Selection (Radio buttons)
         dir_label = QLabel("🧭 <b>Trade Direction:</b>")
         dir_label.setStyleSheet("color:#90caf9;font-size:12px;margin-top:4px;")
@@ -802,6 +834,7 @@ class TradeAnalysisTab(QWidget):
         self.cb_b_trade.setChecked(bool(target.get("is_b_trade", False)))
         self.cb_9_21.setChecked(bool(target.get("is_9_21_cross", False)))
         self.cb_early_exit.setChecked(bool(target.get("early_exit", False)))
+        self.edit_early_amt.setValue(float(target.get("early_exit_amount", 0.0) or 0.0))
 
         if target.get("direction_right", True):
             self.radio_dir_right.setChecked(True)
@@ -813,6 +846,10 @@ class TradeAnalysisTab(QWidget):
 
         if self._status_cb:
             self._status_cb(f"Selected trade {trade_id} ({target.get('symbol')} {target.get('date')})")
+
+    def _set_early_amount(self, amt: float):
+        self.cb_early_exit.setChecked(True)
+        self.edit_early_amt.setValue(amt)
 
     def _clear_editor(self):
         self._current_trade_id = None
@@ -829,6 +866,7 @@ class TradeAnalysisTab(QWidget):
         self.cb_b_trade.setChecked(False)
         self.cb_9_21.setChecked(False)
         self.cb_early_exit.setChecked(False)
+        self.edit_early_amt.setValue(0.0)
         self.radio_dir_right.setChecked(True)
         self.edit_notes.clear()
         self.save_trade_btn.setText("💾  Save Trade Classification")
@@ -853,6 +891,7 @@ class TradeAnalysisTab(QWidget):
         is_b = self.cb_b_trade.isChecked()
         is_cross = self.cb_9_21.isChecked()
         early = self.cb_early_exit.isChecked()
+        early_amt = self.edit_early_amt.value() if early else None
         dir_right = self.radio_dir_right.isChecked()
         notes = self.edit_notes.toPlainText().strip()
 
@@ -870,6 +909,7 @@ class TradeAnalysisTab(QWidget):
             "is_b_trade": is_b,
             "is_9_21_cross": is_cross,
             "early_exit": early,
+            "early_exit_amount": early_amt,
             "direction_right": dir_right,
             "notes": notes,
         }

@@ -1581,14 +1581,14 @@ Only B Trades with FULL confirmation."></textarea>
             <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">⚡ 9 / 21 EMA Cross</span>
           </label>
           <label style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;cursor:pointer;user-select:none;transition:all 0.15s">
-            <input type="checkbox" id="ana-edit-earlyexit" onchange="toggleEarlyExitOptions()" style="width:17px;height:17px;cursor:pointer;accent-color:#f85149">
+            <input type="checkbox" id="ana-edit-earlyexit" onchange="onEarlyExitCheckboxChanged()" style="width:17px;height:17px;cursor:pointer;accent-color:#f85149">
             <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">⏱️ Early Exit</span>
           </label>
         </div>
 
-        <!-- Early Exit Amount Option Selector -->
-        <div id="ana-edit-earlyexit-options" style="display:none;margin-bottom:12px;background:#0d1117;border:1px solid #30363d;border-left:3px solid #f85149;border-radius:8px;padding:10px 14px;align-items:center;gap:12px;flex-wrap:wrap">
-          <span style="font-size:0.82rem;color:#f85149;font-weight:700">⏱️ Early Exit Amount Made:</span>
+        <!-- Early Exit Amount Option Selector (Always Visible) -->
+        <div id="ana-edit-earlyexit-options" style="display:flex;margin-bottom:12px;background:#0d1117;border:1px solid #30363d;border-left:3px solid #f85149;border-radius:8px;padding:10px 14px;align-items:center;gap:12px;flex-wrap:wrap">
+          <span style="font-size:0.82rem;color:#f85149;font-weight:700">⏱️ Early Exit Profit Made:</span>
           <div style="display:flex;gap:6px;align-items:center" id="ana-earlyexit-btn-group">
             <button type="button" class="ana-exit-amt-btn" onclick="setEarlyExitAmount(20)" style="padding:4px 12px;background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:4px;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.15s">$20</button>
             <button type="button" class="ana-exit-amt-btn" onclick="setEarlyExitAmount(50)" style="padding:4px 12px;background:#21262d;border:1px solid #30363d;color:#e6edf3;border-radius:4px;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.15s">$50</button>
@@ -5731,12 +5731,24 @@ function highlightEarlyExitButton(amt) {
   });
 }
 
-function toggleEarlyExitOptions() {
+function onEarlyExitCheckboxChanged() {
   const cb = document.getElementById('ana-edit-earlyexit');
-  const opt = document.getElementById('ana-edit-earlyexit-options');
-  if (opt) {
-    opt.style.display = (cb && cb.checked) ? 'flex' : 'none';
+  const input = document.getElementById('ana-edit-earlyexit-amt');
+  if (cb && cb.checked) {
+    if (!input || !input.value) {
+      if (input) input.value = 50;
+      highlightEarlyExitButton(50);
+    }
+  } else {
+    if (input) input.value = '';
+    highlightEarlyExitButton(null);
   }
+}
+
+function toggleEarlyExitOptions() {
+  // Keep selector container permanently visible
+  const opt = document.getElementById('ana-edit-earlyexit-options');
+  if (opt) opt.style.display = 'flex';
 }
 
 async function saveTradeClassification() {
