@@ -1604,6 +1604,27 @@ Only B Trades with FULL confirmation."></textarea>
           </div>
         </div>
 
+        <!-- How Trade Ended (Exit Outcome: Target vs Stop Loss) -->
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 14px;flex-wrap:wrap">
+          <span style="font-size:0.85rem;color:#e6edf3;font-weight:700">🏁 How Trade Ended:</span>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+            <input type="radio" name="ana-edit-exit-reason" id="ana-edit-exit-target" value="TARGET" checked style="width:16px;height:16px;cursor:pointer;accent-color:#3fb950">
+            <span style="color:#3fb950;font-weight:700;font-size:0.85rem">🎯 Hit Target</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+            <input type="radio" name="ana-edit-exit-reason" id="ana-edit-exit-stop" value="STOP_LOSS" style="width:16px;height:16px;cursor:pointer;accent-color:#f85149">
+            <span style="color:#f85149;font-weight:700;font-size:0.85rem">🛑 Hit Stop Loss</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+            <input type="radio" name="ana-edit-exit-reason" id="ana-edit-exit-early" value="EARLY_EXIT" style="width:16px;height:16px;cursor:pointer;accent-color:#ff9e2c">
+            <span style="color:#ff9e2c;font-weight:700;font-size:0.85rem">⏱️ Early Exit</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+            <input type="radio" name="ana-edit-exit-reason" id="ana-edit-exit-be" value="BREAKEVEN" style="width:16px;height:16px;cursor:pointer;accent-color:#79c0ff">
+            <span style="color:#79c0ff;font-weight:700;font-size:0.85rem">⚡ Breakeven</span>
+          </label>
+        </div>
+
         <div style="display:flex;gap:20px;align-items:center;margin-bottom:12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 14px">
           <span style="font-size:0.85rem;color:#8b949e;font-weight:700">🧭 Direction:</span>
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
@@ -5270,6 +5291,19 @@ async function selectAnaTrade(trade) {
       highlightEarlyExitButton(trade.early_exit_amount ? parseFloat(trade.early_exit_amount) : null);
     }
   }
+
+  // Populate How Trade Ended (Exit Reason)
+  const defaultExit = (trade.pnl > 0 ? 'TARGET' : (trade.pnl < 0 ? 'STOP_LOSS' : 'BREAKEVEN'));
+  const exitReason = (trade.exit_reason || defaultExit).toUpperCase();
+  const rTarget = document.getElementById('ana-edit-exit-target');
+  const rStop = document.getElementById('ana-edit-exit-stop');
+  const rEarly = document.getElementById('ana-edit-exit-early');
+  const rBe = document.getElementById('ana-edit-exit-be');
+  if (rTarget) rTarget.checked = (exitReason === 'TARGET');
+  if (rStop) rStop.checked = (exitReason === 'STOP_LOSS');
+  if (rEarly) rEarly.checked = (exitReason === 'EARLY_EXIT');
+  if (rBe) rBe.checked = (exitReason === 'BREAKEVEN');
+
   if (radioDirRight && radioDirWrong) {
     radioDirRight.checked = trade.direction_right !== false;
     radioDirWrong.checked = trade.direction_right === false;
@@ -5767,6 +5801,8 @@ async function saveTradeClassification() {
   const isEarlyExit = document.getElementById('ana-edit-earlyexit').checked;
   const earlyAmtInput = document.getElementById('ana-edit-earlyexit-amt');
   const earlyExitAmount = (isEarlyExit && earlyAmtInput && earlyAmtInput.value) ? parseFloat(earlyAmtInput.value) : null;
+  const exitRadio = document.querySelector('input[name="ana-edit-exit-reason"]:checked');
+  const exitReason = exitRadio ? exitRadio.value : 'TARGET';
   const dirRight = document.getElementById('ana-edit-dir-right').checked;
   const notes = document.getElementById('ana-edit-notes').value.trim();
 
@@ -5782,6 +5818,7 @@ async function saveTradeClassification() {
         is_9_21_cross: is921Cross,
         early_exit: isEarlyExit,
         early_exit_amount: earlyExitAmount,
+        exit_reason: exitReason,
         direction_right: dirRight,
         notes: notes
       })
@@ -5792,6 +5829,7 @@ async function saveTradeClassification() {
       selectedAnaTrade.is_9_21_cross = is921Cross;
       selectedAnaTrade.early_exit = isEarlyExit;
       selectedAnaTrade.early_exit_amount = earlyExitAmount;
+      selectedAnaTrade.exit_reason = exitReason;
       selectedAnaTrade.direction_right = dirRight;
       selectedAnaTrade.classification_notes = notes;
 

@@ -85,6 +85,12 @@ def save_or_update_trade(trade: dict[str, Any]) -> dict[str, Any]:
     trade["exit_price"] = float(trade.get("exit_price", 0.0))
     trade["qty"] = float(trade.get("qty", 1.0))
 
+    # Ensure exit_reason
+    exit_r = str(trade.get("exit_reason", "")).upper()
+    if exit_r not in ("TARGET", "STOP_LOSS", "EARLY_EXIT", "BREAKEVEN"):
+        exit_r = "TARGET" if trade["pnl"] > 0 else ("STOP_LOSS" if trade["pnl"] < 0 else "BREAKEVEN")
+    trade["exit_reason"] = exit_r
+
     # Find existing index
     idx = -1
     for i, t in enumerate(trades):

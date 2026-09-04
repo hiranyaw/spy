@@ -520,6 +520,32 @@ class TradeAnalysisTab(QWidget):
         dir_row.addStretch()
         cond_layout.addLayout(dir_row)
 
+        # Outcome / Exit Reason Selection (Radio buttons)
+        exit_label = QLabel("🏁 <b>How Trade Ended:</b>")
+        exit_label.setStyleSheet("color:#ffb74d;font-size:12px;margin-top:4px;")
+        cond_layout.addWidget(exit_label)
+
+        exit_row = QHBoxLayout()
+        exit_row.setSpacing(12)
+        self.radio_exit_target = QRadioButton("🎯 Hit Target")
+        self.radio_exit_stop = QRadioButton("🛑 Hit Stop Loss")
+        self.radio_exit_early = QRadioButton("⏱️ Early Exit")
+        self.radio_exit_be = QRadioButton("⚡ Breakeven")
+        self.radio_exit_target.setChecked(True)
+
+        self.exit_group = QButtonGroup(self)
+        self.exit_group.addButton(self.radio_exit_target)
+        self.exit_group.addButton(self.radio_exit_stop)
+        self.exit_group.addButton(self.radio_exit_early)
+        self.exit_group.addButton(self.radio_exit_be)
+
+        exit_row.addWidget(self.radio_exit_target)
+        exit_row.addWidget(self.radio_exit_stop)
+        exit_row.addWidget(self.radio_exit_early)
+        exit_row.addWidget(self.radio_exit_be)
+        exit_row.addStretch()
+        cond_layout.addLayout(exit_row)
+
         right_layout.addWidget(cond_box)
 
         # Notes / Commentary
@@ -841,6 +867,21 @@ class TradeAnalysisTab(QWidget):
         else:
             self.radio_dir_wrong.setChecked(True)
 
+        exit_reason = target.get("exit_reason")
+        if not exit_reason:
+            pnl_val = float(target.get("pnl", 0.0) or 0.0)
+            exit_reason = "TARGET" if pnl_val > 0 else ("STOP_LOSS" if pnl_val < 0 else "BREAKEVEN")
+        
+        exit_reason = str(exit_reason).upper()
+        if exit_reason == "STOP_LOSS":
+            self.radio_exit_stop.setChecked(True)
+        elif exit_reason == "EARLY_EXIT":
+            self.radio_exit_early.setChecked(True)
+        elif exit_reason == "BREAKEVEN":
+            self.radio_exit_be.setChecked(True)
+        else:
+            self.radio_exit_target.setChecked(True)
+
         self.edit_notes.setPlainText(target.get("notes", ""))
         self.save_trade_btn.setText("💾  Update Trade Classification")
 
@@ -868,6 +909,7 @@ class TradeAnalysisTab(QWidget):
         self.cb_early_exit.setChecked(False)
         self.edit_early_amt.setValue(0.0)
         self.radio_dir_right.setChecked(True)
+        self.radio_exit_target.setChecked(True)
         self.edit_notes.clear()
         self.save_trade_btn.setText("💾  Save Trade Classification")
         self.table.clearSelection()
@@ -893,6 +935,16 @@ class TradeAnalysisTab(QWidget):
         early = self.cb_early_exit.isChecked()
         early_amt = self.edit_early_amt.value() if early else None
         dir_right = self.radio_dir_right.isChecked()
+        
+        if self.radio_exit_stop.isChecked():
+            exit_reason = "STOP_LOSS"
+        elif self.radio_exit_early.isChecked():
+            exit_reason = "EARLY_EXIT"
+        elif self.radio_exit_be.isChecked():
+            exit_reason = "BREAKEVEN"
+        else:
+            exit_reason = "TARGET"
+
         notes = self.edit_notes.toPlainText().strip()
 
         trade_dict = {
@@ -910,6 +962,7 @@ class TradeAnalysisTab(QWidget):
             "is_9_21_cross": is_cross,
             "early_exit": early,
             "early_exit_amount": early_amt,
+            "exit_reason": exit_reason,
             "direction_right": dir_right,
             "notes": notes,
         }

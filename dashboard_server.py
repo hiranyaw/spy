@@ -64,7 +64,7 @@ def load_trade_classifications():
         print(f"Error loading local trade classifications JSON: {e}")
     return classifications
 
-def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", early_exit_amount=None):
+def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", early_exit_amount=None, exit_reason="TARGET"):
     classifications = load_trade_classifications()
     entry = {
         "trade_key": key,
@@ -74,6 +74,7 @@ def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_
         "is_9_21_cross": bool(is_9_21_cross),
         "early_exit": bool(early_exit),
         "early_exit_amount": float(early_exit_amount) if early_exit_amount is not None and str(early_exit_amount).strip() != "" else None,
+        "exit_reason": str(exit_reason or "TARGET").upper(),
         "direction_right": bool(direction_right),
         "notes": notes,
     }
@@ -2422,12 +2423,13 @@ def classify_trade():
         is_9_21_cross = bool(data.get("is_9_21_cross", False))
         early_exit = bool(data.get("early_exit", False))
         early_exit_amount = data.get("early_exit_amount")
+        exit_reason = data.get("exit_reason", "TARGET")
         direction_right = bool(data.get("direction_right", True))
         notes = str(data.get("notes", ""))
         
         save_trade_classification_item(
             trade_key, filename, idx,
-            is_b_trade, is_9_21_cross, early_exit, direction_right, notes, early_exit_amount
+            is_b_trade, is_9_21_cross, early_exit, direction_right, notes, early_exit_amount, exit_reason
         )
         
         # Keep b_trade_flags in sync
