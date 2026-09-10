@@ -79,11 +79,11 @@ def save_or_update_trade(trade: dict[str, Any]) -> dict[str, Any]:
     trade["direction_right"] = bool(trade.get("direction_right", True))
 
     # Ensure numeric fields
+    trade["qty"] = float(trade.get("qty", 1.0))
     trade["pnl"] = float(trade.get("pnl", 0.0))
-    trade["trade_cost"] = float(trade.get("trade_cost", 1.0))
+    trade["trade_cost"] = float(trade.get("trade_cost", trade["qty"] * 1.0))
     trade["entry_price"] = float(trade.get("entry_price", 0.0))
     trade["exit_price"] = float(trade.get("exit_price", 0.0))
-    trade["qty"] = float(trade.get("qty", 1.0))
 
     # Ensure exit_reason
     exit_r = str(trade.get("exit_reason", "")).upper()
@@ -187,10 +187,15 @@ def _calc_stats_for_subset(subset: list[dict[str, Any]]) -> dict[str, Any]:
             "profit_factor": 0.0,
         }
 
-    # Net PnL per trade = gross pnl - trade_cost ($1 default)
-    net_pnls = [float(t.get("pnl", 0.0)) - float(t.get("trade_cost", 1.0)) for t in subset]
+    # Net PnL per trade = gross pnl - trade_cost ($1.00 * qty default)
+    def _trade_cost(t: dict[str, Any]) -> float:
+        if "trade_cost" in t and t["trade_cost"] is not None:
+            return float(t["trade_cost"])
+        return float(t.get("qty", 1.0)) * 1.0
+
+    net_pnls = [float(t.get("pnl", 0.0)) - _trade_cost(t) for t in subset]
     gross_pnls = [float(t.get("pnl", 0.0)) for t in subset]
-    costs = [float(t.get("trade_cost", 1.0)) for t in subset]
+    costs = [_trade_cost(t) for t in subset]
 
     wins = sum(1 for npnl in net_pnls if npnl > 0)
     losses = sum(1 for npnl in net_pnls if npnl < 0)
@@ -372,20 +377,20 @@ def import_trades_from_csv(file_path: str | pathlib.Path) -> tuple[int, int, lis
         except ValueError:
             pnl_val = 0.0
 
-        # Cost parse (defaults to $1.00 per trade)
-        raw_cost = get_val(cost_col, "1.0")
-        raw_cost = raw_cost.replace("$", "").replace(",", "").replace(" ", "")
-        try:
-            cost_val = float(raw_cost) if raw_cost else 1.0
-        except ValueError:
-            cost_val = 1.0
-
         # Qty
         raw_qty = get_val(qty_col, "1")
         try:
             qty_val = float(raw_qty.replace(",", ""))
         except ValueError:
             qty_val = 1.0
+
+        # Cost parse (defaults to $1.00 * qty)
+        raw_cost = get_val(cost_col, "")
+        raw_cost = raw_cost.replace("$", "").replace(",", "").replace(" ", "")
+        try:
+            cost_val = float(raw_cost) if raw_cost else (qty_val * 1.0)
+        except ValueError:
+            cost_val = qty_val * 1.0
 
         # Entry & Exit prices
         try:

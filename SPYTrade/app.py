@@ -20,6 +20,7 @@ from signals import analyze_bar, analyze_with_indicators
 from tv_scraper import fetch_indicators, fetch_live_prices
 from journal_tab import JournalTab
 from trade_analysis_tab import TradeAnalysisTab
+from checklist_tab import ChecklistTab
 
 try:
     if hasattr(sys.stdout, "reconfigure"):
@@ -184,6 +185,10 @@ class MainWindow(QMainWindow):
         self.journal_tab = JournalTab(status_callback=self._status_msg)
         self.tabs.addTab(self.journal_tab, "📝  Trade Journal")
 
+        # ── Tab 4: Trade Checklist ───────────────────────────────────────────
+        self.checklist_tab = ChecklistTab(status_callback=self._status_msg)
+        self.tabs.addTab(self.checklist_tab, "✅  Trade Checklist")
+
         root_layout.addWidget(self.tabs)
 
         # ── Status bar ───────────────────────────────────────────────────────
@@ -301,7 +306,29 @@ class MainWindow(QMainWindow):
                     "<span style='color:#b0bec5;font-size:13px;'>Ensure Chrome is running with remote debugging port 9222 and TradingView is open.</span>"
                     "</div>"
                 )
-                self.conditions_label.clear()
+                self.conditions_label.setText(
+                    render_conditions_and_last_rec({
+                        "signal": "HOLD",
+                        "conditions": [
+                            {"name": "1. AK MACD BB", "met": False, "detail": "Awaiting Feed (Green/RED)"},
+                            {"name": "2. RSI Trendline Cross", "met": False, "detail": "Awaiting Cross"},
+                            {"name": "3. Hiranya Signal Monitor", "met": False, "detail": "Awaiting Feed (Green/RED)"},
+                            {"name": "4. 9 21 Cross & VWAP", "met": False, "detail": "Awaiting Feed"},
+                            {"name": "5. B-Trade Setup", "met": False, "detail": "Awaiting Setup"},
+                            {"name": "6. QQQ Direction", "met": False, "detail": "Awaiting Feed"},
+                            {"name": "7. ADD Direction", "met": False, "detail": "Awaiting Feed"},
+                        ],
+                        "waiting_for": [
+                            "1. AK MACD BB (Green for Call, RED for Put)",
+                            "2. RSI cross the trend line",
+                            "3. Hiranya Signal Monitor (Green or Red)",
+                            "4. 9 21 cross & VWAP alignment",
+                            "5. B-Trade setup confirmation",
+                            "6. QQQ direction confluence",
+                            "7. NYSE $ADD direction confirmation",
+                        ]
+                    }, self._last_actionable_rec)
+                )
                 self.indicator_label.clear()
                 self.status_label.clear()
                 self.ladder_label.clear()

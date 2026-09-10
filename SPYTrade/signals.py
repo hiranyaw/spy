@@ -386,50 +386,70 @@ def analyze_with_indicators(bar: dict, history: list, indicators: dict) -> dict:
     conditions_list = []
     waiting_for_list = []
 
-    # 1. Price Momentum
-    if bullish:
-        conditions_list.append({"name": "Price Momentum", "met": True, "detail": f"Bullish Bar (+{body_r*100:.0f}% body)"})
-    elif bearish:
-        conditions_list.append({"name": "Price Momentum", "met": "SELL" in signal, "detail": f"Bearish Bar ({body_r*100:.0f}% body)"})
-    else:
-        conditions_list.append({"name": "Price Momentum", "met": False, "detail": "Doji / Neutral Bar"})
-        waiting_for_list.append("Directional breakout candle")
-
-    # 2. ADX Trend Strength
-    if adx is not None:
-        if adx >= 20:
-            conditions_list.append({"name": "ADX Trend Strength", "met": True, "detail": f"ADX {adx:.1f} (Trending)"})
-        else:
-            conditions_list.append({"name": "ADX Trend Strength", "met": False, "detail": f"ADX {adx:.1f} (Low / Chop)"})
-            waiting_for_list.append(f"ADX strength > 20 (currently {adx:.1f})")
-    else:
-        conditions_list.append({"name": "ADX Trend Strength", "met": False, "detail": "Awaiting ADX"})
-
-    # 3. MACD Alignment
+    # 1. AK MACD BB (Green or RED)
     if macd_dir in ("UP", "DN"):
         macd_matches = (macd_dir == "UP" and "BUY" in signal) or (macd_dir == "DN" and "SELL" in signal)
-        conditions_list.append({"name": "AK MACD Momentum", "met": macd_matches, "detail": f"MACD {macd_dir}"})
+        macd_color = "Green" if macd_dir == "UP" else "RED"
+        conditions_list.append({"name": "1. AK MACD BB", "met": macd_matches, "detail": f"{macd_color} ({macd_dir})"})
         if not macd_matches and signal != "HOLD":
-            waiting_for_list.append(f"MACD momentum alignment (currently {macd_dir})")
+            expected = "Green" if "BUY" in signal else "RED"
+            waiting_for_list.append(f"AK MACD BB alignment ({expected}, currently {macd_color})")
     else:
-        conditions_list.append({"name": "AK MACD Momentum", "met": False, "detail": "Neutral / Awaiting"})
+        conditions_list.append({"name": "1. AK MACD BB", "met": False, "detail": "Neutral / Awaiting"})
 
-    # 4. Market Breadth ($ADD)
+    # 2. RSI Cross Trend Line
+    if tl_break in ("UP", "DN"):
+        tl_matches = (tl_break == "UP" and "BUY" in signal) or (tl_break == "DN" and "SELL" in signal)
+        conditions_list.append({"name": "2. RSI Trendline Cross", "met": tl_matches, "detail": f"Cross {tl_break}"})
+        if not tl_matches and signal != "HOLD":
+            waiting_for_list.append(f"RSI trendline break confirmation ({tl_break})")
+    else:
+        conditions_list.append({"name": "2. RSI Trendline Cross", "met": False, "detail": "No Cross Active"})
+
+    # 3. Hiranya Signal Monitor (Green or Red)
+    if signal_tv in ("BUY", "SELL"):
+        tv_matches = (signal_tv == "BUY" and "BUY" in signal) or (signal_tv == "SELL" and "SELL" in signal)
+        tv_color = "Green" if signal_tv == "BUY" else "RED"
+        conditions_list.append({"name": "3. Hiranya Signal Monitor", "met": tv_matches, "detail": f"{tv_color} ({conf_tv})"})
+        if not tv_matches and signal != "HOLD":
+            waiting_for_list.append(f"Hiranya Signal Monitor confirmation ({tv_color})")
+    else:
+        conditions_list.append({"name": "3. Hiranya Signal Monitor", "met": False, "detail": "Neutral / Awaiting"})
+
+    # 4. 9 21 Cross & VWAP
+    if bullish:
+        conditions_list.append({"name": "4. 9 21 Cross & VWAP", "met": "BUY" in signal, "detail": "Bullish Structure (>VWAP)"})
+    elif bearish:
+        conditions_list.append({"name": "4. 9 21 Cross & VWAP", "met": "SELL" in signal, "detail": "Bearish Structure (<VWAP)"})
+    else:
+        conditions_list.append({"name": "4. 9 21 Cross & VWAP", "met": False, "detail": "Testing VWAP / Chop"})
+        if signal != "HOLD":
+            waiting_for_list.append("Clear 9/21 cross & VWAP separation")
+
+    # 5. B-Trade Setup
+    if st_flip in ("FLIPPED UP", "FLIPPED DN") or abs(body_r) >= 0.5:
+        b_met = (st_flip == "FLIPPED UP" and "BUY" in signal) or (st_flip == "FLIPPED DN" and "SELL" in signal) or (bullish and "BUY" in signal) or (bearish and "SELL" in signal)
+        conditions_list.append({"name": "5. B-Trade Setup", "met": b_met, "detail": "Setup Confirmed" if b_met else "Incomplete Setup"})
+    else:
+        conditions_list.append({"name": "5. B-Trade Setup", "met": False, "detail": "Awaiting B-Setup Trigger"})
+
+    # 6. QQQ Direction
+    qqq_p = ind.get("qqq_price")
+    if qqq_p and isinstance(qqq_p, (int, float)):
+        qqq_agree = ("BUY" in signal and bullish) or ("SELL" in signal and bearish)
+        conditions_list.append({"name": "6. QQQ Direction", "met": qqq_agree, "detail": f"Aligned (${qqq_p:.2f})" if qqq_agree else f"Diverging (${qqq_p:.2f})"})
+    else:
+        conditions_list.append({"name": "6. QQQ Direction", "met": False, "detail": "Neutral / Awaiting"})
+
+    # 7. NYSE $ADD Direction
     add_val = ind.get("add_value")
     if add_val is not None and isinstance(add_val, (int, float)):
         add_matches = (add_val > 0 and "BUY" in signal) or (add_val < 0 and "SELL" in signal)
-        conditions_list.append({"name": "NYSE $ADD Breadth", "met": add_matches, "detail": f"$ADD {int(add_val)}"})
+        conditions_list.append({"name": "7. ADD Direction", "met": add_matches, "detail": f"$ADD {int(add_val)}"})
         if not add_matches and signal != "HOLD":
-            waiting_for_list.append(f"$ADD breadth confirmation (currently {int(add_val)})")
+            waiting_for_list.append(f"$ADD breadth confirmation ({int(add_val)})")
     else:
-        conditions_list.append({"name": "NYSE $ADD Breadth", "met": False, "detail": "Neutral / Awaiting"})
-
-    # 5. Structure / Breaks
-    if tl_break in ("UP", "DN") or st_flip in ("FLIPPED UP", "FLIPPED DN"):
-        struct_detail = f"TL {tl_break}" if tl_break else f"ST {st_flip}"
-        conditions_list.append({"name": "Structure / Flip", "met": True, "detail": struct_detail})
-    else:
-        conditions_list.append({"name": "Structure / Flip", "met": False, "detail": "No active break"})
+        conditions_list.append({"name": "7. ADD Direction", "met": False, "detail": "Neutral / Awaiting"})
 
     if not waiting_for_list and signal in ("STRONG BUY", "BUY", "STRONG SELL", "SELL"):
         waiting_for_list.append("All primary conditions aligned — ready for execution")

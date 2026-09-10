@@ -305,14 +305,14 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
 </div>
 
 <div class="tabs">
-  <div class="tab on" data-tab="live">Live Signal</div>
-  <div class="tab"    data-tab="guide">Symbol Guide</div>
-  <div class="tab"    data-tab="paper">Paper Trading</div>
-  <div class="tab"    data-tab="tl">📊 Trendline Breaks</div>
-  <div class="tab"    data-tab="journal">📔 Trade Journal</div>
-  <div class="tab"    data-tab="ctrl">Controls</div>
-  <div class="tab"    data-tab="analysis">🔍 Trade Analysis</div>
-  <div class="tab"    data-tab="checklist">✅ Trade Checklist</div>
+  <div class="tab on" data-tab="live" onclick="sw('live')">Live Signal</div>
+  <div class="tab"    data-tab="guide" onclick="sw('guide')">Symbol Guide</div>
+  <div class="tab"    data-tab="paper" onclick="sw('paper')">Paper Trading</div>
+  <div class="tab"    data-tab="tl" onclick="sw('tl')">📊 Trendline Breaks</div>
+  <div class="tab"    data-tab="journal" onclick="sw('journal')">📔 Trade Journal</div>
+  <div class="tab"    data-tab="ctrl" onclick="sw('ctrl')">Controls</div>
+  <div class="tab"    data-tab="analysis" onclick="sw('analysis')">🔍 Trade Analysis</div>
+  <div class="tab"    data-tab="checklist" onclick="sw('checklist')">✅ Trade Checklist</div>
 </div>
 </div>
 <div class="main-content">
@@ -1438,7 +1438,7 @@ Only B Trades with FULL confirmation."></textarea>
       <div style="font-size:1.8rem;font-weight:700;color:#3fb950" id="ana-stat-winrate">0%</div>
     </div>
     <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;text-align:center">
-      <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Net P&amp;L ($1 Trade Cost)</div>
+      <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">Net P&amp;L ($1/qty Trade Cost)</div>
       <div style="font-size:1.8rem;font-weight:700;color:#e6edf3" id="ana-stat-pnl">$0.00</div>
       <div style="font-size:0.7rem;color:#8b949e;margin-top:2px" id="ana-stat-pnl-sub">Gross: $0.00 | Cost: $0.00</div>
     </div>
@@ -1920,6 +1920,7 @@ Only B Trades with FULL confirmation."></textarea>
               <th style="padding:8px;text-align:center">Win Rate %</th>
               <th style="padding:8px;text-align:right">Gross P&amp;L</th>
               <th style="padding:8px;text-align:right">Trade Cost</th>
+              <th style="padding:8px;text-align:right;color:#ff7b72">Amount Lost</th>
               <th style="padding:8px;text-align:right">Net Realized P&amp;L</th>
               <th style="padding:8px;text-align:right">Avg P&amp;L / Trade</th>
               <th style="padding:8px;text-align:left">Strategy Guidance</th>
@@ -1991,14 +1992,170 @@ Only B Trades with FULL confirmation."></textarea>
 <div class="tc" id="tab-checklist">
 <div style="padding:20px;max-width:1400px;margin:0 auto">
 
-  <!-- ══ PRE-TRADE RITUAL PANEL ══ -->
-  <div class="ptr-panel open" id="ptr-panel">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+    <div>
+      <h2 style="color:#e6edf3;margin:0;font-size:1.3rem">✅ Trade Conditions Checklist</h2>
+      <p style="color:#8b949e;font-size:0.78rem;margin:4px 0 0">Verify ALL conditions before entering a trade &mdash; saved per trade entry</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:0.78rem;color:#8b949e">Trade Type:</span>
+      <button id="cl-btn-put" class="cl-type-btn active-put" onclick="clSetType('PUTS')">📉 PUTS</button>
+      <button id="cl-btn-call" class="cl-type-btn" onclick="clSetType('CALLS')">📈 CALLS</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start">
+
+    <!-- Left: Checklist -->
+    <div>
+      <!-- Score banner -->
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px 22px;margin-bottom:16px;display:flex;align-items:center;gap:24px">
+        <div class="cl-score-ring">
+          <div id="cl-score-num" class="cl-score-num" style="color:#8b949e">0</div>
+          <div class="cl-score-denom">/ <span id="cl-score-denom">100</span> pts</div>
+          <div style="font-size:0.72rem;color:#8b949e;font-weight:700;margin-top:2px" id="cl-score-count">0 / 7 met</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:1rem;font-weight:700;color:#e6edf3;margin-bottom:6px" id="cl-score-label">Waiting for your checklist...</div>
+          <div style="background:#21262d;border-radius:8px;height:10px;overflow:hidden">
+            <div id="cl-score-bar" style="height:100%;border-radius:8px;width:0%;background:#3fb950;transition:width .35s ease,background .35s ease"></div>
+          </div>
+        </div>
+        <div id="cl-score-icon" style="font-size:2.5rem">⬜</div>
+      </div>
+
+      <!-- Conditions -->
+      <div class="cl-section" id="cl-conditions-wrap">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div class="cl-section-title" id="cl-conditions-header" style="margin-bottom:0">
+            <span>📉</span><span id="cl-conditions-title">PUTS — Setup Conditions (7 Rules)</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button onclick="clCheckAll()" style="padding:4px 12px;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#3fb950;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s" title="Check all 7 conditions">✓ Check All</button>
+            <button onclick="clClearAll()" style="padding:4px 12px;background:#21262d;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:0.75rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s" title="Clear all selections">✕ Clear All</button>
+          </div>
+        </div>
+        <div class="cl-grid" id="cl-conditions-grid">
+          <div class="cl-item" id="cli-ak_macd_bb" onclick="clToggle('ak_macd_bb')">
+            <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
+            <div class="cl-item-text">
+              <div class="cl-item-label">📊 1. AK MACD BB <span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.18);border:1px solid rgba(248,81,73,0.45);color:#ff7b72;text-transform:uppercase;letter-spacing:0.5px">RED</span></div>
+              <div class="cl-item-sub">AK MACD BB is RED (Bearish momentum / sell zone)</div>
+            </div>
+            <div style="font-size:0.8rem;font-weight:800;color:#8b949e;min-width:36px;text-align:right;flex-shrink:0">15pt</div>
+          </div>
+          <div class="cl-item" id="cli-rsi_cross_trendline" onclick="clToggle('rsi_cross_trendline')">
+            <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
+            <div class="cl-item-text">
+              <div class="cl-item-label">📉 2. RSI Cross Trend Line <span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.18);border:1px solid rgba(248,81,73,0.45);color:#ff7b72;text-transform:uppercase;letter-spacing:0.5px">CROSS DOWN</span></div>
+              <div class="cl-item-sub">RSI crosses / breaks down below the trendline</div>
+            </div>
+            <div style="font-size:0.8rem;font-weight:800;color:#8b949e;min-width:36px;text-align:right;flex-shrink:0">15pt</div>
+          </div>
+          <div class="cl-item" id="cli-hiranya_signal_monitor" onclick="clToggle('hiranya_signal_monitor')">
+            <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
+            <div class="cl-item-text">
+              <div class="cl-item-label">🎯 3. Hiranya Signal Monitor <span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.18);border:1px solid rgba(248,81,73,0.45);color:#ff7b72;text-transform:uppercase;letter-spacing:0.5px">RED</span></div>
+              <div class="cl-item-sub">Hiranya Signal Monitor is RED (Bearish confirmation)</div>
+            </div>
+            <div style="font-size:0.8rem;font-weight:800;color:#8b949e;min-width:36px;text-align:right;flex-shrink:0">15pt</div>
+          </div>
+          <div class="cl-item" id="cli-cross_9_21_vwap" onclick="clToggle('cross_9_21_vwap')">
+            <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
+            <div class="cl-item-text">
+              <div class="cl-item-label">⚡ 4. 9 21 Cross & VWAP <span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.18);border:1px solid rgba(248,81,73,0.45);color:#ff7b72;text-transform:uppercase;letter-spacing:0.5px">9&lt;21 &amp; &lt;VWAP</span></div>
+              <div class="cl-item-sub">9 EMA crossed below 21 EMA &amp; price is below VWAP</div>
+            </div>
+            <div style="font-size:0.8rem;font-weight:800;color:#8b949e;min-width:36px;text-align:right;flex-shrink:0">15pt</div>
+          </div>
+          <div class="cl-item" id="cli-b_trade" onclick="clToggle('b_trade')">
+            <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
+            <div class="cl-item-text">
+              <div class="cl-item-label">🏷️ 5. B-Trade Setup <span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.18);border:1px solid rgba(248,81,73,0.45);color:#ff7b72;text-transform:uppercase;letter-spacing:0.5px">CONFIRMED</span></div>
+              <div class="cl-item-sub">Valid B-Trade setup / pullback continuation confirmed</div>
+            </div>
+            <div style="font-size:0.8rem;font-weight:800;color:#8b949e;min-width:36px;text-align:right;flex-shrink:0">15pt</div>
+          </div>
+          <div class="cl-item" id="cli-qqq_direction" onclick="clToggle('qqq_direction')">
+            <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
+            <div class="cl-item-text">
+              <div class="cl-item-label">🧭 6. QQQ Direction <span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.18);border:1px solid rgba(248,81,73,0.45);color:#ff7b72;text-transform:uppercase;letter-spacing:0.5px">DOWN / BEARISH</span></div>
+              <div class="cl-item-sub">QQQ moving downward in confluence with SPY</div>
+            </div>
+            <div style="font-size:0.8rem;font-weight:800;color:#8b949e;min-width:36px;text-align:right;flex-shrink:0">15pt</div>
+          </div>
+          <div class="cl-item" id="cli-add_direction" onclick="clToggle('add_direction')">
+            <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
+            <div class="cl-item-text">
+              <div class="cl-item-label">📶 7. ADD Direction <span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.18);border:1px solid rgba(248,81,73,0.45);color:#ff7b72;text-transform:uppercase;letter-spacing:0.5px">DECLINING</span></div>
+              <div class="cl-item-sub">NYSE $ADD breadth declining / in negative territory</div>
+            </div>
+            <div style="font-size:0.8rem;font-weight:800;color:#8b949e;min-width:36px;text-align:right;flex-shrink:0">10pt</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Note field -->
+      <div class="cl-section">
+        <div class="cl-section-title"><span>✏️</span> Trade Note (optional)</div>
+        <textarea id="cl-note" placeholder="e.g. Strong break below 9 EMA, QQQ tanking, clean setup" style="width:100%;height:80px;background:#0d1117;border:1.5px solid #30363d;border-radius:8px;color:#e6edf3;font-family:inherit;font-size:0.88rem;padding:10px 12px;resize:vertical;box-sizing:border-box;line-height:1.5"></textarea>
+      </div>
+
+      <!-- Save button -->
+      <button id="cl-save-btn" class="cl-save-btn put" onclick="clSave()">💾 Save Trade Checklist</button>
+      <div id="cl-feedback" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:0.85rem;text-align:center"></div>
+    </div>
+
+    <!-- Right: Stats + charts -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <!-- Quick stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Trades Saved Today</div>
+          <div id="cl-stat-today" style="font-size:1.8rem;font-weight:900;color:#58a6ff">--</div>
+        </div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Avg Score (30d)</div>
+          <div id="cl-stat-avg" style="font-size:1.8rem;font-weight:900;color:#f0d000">--</div>
+        </div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">7/7 Perfect Trades</div>
+          <div id="cl-stat-perfect" style="font-size:1.8rem;font-weight:900;color:#3fb950">--</div>
+        </div>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Most Missed</div>
+          <div id="cl-stat-missed" style="font-size:0.75rem;font-weight:700;color:#f85149;margin-top:6px">--</div>
+        </div>
+      </div>
+
+      <!-- Sub-tab: Daily / Monthly -->
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;overflow:hidden">
+        <div style="display:flex;border-bottom:1px solid #30363d">
+          <button id="cl-subtab-daily" onclick="clSubTab('daily')" style="flex:1;padding:9px;background:#1f6feb;color:#fff;border:none;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit">📅 Daily</button>
+          <button id="cl-subtab-monthly" onclick="clSubTab('monthly')" style="flex:1;padding:9px;background:#161b22;color:#8b949e;border:none;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit">📆 Monthly</button>
+        </div>
+        <div style="padding:14px">
+          <div id="cl-chart-daily" style="position:relative;height:180px">
+            <canvas id="cl-canvas-daily"></canvas>
+          </div>
+          <div id="cl-chart-monthly" style="position:relative;height:180px;display:none">
+            <canvas id="cl-canvas-monthly"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ PRE-TRADE RITUAL PANEL (COLLAPSIBLE) ══ -->
+  <div class="ptr-panel" id="ptr-panel" style="margin-top:20px">
     <div class="ptr-header" onclick="ptrToggle()">
       <div class="ptr-header-left">
         <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#1e1b4b,#2d1b69);border:1.5px solid #a78bfa;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🧘</div>
         <div>
-          <div class="ptr-title">Pre-Trade Ritual &nbsp;<span style="font-size:0.72rem;font-weight:600;color:#a78bfa;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);border-radius:6px;padding:2px 8px">5–10 min before trading</span></div>
-          <div class="ptr-subtitle">Clear your mind · Prepare your space · Review the market</div>
+          <div class="ptr-title">Pre-Trade Ritual &nbsp;<span style="font-size:0.72rem;font-weight:600;color:#a78bfa;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.3);border-radius:6px;padding:2px 8px">5–10 min before trading (Optional)</span></div>
+          <div class="ptr-subtitle">Clear your mind · Prepare your space · Review the market &nbsp;• Click to expand/collapse</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
@@ -2074,100 +2231,6 @@ Only B Trades with FULL confirmation."></textarea>
     </div>
   </div>
   <!-- ══ /PRE-TRADE RITUAL ══ -->
-
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-    <div>
-      <h2 style="color:#e6edf3;margin:0;font-size:1.3rem">✅ Trade Conditions Checklist</h2>
-      <p style="color:#8b949e;font-size:0.78rem;margin:4px 0 0">Verify ALL conditions before entering a trade &mdash; saved per trade entry</p>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span style="font-size:0.78rem;color:#8b949e">Trade Type:</span>
-      <button id="cl-btn-put" class="cl-type-btn active-put" onclick="clSetType('PUTS')">📉 PUTS</button>
-      <button id="cl-btn-call" class="cl-type-btn" onclick="clSetType('CALLS')">📈 CALLS</button>
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start">
-
-    <!-- Left: Checklist -->
-    <div>
-      <!-- Score banner -->
-      <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px 22px;margin-bottom:16px;display:flex;align-items:center;gap:24px">
-        <div class="cl-score-ring">
-          <div id="cl-score-num" class="cl-score-num" style="color:#8b949e">0</div>
-          <div class="cl-score-denom">/ <span id="cl-score-denom">9</span></div>
-        </div>
-        <div style="flex:1">
-          <div style="font-size:1rem;font-weight:700;color:#e6edf3;margin-bottom:6px" id="cl-score-label">Waiting for your checklist...</div>
-          <div style="background:#21262d;border-radius:8px;height:10px;overflow:hidden">
-            <div id="cl-score-bar" style="height:100%;border-radius:8px;width:0%;background:#3fb950;transition:width .35s ease,background .35s ease"></div>
-          </div>
-        </div>
-        <div id="cl-score-icon" style="font-size:2.5rem">⬜</div>
-      </div>
-
-      <!-- Conditions -->
-      <div class="cl-section" id="cl-conditions-wrap">
-        <div class="cl-section-title" id="cl-conditions-header">
-          <span>📉</span><span id="cl-conditions-title">PUTS — Setup Conditions</span>
-        </div>
-        <div class="cl-grid" id="cl-conditions-grid">
-          <!-- Rendered by JS -->
-        </div>
-      </div>
-
-      <!-- Note field -->
-      <div class="cl-section">
-        <div class="cl-section-title"><span>✏️</span> Trade Note (optional)</div>
-        <textarea id="cl-note" placeholder="e.g. Strong break below 9 EMA, QQQ tanking, clean setup" style="width:100%;height:80px;background:#0d1117;border:1.5px solid #30363d;border-radius:8px;color:#e6edf3;font-family:inherit;font-size:0.88rem;padding:10px 12px;resize:vertical;box-sizing:border-box;line-height:1.5"></textarea>
-      </div>
-
-      <!-- Save button -->
-      <button id="cl-save-btn" class="cl-save-btn put" onclick="clSave()">💾 Save Trade Checklist</button>
-      <div id="cl-feedback" style="display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:0.85rem;text-align:center"></div>
-    </div>
-
-    <!-- Right: Stats + charts -->
-    <div style="display:flex;flex-direction:column;gap:16px">
-
-      <!-- Quick stats -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
-          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Trades Saved Today</div>
-          <div id="cl-stat-today" style="font-size:1.8rem;font-weight:900;color:#58a6ff">--</div>
-        </div>
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
-          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Avg Score (30d)</div>
-          <div id="cl-stat-avg" style="font-size:1.8rem;font-weight:900;color:#f0d000">--</div>
-        </div>
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
-          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">9/9 Perfect Trades</div>
-          <div id="cl-stat-perfect" style="font-size:1.8rem;font-weight:900;color:#3fb950">--</div>
-        </div>
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;text-align:center">
-          <div style="font-size:0.65rem;color:#8b949e;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Most Missed</div>
-          <div id="cl-stat-missed" style="font-size:0.75rem;font-weight:700;color:#f85149;margin-top:6px">--</div>
-        </div>
-      </div>
-
-      <!-- Sub-tab: Daily / Monthly -->
-      <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;overflow:hidden">
-        <div style="display:flex;border-bottom:1px solid #30363d">
-          <button id="cl-subtab-daily" onclick="clSubTab('daily')" style="flex:1;padding:9px;background:#1f6feb;color:#fff;border:none;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit">📅 Daily</button>
-          <button id="cl-subtab-monthly" onclick="clSubTab('monthly')" style="flex:1;padding:9px;background:#161b22;color:#8b949e;border:none;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit">📆 Monthly</button>
-        </div>
-        <div style="padding:14px">
-          <div id="cl-chart-daily" style="position:relative;height:180px">
-            <canvas id="cl-canvas-daily"></canvas>
-          </div>
-          <div id="cl-chart-monthly" style="position:relative;height:180px;display:none">
-            <canvas id="cl-canvas-monthly"></canvas>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
 
   <!-- Daily Summary -->
   <div class="cl-section" style="margin-top:20px">
@@ -4581,7 +4644,7 @@ async function loadAnaMonthly() {
     }
 
     const totalDays = data.length;
-    let sumDirAcc = 0, sumSim3 = 0, sumSim2l = 0, sumActual = 0, sumSim1m = 0, sumSim2m = 0, sumSim5m = 0, sumSimNotStopped = 0, sumTrades = 0;
+    let sumDirAcc = 0, sumSim3 = 0, sumSim2l = 0, sumActual = 0, sumSim1m = 0, sumSim2m = 0, sumSim5m = 0, sumSimNotStopped = 0, sumTrades = 0, sumCost = 0;
     const dates = [], actualPnlData = [], netPnlData = [], sim3PnlData = [], sim2lPnlData = [], sim1mPnlData = [], sim2mPnlData = [], sim5mPnlData = [], simNotStoppedPnlData = [], dirAccData = [], earlyExitsData = [];
 
     tableBody.innerHTML = '';
@@ -4589,12 +4652,13 @@ async function loadAnaMonthly() {
     data.forEach(day => {
       const dirAcc = day.total_trades > 0 ? (day.right_direction_count / day.total_trades * 100) : 0;
       const tradesCnt = day.total_trades || 0;
-      const dayCost   = tradesCnt * 1.0;
+      const dayCost   = day.total_cost !== undefined ? day.total_cost : (tradesCnt * 1.0);
       const dayGross  = day.total_pnl || 0;
       const dayNet    = dayGross - dayCost;
       const dayNotStopped = day.sim_not_stopped_pnl !== undefined ? day.sim_not_stopped_pnl : dayGross;
 
       sumTrades += tradesCnt;
+      sumCost   += dayCost;
       sumDirAcc += dirAcc;
       sumSim3   += day.sim_3_pnl;
       sumSim2l  += day.sim_2l_pnl;
@@ -4606,7 +4670,7 @@ async function loadAnaMonthly() {
 
       dates.push(day.date);
       actualPnlData.push(Number(sumActual.toFixed(2)));
-      netPnlData.push(Number((sumActual - (sumTrades * 1.0)).toFixed(2)));
+      netPnlData.push(Number((sumActual - sumCost).toFixed(2)));
       sim3PnlData.push(Number(sumSim3.toFixed(2)));
       sim2lPnlData.push(Number(sumSim2l.toFixed(2)));
       sim1mPnlData.push(Number(sumSim1m.toFixed(2)));
@@ -5134,16 +5198,16 @@ function renderDailyConditionSummary(trades) {
   const badge = document.getElementById('ana-daily-cond-total-badge');
   if (badge) badge.textContent = `${total} closed trade${total !== 1 ? 's' : ''}`;
 
-  const tradeCostPerTrade = 1.0;
+  const _getTradeCost = (t) => t.trade_cost !== undefined ? Number(t.trade_cost) : ((Number(t.qty) || 1.0) * 1.0);
   const _calc = (subset) => {
     const cnt = subset.length;
     if (cnt === 0) return { count: 0, wins: 0, losses: 0, wr: 0, pnl: 0, gross: 0, cost: 0 };
-    const netPnls = subset.map(t => (t.pnl || 0) - tradeCostPerTrade);
+    const netPnls = subset.map(t => (t.pnl || 0) - _getTradeCost(t));
     const wins = netPnls.filter(p => p > 0).length;
     const losses = netPnls.filter(p => p < 0).length;
     const wr = (wins / cnt) * 100;
     const gross = subset.reduce((acc, t) => acc + (t.pnl || 0), 0);
-    const cost = cnt * tradeCostPerTrade;
+    const cost = subset.reduce((acc, t) => acc + _getTradeCost(t), 0);
     const pnl = gross - cost;
     return { count: cnt, wins, losses, wr, pnl, gross, cost };
   };
@@ -5173,12 +5237,12 @@ function renderDailyConditionSummary(trades) {
 function renderAnaStats(trades) {
   const total = trades.length;
   const closedTrades = trades.filter(t => t.closed && t.pnl !== null);
-  const tradeCostPerTrade = 1.0;
-  const netPnls = closedTrades.map(t => (t.pnl || 0) - tradeCostPerTrade);
+  const _getTradeCost = (t) => t.trade_cost !== undefined ? Number(t.trade_cost) : ((Number(t.qty) || 1.0) * 1.0);
+  const netPnls = closedTrades.map(t => (t.pnl || 0) - _getTradeCost(t));
   const wins = netPnls.filter(p => p > 0).length;
   const winRate = closedTrades.length > 0 ? ((wins / closedTrades.length) * 100).toFixed(1) : "0.0";
   const totalGrossPnl = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
-  const totalCost = closedTrades.length * tradeCostPerTrade;
+  const totalCost = closedTrades.reduce((sum, t) => sum + _getTradeCost(t), 0);
   const totalNetPnl = totalGrossPnl - totalCost;
   
   document.getElementById('ana-stat-total').textContent = total;
@@ -5214,7 +5278,8 @@ function renderAnaTradeList(trades) {
     div.setAttribute('data-id', idx);
     
     const grossPnl = t.pnl !== null ? t.pnl : 0;
-    const cost = 1.0;
+    const qty = Number(t.qty) || 1.0;
+    const cost = t.trade_cost !== undefined ? Number(t.trade_cost) : (qty * 1.0);
     const netPnl = t.pnl !== null ? (grossPnl - cost) : 0;
     const netPnlStr = t.pnl !== null ? ((netPnl >= 0 ? '+$' : '-$') + Math.abs(netPnl).toFixed(2)) : 'Open';
     const netPnlColor = t.pnl !== null ? (netPnl > 0 ? '#3fb950' : '#f85149') : '#8b949e';
@@ -5246,7 +5311,7 @@ function renderAnaTradeList(trades) {
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #21262d;font-size:0.7rem;color:#8b949e">
         <span>Gross: ${grossPnl >= 0 ? '+$' : '-$'}${Math.abs(grossPnl).toFixed(2)}</span>
-        <span style="color:#ff9e2c;font-weight:700">Cost: $1.00</span>
+        <span style="color:#ff9e2c;font-weight:700">Cost: $${cost.toFixed(2)}</span>
       </div>
     `;
 
@@ -5324,7 +5389,8 @@ async function selectAnaTrade(trade) {
   document.getElementById('ana-det-qty').textContent = trade.qty;
 
   const grossPnl = trade.pnl !== null ? trade.pnl : 0;
-  const cost = 1.0;
+  const qty = Number(trade.qty) || 1.0;
+  const cost = trade.trade_cost !== undefined ? Number(trade.trade_cost) : (qty * 1.0);
   const netPnl = trade.pnl !== null ? (grossPnl - cost) : 0;
 
   const grossEl = document.getElementById('ana-det-gross-pnl');
@@ -5872,11 +5938,13 @@ async function renderConditionStatsSection(month) {
       const _cCard = (title, data, color) => {
         const pnlSign = data.total_pnl >= 0 ? '+$' : '-$';
         const pnlColor = data.total_pnl >= 0 ? '#3fb950' : '#f85149';
+        const lostAmt = data.amount_lost !== undefined ? data.amount_lost : 0;
+        const lostStr = (data.count > 0 && lostAmt > 0) ? ` &bull; <span style="color:#f85149;font-weight:700">-$${Math.abs(lostAmt).toFixed(0)}</span>` : '';
         return `
           <div style="background:#0d1117;border:1px solid #30363d;border-top:3px solid ${color};border-radius:8px;padding:12px;text-align:center">
             <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">${title}</div>
             <div style="font-size:1.35rem;font-weight:800;color:${color};margin:4px 0">${data.win_rate.toFixed(1)}% WR</div>
-            <div style="font-size:0.8rem;color:${pnlColor};font-weight:700">${pnlSign}$${Math.abs(data.total_pnl).toFixed(0)} <span style="color:#8b949e;font-size:0.7rem">(${data.wins}W / ${data.losses}L)</span></div>
+            <div style="font-size:0.8rem;color:${pnlColor};font-weight:700">${pnlSign}$${Math.abs(data.total_pnl).toFixed(0)} <span style="color:#8b949e;font-size:0.7rem">(${data.wins}W / ${data.losses}L)${lostStr}</span></div>
           </div>
         `;
       };
@@ -5994,12 +6062,16 @@ async function renderConditionStatsSection(month) {
         const pnlSign = item.total_pnl >= 0 ? '+$' : '-$';
         const pnlColor = item.total_pnl >= 0 ? '#3fb950' : '#f85149';
         const wrColor = item.count === 0 ? '#8b949e' : (item.win_rate >= 50 ? '#3fb950' : '#f85149');
+        const lostAmt = item.amount_lost !== undefined ? item.amount_lost : 0;
+        const lostColor = lostAmt > 0 ? '#f85149' : '#8b949e';
+        const lostStr = (item.count > 0 && lostAmt > 0) ? `-$${Math.abs(lostAmt).toFixed(0)}` : '$0';
         return `
           <div style="background:#0d1117;border:1px solid #30363d;border-top:3px solid ${item.color || '#58a6ff'};border-radius:8px;padding:12px;text-align:center">
             <div style="font-size:0.75rem;color:#e6edf3;font-weight:700">${item.label}</div>
             <div style="font-size:0.65rem;color:#8b949e;margin-bottom:4px">${item.sub}</div>
             <div style="font-size:1.3rem;font-weight:800;color:${wrColor};margin:2px 0">${item.count > 0 ? item.win_rate.toFixed(1) + '%' : '--%'} WR</div>
             <div style="font-size:0.75rem;color:${pnlColor};font-weight:700">${item.count > 0 ? pnlSign + '$' + Math.abs(item.total_pnl).toFixed(0) : '$0'} Net</div>
+            <div style="font-size:0.72rem;font-weight:700;color:${lostColor};margin-top:2px">Lost: ${lostStr}</div>
             <div style="font-size:0.68rem;color:#8b949e;margin-top:2px">${item.count} trade${item.count !== 1 ? 's' : ''} (${item.wins}W / ${item.losses}L)</div>
             <div style="margin-top:6px;font-size:0.65rem;padding:2px 6px;border-radius:4px;background:#161b22;border:1px solid #30363d;color:#c9d1d9">${item.action}</div>
           </div>
@@ -6017,6 +6089,9 @@ async function renderConditionStatsSection(month) {
         const avgSign = item.avg_pnl >= 0 ? '+$' : '-$';
         const avgColor = item.avg_pnl >= 0 ? '#3fb950' : '#f85149';
         const wrColor = item.count === 0 ? '#8b949e' : (item.win_rate >= 50 ? '#3fb950' : '#f85149');
+        const lostAmt = item.amount_lost !== undefined ? item.amount_lost : 0;
+        const lostColor = lostAmt > 0 ? '#f85149' : '#8b949e';
+        const lostStr = (item.count > 0 && lostAmt > 0) ? `-$${Math.abs(lostAmt).toFixed(2)}` : '$0.00';
 
         return `
           <tr style="border-bottom:1px solid #21262d">
@@ -6029,6 +6104,7 @@ async function renderConditionStatsSection(month) {
             <td style="padding:8px;text-align:center;font-weight:800;color:${wrColor}">${item.count > 0 ? item.win_rate.toFixed(1) + '%' : '--%'}</td>
             <td style="padding:8px;text-align:right;font-weight:700;color:${grossColor}">${item.count > 0 ? grossSign + '$' + Math.abs(item.gross_pnl).toFixed(2) : '$0.00'}</td>
             <td style="padding:8px;text-align:right;font-weight:700;color:#ff9e2c">-$${item.total_cost.toFixed(2)}</td>
+            <td style="padding:8px;text-align:right;font-weight:700;color:${lostColor}">${lostStr}</td>
             <td style="padding:8px;text-align:right;font-weight:800;color:${netColor}">${item.count > 0 ? netSign + '$' + Math.abs(item.total_pnl).toFixed(2) : '$0.00'}</td>
             <td style="padding:8px;text-align:right;font-weight:700;color:${avgColor}">${item.count > 0 ? avgSign + '$' + Math.abs(item.avg_pnl).toFixed(2) : '--'}</td>
             <td style="padding:8px">
@@ -6049,6 +6125,7 @@ async function renderConditionStatsSection(month) {
       const tRates  = timingList.map(t => t.win_rate);
       const tCounts = timingList.map(t => t.count);
       const tPnls   = timingList.map(t => t.total_pnl);
+      const tLost   = timingList.map(t => t.amount_lost || 0);
       const tColors = timingList.map(t => t.color || '#58a6ff');
 
       window.anaMonthTimingChart = new Chart(timingCtx, {
@@ -6076,8 +6153,10 @@ async function renderConditionStatsSection(month) {
                   const i = c.dataIndex;
                   const cnt = tCounts[i];
                   const pnl = tPnls[i];
+                  const lost = tLost[i] || 0;
                   const pnlStr = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(0);
-                  return `Win Rate: ${c.parsed.y.toFixed(1)}% | ${cnt} trades | Net P&L: ${pnlStr}`;
+                  const lostStr = lost > 0 ? ` | Lost: -$${lost.toFixed(0)}` : '';
+                  return `Win Rate: ${c.parsed.y.toFixed(1)}% | ${cnt} trades | Net: ${pnlStr}${lostStr}`;
                 }
               }
             }
@@ -6281,37 +6360,36 @@ document.addEventListener('DOMContentLoaded', function() {
   initLiveChart();
   loadMarketNews();
   setInterval(loadMarketNews, 300000);
+
+  // Initialize trade checklist immediately
+  try {
+    initChecklist();
+  } catch(e) { console.error('Checklist init error:', e); }
 });
 
 // ══════════════════════════════════════════════════════
 //  TRADE CHECKLIST MODULE
 // ══════════════════════════════════════════════════════
 
-// Points total = 100 per trade type
+// Points total = 100 per trade type (7 conditions)
 const CL_CONDITIONS = {
   PUTS: [
-    { key: 'time_after_640',    label: 'After 6:40 AM',        sub: 'No entries before market opens properly', pts: 5  },
-    { key: 'below_vwap',        label: 'Below VWAP',           sub: 'Price is trading below VWAP',            pts: 15 },
-    { key: 'below_21ema',       label: 'Below 21 EMA',         sub: 'Price below 21-period EMA',              pts: 10 },
-    { key: 'below_9ema',        label: 'Below 9 EMA',          sub: 'Price below 9-period EMA',               pts: 5  },
-    { key: 'trendline_break',   label: 'Trendline Break',      sub: 'Downside trendline break confirmed',     pts: 15 },
-    { key: 'candle_confirmed',  label: 'Candle Confirmed',     sub: 'Wait for full candle close',             pts: 10 },
-    { key: 'supertrend_red',    label: 'SuperTrend Red',       sub: 'SuperTrend indicator is bearish (red)',  pts: 15 },
-    { key: 'qqq_same_dir',      label: 'QQQ Same Direction',   sub: 'QQQ is also moving down',                pts: 15 },
-    { key: 'no_sr_nearby',      label: 'No Support Nearby',    sub: 'No support / resistance levels close by',pts: 5  },
-    { key: 'add_same_dir',      label: 'ADD Declining',        sub: 'NYSE Advance-Decline line declining',    pts: 5  },
+    { key: 'ak_macd_bb',             label: '1. AK MACD BB',             state: 'RED',            sub: 'AK MACD BB is RED (Bearish momentum / sell zone)',             pts: 15 },
+    { key: 'rsi_cross_trendline',    label: '2. RSI Cross Trend Line',   state: 'CROSS DOWN',     sub: 'RSI crosses / breaks down below the trendline',                 pts: 15 },
+    { key: 'hiranya_signal_monitor', label: '3. Hiranya Signal Monitor', state: 'RED',            sub: 'Hiranya Signal Monitor is RED (Bearish confirmation)',          pts: 15 },
+    { key: 'cross_9_21_vwap',        label: '4. 9 21 Cross & VWAP',      state: '9<21 & <VWAP',   sub: '9 EMA crossed below 21 EMA & price is below VWAP',              pts: 15 },
+    { key: 'b_trade',                label: '5. B-Trade Setup',          state: 'CONFIRMED',      sub: 'Valid B-Trade setup / pullback continuation confirmed',         pts: 15 },
+    { key: 'qqq_direction',          label: '6. QQQ Direction',          state: 'DOWN / BEARISH', sub: 'QQQ moving downward in confluence with SPY',                    pts: 15 },
+    { key: 'add_direction',          label: '7. ADD Direction',          state: 'DECLINING',      sub: 'NYSE $ADD breadth declining / in negative territory',           pts: 10 },
   ],
   CALLS: [
-    { key: 'time_after_640',    label: 'After 6:40 AM',        sub: 'No entries before market opens properly', pts: 5  },
-    { key: 'above_vwap',        label: 'Above VWAP',           sub: 'Price is trading above VWAP',            pts: 15 },
-    { key: 'above_21ema',       label: 'Above 21 EMA',         sub: 'Price above 21-period EMA',              pts: 10 },
-    { key: 'above_9ema',        label: 'Above 9 EMA',          sub: 'Price above 9-period EMA',               pts: 5  },
-    { key: 'trendline_break',   label: 'Trendline Break',      sub: 'Upside trendline break confirmed',       pts: 15 },
-    { key: 'candle_confirmed',  label: 'Candle Confirmed',     sub: 'Wait for full candle close',             pts: 10 },
-    { key: 'supertrend_green',  label: 'SuperTrend Green',     sub: 'SuperTrend indicator is bullish (green)',pts: 15 },
-    { key: 'qqq_same_dir',      label: 'QQQ Same Direction',   sub: 'QQQ is also moving up',                  pts: 15 },
-    { key: 'no_sr_nearby',      label: 'No Resistance Nearby', sub: 'No resistance levels close by',          pts: 5  },
-    { key: 'add_same_dir',      label: 'ADD Advancing',        sub: 'NYSE Advance-Decline line advancing',    pts: 5  },
+    { key: 'ak_macd_bb',             label: '1. AK MACD BB',             state: 'GREEN',          sub: 'AK MACD BB is GREEN (Bullish momentum / buy zone)',            pts: 15 },
+    { key: 'rsi_cross_trendline',    label: '2. RSI Cross Trend Line',   state: 'CROSS UP',       sub: 'RSI crosses / breaks up above the trendline',                  pts: 15 },
+    { key: 'hiranya_signal_monitor', label: '3. Hiranya Signal Monitor', state: 'GREEN',          sub: 'Hiranya Signal Monitor is GREEN (Bullish confirmation)',        pts: 15 },
+    { key: 'cross_9_21_vwap',        label: '4. 9 21 Cross & VWAP',      state: '9>21 & >VWAP',   sub: '9 EMA crossed above 21 EMA & price is above VWAP',              pts: 15 },
+    { key: 'b_trade',                label: '5. B-Trade Setup',          state: 'CONFIRMED',      sub: 'Valid B-Trade setup / pullback continuation confirmed',         pts: 15 },
+    { key: 'qqq_direction',          label: '6. QQQ Direction',          state: 'UP / BULLISH',   sub: 'QQQ moving upward in confluence with SPY',                      pts: 15 },
+    { key: 'add_direction',          label: '7. ADD Direction',          state: 'ADVANCING',      sub: 'NYSE $ADD breadth advancing / in positive territory',           pts: 10 },
   ]
 };
 
@@ -6324,11 +6402,13 @@ function clTotalPoints(type) {
 }
 
 const CL_EMOJIS = {
-  time_after_640:'⏰', below_vwap:'📉', below_21ema:'📉', below_9ema:'📉',
-  above_vwap:'📈', above_21ema:'📈', above_9ema:'📈',
-  trendline_break:'🔻', candle_confirmed:'🕯️', supertrend_red:'🔴',
-  supertrend_green:'🟢', qqq_same_dir:'📊', no_sr_nearby:'🚫',
-  add_same_dir:'📶'
+  ak_macd_bb: '📊',
+  rsi_cross_trendline: '📉',
+  hiranya_signal_monitor: '🎯',
+  cross_9_21_vwap: '⚡',
+  b_trade: '🏷️',
+  qqq_direction: '🧭',
+  add_direction: '📶'
 };
 
 let clType = 'PUTS';
@@ -6346,38 +6426,54 @@ function clSetType(type) {
   const btn = document.getElementById('cl-save-btn');
   btn.className = 'cl-save-btn ' + (type==='PUTS' ? 'put' : 'call');
   const hdr = document.getElementById('cl-conditions-header');
-  hdr.querySelector('span').textContent = type==='PUTS' ? '📉' : '📈';
-  document.getElementById('cl-conditions-title').textContent = type + ' — Setup Conditions';
+  if(hdr && hdr.querySelector('span')) hdr.querySelector('span').textContent = type==='PUTS' ? '📉' : '📈';
+  const titleEl = document.getElementById('cl-conditions-title');
+  if(titleEl) titleEl.textContent = type + ' — Setup Conditions (7 Rules)';
   clRenderGrid();
   clUpdateScore();
-  document.getElementById('cl-note').value = '';
+  const noteEl = document.getElementById('cl-note');
+  if(noteEl) noteEl.value = '';
+}
+
+function clCheckAll() {
+  const conds = CL_CONDITIONS[clType] || CL_CONDITIONS.PUTS;
+  conds.forEach(c => { clChecks[c.key] = true; });
+  clRenderGrid();
+  clUpdateScore();
+}
+
+function clClearAll() {
+  clChecks = {};
+  clRenderGrid();
+  clUpdateScore();
 }
 
 function clRenderGrid() {
   const grid = document.getElementById('cl-conditions-grid');
+  if(!grid) return;
   const isSell = clType === 'PUTS';
-  grid.innerHTML = CL_CONDITIONS[clType].map(c => {
+  grid.innerHTML = (CL_CONDITIONS[clType] || CL_CONDITIONS.PUTS).map(c => {
     const checked = clChecks[c.key] || false;
     const ptColor = checked ? (isSell ? '#f85149' : '#3fb950') : '#8b949e';
+    const stateBadgeBg = isSell ? 'rgba(248,81,73,0.18)' : 'rgba(63,185,80,0.18)';
+    const stateBadgeBorder = isSell ? 'rgba(248,81,73,0.45)' : 'rgba(63,185,80,0.45)';
+    const stateBadgeCol = isSell ? '#ff7b72' : '#7ee787';
+    const stateBadge = c.state ? `<span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:${stateBadgeBg};border:1px solid ${stateBadgeBorder};color:${stateBadgeCol};text-transform:uppercase;letter-spacing:0.5px">${c.state}</span>` : '';
     return `<div class="cl-item${checked ? (' checked' + (isSell?' sell-type':'')) : ''}"
                  id="cli-${c.key}" onclick="clToggle('${c.key}')">
       <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
       <div class="cl-item-text">
-        <div class="cl-item-label">${CL_EMOJIS[c.key]||'•'} ${c.label}</div>
+        <div class="cl-item-label">${CL_EMOJIS[c.key]||'•'} ${c.label} ${stateBadge}</div>
         <div class="cl-item-sub">${c.sub}</div>
       </div>
-      <div style="font-size:0.8rem;font-weight:800;color:${ptColor};min-width:32px;text-align:right;flex-shrink:0">${checked?'+':''}${c.pts}pt</div>
+      <div style="font-size:0.8rem;font-weight:800;color:${ptColor};min-width:36px;text-align:right;flex-shrink:0">${checked?'+':''}${c.pts}pt</div>
     </div>`;
   }).join('');
 }
 
 function clToggle(key) {
   clChecks[key] = !clChecks[key];
-  const item = document.getElementById('cli-' + key);
-  if(item) {
-    item.classList.toggle('checked', clChecks[key]);
-    item.classList.toggle('sell-type', clChecks[key] && clType==='PUTS');
-  }
+  clRenderGrid();
   clUpdateScore();
 }
 
@@ -6385,30 +6481,39 @@ function clUpdateScore() {
   const earned = clEarnedPoints(clType, clChecks);
   const maxPts = clTotalPoints(clType);
   const pct    = maxPts > 0 ? Math.round((earned/maxPts)*100) : 0;
+  const conds  = CL_CONDITIONS[clType] || CL_CONDITIONS.PUTS;
+  const count  = conds.filter(c => clChecks[c.key]).length;
+  const totalConds = conds.length;
 
-  document.getElementById('cl-score-num').textContent = earned;
-  document.getElementById('cl-score-denom').textContent = maxPts;
+  const numEl = document.getElementById('cl-score-num');
+  const denomEl = document.getElementById('cl-score-denom');
+  const countEl = document.getElementById('cl-score-count');
+  if(numEl) numEl.textContent = earned;
+  if(denomEl) denomEl.textContent = maxPts;
+  if(countEl) countEl.textContent = `${count} / ${totalConds} met`;
 
   const bar = document.getElementById('cl-score-bar');
-  bar.style.width = pct + '%';
   let color = '#f85149';
   if(pct >= 90) color = '#3fb950';
   else if(pct >= 67) color = '#f0883e';
   else if(pct >= 45) color = '#f0d000';
-  bar.style.background = color;
-  document.getElementById('cl-score-num').style.color = color;
+  if(bar) {
+    bar.style.width = pct + '%';
+    bar.style.background = color;
+  }
+  if(numEl) numEl.style.color = color;
 
-  let label = 'Not ready — keep checking conditions';
+  let label = `Waiting for your checklist... (0/${totalConds} met)`;
   let icon = '⬜';
-  if(earned === maxPts)  { label = '🎯 Perfect! 100 pts — all conditions met'; icon = '🚀'; }
-  else if(pct >= 80)     { label = `Strong setup — ${earned} pts`; icon = '💪'; }
-  else if(pct >= 55)     { label = `Partial setup — ${earned} pts, review missing`; icon = '⚠️'; }
-  else if(earned === 0)  { label = 'Waiting for your checklist...'; icon = '⬜'; }
-  else                   { label = `Weak setup — only ${earned} pts`; icon = '❌'; }
-  document.getElementById('cl-score-label').textContent = label;
-  document.getElementById('cl-score-icon').textContent = icon;
-  // Re-render grid so point colors update
-  clRenderGrid();
+  if(earned === maxPts)  { label = `🎯 Perfect! 100 pts — all ${totalConds} conditions met (A+ Setup)`; icon = '🚀'; }
+  else if(pct >= 80)     { label = `💪 Strong setup — ${earned} pts (${count}/${totalConds} met)`; icon = '💪'; }
+  else if(pct >= 50)     { label = `⚠️ Partial setup — ${earned} pts (${count}/${totalConds} met), review missing`; icon = '⚠️'; }
+  else if(earned === 0)  { label = `Waiting for your checklist... (0/${totalConds} met)`; icon = '⬜'; }
+  else                   { label = `❌ Weak setup — only ${earned} pts (${count}/${totalConds} met)`; icon = '❌'; }
+  const labelEl = document.getElementById('cl-score-label');
+  const iconEl = document.getElementById('cl-score-icon');
+  if(labelEl) labelEl.textContent = label;
+  if(iconEl) iconEl.textContent = icon;
 }
 
 async function clSave() {
@@ -6427,7 +6532,7 @@ async function clSave() {
     });
     const data = await res.json();
     if(data.ok) {
-      clShowFeedback(`✅ Saved! ${earned_points}/${total_points} pts`, true);
+      clShowFeedback(`✅ Saved! ${earned_points}/${total_points} pts (${score}/${total} rules met)`, true);
       clChecks = {};
       clRenderGrid();
       clUpdateScore();
@@ -6868,23 +6973,21 @@ async function clLoadSummaries() {
 }
 
 async function initChecklist() {
+  clRenderGrid();
+  clUpdateScore();
+  try { ptrInit(); } catch(e) { console.error('ptrInit error:', e); }
+
   if(!clInitialized) {
     clInitialized = true;
-    clRenderGrid();
-    clUpdateScore();
-    // Load Chart.js if not already present
     if(typeof Chart === 'undefined') {
-      await new Promise((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
-        s.onload = resolve; s.onerror = reject;
-        document.head.appendChild(s);
-      });
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+      s.onload = () => { try { clRenderCharts(); } catch(err){} };
+      document.head.appendChild(s);
     }
   }
-  await clLoadHistory();
-  await clLoadSummaries();
-  ptrInit();
+  try { await clLoadHistory(); } catch(e) { console.error('clLoadHistory error:', e); }
+  try { await clLoadSummaries(); } catch(e) { console.error('clLoadSummaries error:', e); }
 }
 
 // ══════════════════════════════════════════════

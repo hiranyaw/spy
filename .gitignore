@@ -21,6 +21,8 @@ Thumbs.db
 # Logs
 *.log
 spy_trader.log
+database_log.txt
+chrome_pids.txt
 
 # Data files (use .env instead)
 *.csv

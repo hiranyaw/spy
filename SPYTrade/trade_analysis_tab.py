@@ -367,6 +367,7 @@ class TradeAnalysisTab(QWidget):
         self.edit_qty.setRange(0.01, 100000.0)
         self.edit_qty.setValue(1.0)
         self.edit_qty.setFixedWidth(75)
+        self.edit_qty.valueChanged.connect(self._on_qty_changed)
         sym_row.addWidget(self.edit_qty)
 
         right_layout.addLayout(sym_row)
@@ -393,7 +394,7 @@ class TradeAnalysisTab(QWidget):
 
         right_layout.addLayout(price_row)
 
-        # Gross P&L, Trade Cost ($1.00 per trade), and Net P&L
+        # Gross P&L, Trade Cost ($1.00 * qty), and Net P&L
         pnl_row = QHBoxLayout()
         pnl_row.setSpacing(8)
 
@@ -414,7 +415,7 @@ class TradeAnalysisTab(QWidget):
         self.edit_cost.setPrefix("$ ")
         self.edit_cost.setValue(1.0)
         self.edit_cost.setFixedWidth(80)
-        self.edit_cost.setToolTip("Trade commission / exchange cost (defaults to $1.00 per trade)")
+        self.edit_cost.setToolTip("Trade commission / exchange cost ($1.00 per contract/qty)")
         self.edit_cost.valueChanged.connect(self._update_net_pnl_preview)
         pnl_row.addWidget(self.edit_cost)
 
@@ -648,6 +649,10 @@ class TradeAnalysisTab(QWidget):
         self._render_metric_cards(stats)
         self.chart_canvas.render_stats(stats, title_suffix=stats_title)
 
+    def _on_qty_changed(self, val: float):
+        if not self._current_trade_id:
+            self.edit_cost.setValue(round(val * 1.0, 2))
+
     def _update_net_pnl_preview(self):
         gross = self.edit_pnl.value()
         cost = self.edit_cost.value()
@@ -680,9 +685,9 @@ class TradeAnalysisTab(QWidget):
         elif filter_mode == "Direction Wrong Only":
             trades = [t for t in trades if not t.get("direction_right", True)]
         elif filter_mode == "Wins Only (+$)":
-            trades = [t for t in trades if (float(t.get("pnl", 0.0)) - float(t.get("trade_cost", 1.0))) > 0]
+            trades = [t for t in trades if (float(t.get("pnl", 0.0)) - float(t.get("trade_cost", float(t.get("qty", 1.0)) * 1.0))) > 0]
         elif filter_mode == "Losses Only (-$)":
-            trades = [t for t in trades if (float(t.get("pnl", 0.0)) - float(t.get("trade_cost", 1.0))) < 0]
+            trades = [t for t in trades if (float(t.get("pnl", 0.0)) - float(t.get("trade_cost", float(t.get("qty", 1.0)) * 1.0))) < 0]
 
         self.table.blockSignals(True)
         self.table.setRowCount(len(trades))
@@ -716,7 +721,8 @@ class TradeAnalysisTab(QWidget):
 
             # Gross P&L, Cost, Net P&L
             gross_pnl = float(t.get("pnl", 0.0))
-            cost = float(t.get("trade_cost", 1.0))
+            qty_val = float(t.get("qty", 1.0))
+            cost = float(t.get("trade_cost", qty_val * 1.0))
             net_pnl = gross_pnl - cost
 
             # Gross ($)
@@ -853,7 +859,8 @@ class TradeAnalysisTab(QWidget):
         self.edit_entry.setValue(float(target.get("entry_price", 0.0)))
         self.edit_exit.setValue(float(target.get("exit_price", 0.0)))
         self.edit_pnl.setValue(float(target.get("pnl", 0.0)))
-        self.edit_cost.setValue(float(target.get("trade_cost", 1.0)))
+        qty_val = float(target.get("qty", 1.0))
+        self.edit_cost.setValue(float(target.get("trade_cost", qty_val * 1.0)))
         self._update_net_pnl_preview()
 
         # Conditions
@@ -1051,7 +1058,8 @@ class TradeAnalysisTab(QWidget):
                 ])
                 for t in trades:
                     pnl_val = float(t.get("pnl", 0))
-                    cost_val = float(t.get("trade_cost", 1.0))
+                    qty_val = float(t.get("qty", 1.0))
+                    cost_val = float(t.get("trade_cost", qty_val * 1.0))
                     net_val = pnl_val - cost_val
                     writer.writerow([
                         t.get("date", ""),

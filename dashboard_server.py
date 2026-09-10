@@ -1554,8 +1554,8 @@ def analysis_trades():
             pnl_val = t.get("pnl") or 0.0
             default_dir_right = t.get("win", False) if t.get("win") is not None else (pnl_val >= 0)
             t_copy["direction_right"] = cls_item.get("direction_right", default_dir_right)
-            t_copy["classification_notes"] = cls_item.get("notes", "")
-            t_copy["trade_cost"] = 1.0
+            trade_qty = float(t.get("qty") or 1.0)
+            t_copy["trade_cost"] = round(trade_qty * 1.0, 2)
             serialized_trades.append(t_copy)
             
         return jsonify({"ok": True, "trades": serialized_trades})
@@ -1966,14 +1966,17 @@ def compute_ai_timing_analysis(day_trades, all_history_trades=None):
                 return w["id"]
         return "after_815" if t_val >= dt_time(8, 15) else "first_5m"
 
-    trade_cost = 1.0  # $1 commission per trade
+    def _trade_cost(t):
+        if t.get("trade_cost") is not None:
+            return float(t["trade_cost"])
+        return float(t.get("qty") or 1.0) * 1.0
 
     # 1. Historical Stats
     hist_stats = {}
     for w in time_windows:
         w_trades = [t for t in all_history_trades if _get_window_id(t["entry_time"]) == w["id"]]
         cnt = len(w_trades)
-        net_pnls = [((t.get("pnl") or 0.0) - trade_cost) for t in w_trades]
+        net_pnls = [((t.get("pnl") or 0.0) - _trade_cost(t)) for t in w_trades]
         wins = sum(1 for p in net_pnls if p > 0)
         losses = sum(1 for p in net_pnls if p < 0)
         total_net_pnl = sum(net_pnls)
@@ -2000,7 +2003,7 @@ def compute_ai_timing_analysis(day_trades, all_history_trades=None):
     for w in time_windows:
         w_trades = [t for t in day_closed if _get_window_id(t["entry_time"]) == w["id"]]
         cnt = len(w_trades)
-        net_pnls = [((t.get("pnl") or 0.0) - trade_cost) for t in w_trades]
+        net_pnls = [((t.get("pnl") or 0.0) - _trade_cost(t)) for t in w_trades]
         wins = sum(1 for p in net_pnls if p > 0)
         losses = sum(1 for p in net_pnls if p < 0)
         total_net_pnl = sum(net_pnls)
@@ -2040,28 +2043,28 @@ def compute_ai_timing_analysis(day_trades, all_history_trades=None):
     prime_trades = [t for t in day_closed if dt_time(7, 1) <= (t["entry_time"].time() if hasattr(t["entry_time"], "time") else t["entry_time"]) < dt_time(8, 15)]
 
     if first5_trades:
-        f5_pnl = sum(((t.get("pnl") or 0) - trade_cost) for t in first5_trades)
+        f5_pnl = sum(((t.get("pnl") or 0) - _trade_cost(t)) for t in first5_trades)
         f5_str = f"+${f5_pnl:.2f}" if f5_pnl >= 0 else f"-${abs(f5_pnl):.2f}"
         ai_insights.append(
             f"⚠️ **First 5 Min (06:30 - 06:35 PT)**: You took {len(first5_trades)} trade(s) during opening shakeout ({f5_str} Net). High option spreads and false breaks occur here; avoid entering in the first 5 minutes."
         )
 
     if second5_trades:
-        s5_pnl = sum(((t.get("pnl") or 0) - trade_cost) for t in second5_trades)
+        s5_pnl = sum(((t.get("pnl") or 0) - _trade_cost(t)) for t in second5_trades)
         s5_str = f"+${s5_pnl:.2f}" if s5_pnl >= 0 else f"-${abs(s5_pnl):.2f}"
         ai_insights.append(
             f"ℹ️ **Second 5 Min (06:35 - 06:40 PT)**: {len(second5_trades)} trade(s) entered ({s5_str} Net). Wait for VWAP and 9/21 EMA confirmation before executing."
         )
 
     if after815_trades:
-        a_pnl = sum(((t.get("pnl") or 0) - trade_cost) for t in after815_trades)
+        a_pnl = sum(((t.get("pnl") or 0) - _trade_cost(t)) for t in after815_trades)
         a_str = f"+${a_pnl:.2f}" if a_pnl >= 0 else f"-${abs(a_pnl):.2f}"
         ai_insights.append(
             f"⛔ **Late Entries (>08:15 AM PT)**: You executed {len(after815_trades)} trade(s) past the 8:15 AM cutoff ({a_str} Net). Rule: Shut down trading by 08:15 AM PT to protect gains."
         )
 
     if prime_trades:
-        p_pnl = sum(((t.get("pnl") or 0) - trade_cost) for t in prime_trades)
+        p_pnl = sum(((t.get("pnl") or 0) - _trade_cost(t)) for t in prime_trades)
         p_str = f"+${p_pnl:.2f}" if p_pnl >= 0 else f"-${abs(p_pnl):.2f}"
         ai_insights.append(
             f"🚀 **Prime Window Execution (07:01 - 08:15 PT)**: {len(prime_trades)} trade(s) captured **{p_str} Net P&L** during the peak momentum sweet spot."
@@ -2339,8 +2342,12 @@ def analysis_summary():
             recommendations.append("Wait at least 5-15 minutes after market open for initial range discovery before taking a position.")
             
         timing_analysis = compute_ai_timing_analysis(trades)
+        total_qty = sum(float(t.get("qty") or 1.0) for t in spy_trades)
+        total_cost = round(total_qty * 1.0, 2)
         summary = {
             "total_trades": len(spy_trades),
+            "total_qty": total_qty,
+            "total_cost": total_cost,
             "win_rate": round(win_rate, 1),
             "total_pnl": round(total_pnl, 2),
             "wins_count": len(wins),
@@ -2494,15 +2501,26 @@ def api_condition_stats():
         def calc_group(subset):
             total = len(subset)
             if total == 0:
-                return {"count": 0, "wins": 0, "losses": 0, "win_rate": 0.0, "total_pnl": 0.0, "gross_pnl": 0.0, "total_cost": 0.0}
-            trade_cost = 1.0  # $1 per trade cost
-            net_pnls = [(t.get("pnl") or 0.0) - trade_cost for t in subset]
+                return {
+                    "count": 0, "wins": 0, "losses": 0, "win_rate": 0.0,
+                    "total_pnl": 0.0, "gross_pnl": 0.0, "total_cost": 0.0,
+                    "amount_lost": 0.0, "gross_loss": 0.0, "amount_won": 0.0
+                }
+            def _trade_cost(t):
+                if t.get("trade_cost") is not None:
+                    return float(t["trade_cost"])
+                return float(t.get("qty") or 1.0) * 1.0
+            net_pnls = [(t.get("pnl") or 0.0) - _trade_cost(t) for t in subset]
+            gross_pnls = [(t.get("pnl") or 0.0) for t in subset]
             wins = sum(1 for p in net_pnls if p > 0)
             losses = sum(1 for p in net_pnls if p < 0)
             win_rate = (wins / total * 100.0) if total > 0 else 0.0
             total_net_pnl = sum(net_pnls)
-            total_gross_pnl = sum(t.get("pnl") or 0.0 for t in subset)
-            total_cost = total * trade_cost
+            total_gross_pnl = sum(gross_pnls)
+            total_cost = sum(_trade_cost(t) for t in subset)
+            amount_lost = sum(abs(p) for p in net_pnls if p < 0)
+            gross_loss = sum(abs(g) for g in gross_pnls if g < 0)
+            amount_won = sum(p for p in net_pnls if p > 0)
             return {
                 "count": total,
                 "wins": wins,
@@ -2511,6 +2529,9 @@ def api_condition_stats():
                 "total_pnl": round(total_net_pnl, 2),
                 "gross_pnl": round(total_gross_pnl, 2),
                 "total_cost": round(total_cost, 2),
+                "amount_lost": round(amount_lost, 2),
+                "gross_loss": round(gross_loss, 2),
+                "amount_won": round(amount_won, 2),
             }
 
         from datetime import time as dt_time
@@ -2548,6 +2569,9 @@ def api_condition_stats():
                 "gross_pnl": g_data["gross_pnl"],
                 "total_cost": g_data["total_cost"],
                 "total_pnl": g_data["total_pnl"],
+                "amount_lost": g_data["amount_lost"],
+                "gross_loss": g_data["gross_loss"],
+                "amount_won": g_data["amount_won"],
                 "avg_pnl": round((g_data["total_pnl"] / g_data["count"]), 2) if g_data["count"] > 0 else 0.0,
             })
 
@@ -2798,9 +2822,13 @@ def api_analysis_monthly():
                     donts.append("DO NOT enter trades during the first 5 minutes of market open (before 6:35 AM PT / 9:35 AM ET) when volatility and options spreads are widest.")
                     recommendations.append("Wait at least 5-15 minutes after market open for initial range discovery before taking a position.")
                 
+                total_qty = sum(float(t.get("qty") or 1.0) for t in spy_trades)
+                total_cost = round(total_qty * 1.0, 2)
                 summary = {
                     "date": spy_trades[0]["entry_time"].strftime("%Y-%m-%d"),
                     "total_trades": len(spy_trades),
+                    "total_qty": total_qty,
+                    "total_cost": total_cost,
                     "win_rate": round(win_rate, 1),
                     "total_pnl": round(total_pnl, 2),
                     "wins_count": len(wins),
@@ -2904,10 +2932,14 @@ def api_analysis_monthly():
                     sim_2l_wins = len([t for t in trades_2l if _is_win(t)])
                     sim_2l_losses = len(trades_2l) - sim_2l_wins
 
+                    manual_qty = sum(float(t.get("qty") or 1.0) for t in day_trades)
+                    manual_cost = round(manual_qty * 1.0, 2)
                     monthly_data.append({
                         "date"               : date_str,
                         "source"             : "manual",
                         "total_trades"       : len(day_trades),
+                        "total_qty"          : manual_qty,
+                        "total_cost"         : manual_cost,
                         "win_rate"           : round(win_rate, 1),
                         "total_pnl"          : total_pnl,
                         "wins_count"         : len(wins_list),
