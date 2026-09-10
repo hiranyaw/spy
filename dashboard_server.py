@@ -3706,17 +3706,11 @@ def checklist_history():
         utc     = pytz.utc
 
         if DB_AVAILABLE:
-            # One-time migration: push any existing JSON records into DB
+            records = db.get_checklist_records()
             try:
-                json_recs = load_checklist()
-                if json_recs:
-                    for r in json_recs:
-                        db.save_checklist_record(r)
-                    # Wipe local file to avoid re-migrating every request
-                    save_checklist([])
+                save_checklist(records)
             except Exception:
                 pass
-            records = db.get_checklist_records()
         else:
             records = load_checklist()
 
@@ -3772,10 +3766,12 @@ def checklist_save():
 
         if DB_AVAILABLE:
             db.save_checklist_record(record)
-        else:
+        try:
             records = load_checklist()
             records.append(record)
             save_checklist(records)
+        except Exception:
+            pass
 
         return jsonify({"ok": True, "record": record})
     except Exception as e:
