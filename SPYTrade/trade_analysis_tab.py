@@ -282,7 +282,7 @@ class TradeAnalysisTab(QWidget):
         self.table = QTableWidget()
         self.table.setColumnCount(11)
         self.table.setHorizontalHeaderLabels([
-            "Date / Time", "Symbol", "Side", "Gross ($)", "Cost ($)", "Net P&L ($)", "B-Trade", "9/21", "FB / Other", "Early", "Direction"
+            "Time Window", "Symbol", "Direction / Side", "Gross ($)", "Cost ($)", "Net Realized P&L ($)", "B-Trade", "9/21", "FB / Other", "Early", "Direction"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -731,8 +731,14 @@ class TradeAnalysisTab(QWidget):
             if t_id == self._current_trade_id:
                 selected_row_idx = r
 
-            # Date / Time
-            dt_str = f"{t.get('date', '')} {t.get('time', '')[:5]}"
+            # Time Window
+            exit_val = t.get("exit_time")
+            if exit_val:
+                exit_str = str(exit_val)
+                exit_t = exit_str.split(" ")[1][:5] if " " in exit_str else exit_str[:5]
+                dt_str = f"{t.get('date', '')} {t.get('time', '')[:5]}-{exit_t}"
+            else:
+                dt_str = f"{t.get('date', '')} {t.get('time', '')[:5]}"
             item_dt = QTableWidgetItem(dt_str)
             item_dt.setData(Qt.UserRole, t_id)
             self.table.setItem(r, 0, item_dt)
@@ -742,8 +748,10 @@ class TradeAnalysisTab(QWidget):
             item_sym.setFont(QFont("Segoe UI", 9, QFont.Bold))
             self.table.setItem(r, 1, item_sym)
 
-            # Side
-            side_str = t.get("side", "BUY")
+            # Direction / Side
+            dir_str = t.get("direction") or ("SHORT" if "PUT" in str(t.get("option_type", "")).upper() else "LONG")
+            opt_type = t.get("option_type", "")
+            side_str = f"{dir_str} ({opt_type})" if opt_type else dir_str
             item_side = QTableWidgetItem(side_str)
             if "BUY" in side_str or "CALL" in side_str or "LONG" in side_str:
                 item_side.setForeground(QColor("#00e676"))

@@ -1448,7 +1448,7 @@ Only B Trades with FULL confirmation."></textarea>
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:300px 1fr;gap:15px;align-items:start">
+  <div style="display:grid;grid-template-columns:350px 1fr;gap:15px;align-items:start">
     <!-- Sidebar: CSV File Selection and Trade List -->
     <div style="display:flex;flex-direction:column;gap:15px">
       <!-- File Selector -->
@@ -1480,9 +1480,15 @@ Only B Trades with FULL confirmation."></textarea>
       </div>
 
       <!-- Trade List Table -->
-      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;max-height:600px;overflow-y:auto">
-        <h4 style="margin:0 0 10px 0;font-size:0.85rem;color:#8b949e;text-transform:uppercase;letter-spacing:.5px">Trades</h4>
-        <div id="ana-trade-list" style="display:flex;flex-direction:column;gap:8px">
+      <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:15px;max-height:650px;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #21262d;padding-bottom:8px">
+          <div>
+            <h4 style="margin:0;font-size:0.85rem;color:#e6edf3;text-transform:uppercase;letter-spacing:.5px;font-weight:700" id="ana-trade-list-title">Trades List</h4>
+            <div style="font-size:0.72rem;color:#8b949e;margin-top:2px" id="ana-trade-list-subtitle">Select a file to load trades</div>
+          </div>
+          <span id="ana-trade-list-badge" style="display:none;font-size:0.75rem;font-weight:700;padding:3px 8px;border-radius:6px"></span>
+        </div>
+        <div id="ana-trade-list" style="display:flex;flex-direction:column;gap:10px">
           <div style="color:#8b949e;font-size:0.85rem;text-align:center;padding:20px 0">Select a file to load trades</div>
         </div>
       </div>
@@ -5048,6 +5054,12 @@ async function loadAnaFiles() {
       opt.value = '';
       opt.textContent = 'No files saved yet — upload a CSV above';
       select.appendChild(opt);
+      const titleEl = document.getElementById('ana-trade-list-title');
+      const subTitleEl = document.getElementById('ana-trade-list-subtitle');
+      const badgeEl = document.getElementById('ana-trade-list-badge');
+      if (titleEl) titleEl.textContent = 'Trades List';
+      if (subTitleEl) subTitleEl.textContent = 'No file selected';
+      if (badgeEl) badgeEl.style.display = 'none';
       document.getElementById('ana-trade-list').innerHTML = `
         <div style="color:#8b949e;font-size:0.85rem;text-align:center;padding:20px 0">
           No CSV files saved yet.<br>
@@ -5307,67 +5319,165 @@ function renderAnaStats(trades) {
   renderDailyConditionSummary(trades);
 }
 
+function formatTradeDuration(startTimeStr, endTimeStr) {
+  if (!startTimeStr || !endTimeStr) return '';
+  try {
+    const d1 = new Date(startTimeStr.replace(/-/g, '/'));
+    const d2 = new Date(endTimeStr.replace(/-/g, '/'));
+    const diffMs = d2 - d1;
+    if (isNaN(diffMs) || diffMs < 0) return '';
+    const totalSecs = Math.floor(diffMs / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    if (mins === 0) return `${secs}s`;
+    if (secs === 0) return `${mins}m`;
+    return `${mins}m ${secs}s`;
+  } catch (e) {
+    return '';
+  }
+}
+
 function renderAnaTradeList(trades) {
   const listEl = document.getElementById('ana-trade-list');
+  const titleEl = document.getElementById('ana-trade-list-title');
+  const subTitleEl = document.getElementById('ana-trade-list-subtitle');
+  const badgeEl = document.getElementById('ana-trade-list-badge');
   listEl.innerHTML = '';
   
-  if (trades.length === 0) {
+  if (!trades || trades.length === 0) {
     listEl.innerHTML = '<div style="color:#8b949e;font-size:0.85rem;text-align:center;padding:20px 0">No trades found in this file</div>';
+    if (titleEl) titleEl.textContent = 'Trades List (0)';
+    if (subTitleEl) subTitleEl.textContent = 'No trades recorded';
+    if (badgeEl) badgeEl.style.display = 'none';
     return;
+  }
+
+  const tradeDate = trades[0].entry_time ? trades[0].entry_time.split(' ')[0] : 'Today';
+  const _getTradeCost = (t) => t.trade_cost !== undefined ? Number(t.trade_cost) : ((Number(t.qty) || 1.0) * 1.0);
+  const closedTrades = trades.filter(t => t.pnl !== null);
+  const totalDayNet = closedTrades.reduce((acc, t) => acc + ((Number(t.pnl) || 0) - _getTradeCost(t)), 0);
+  
+  if (titleEl) titleEl.textContent = `Trades for ${tradeDate}`;
+  if (subTitleEl) subTitleEl.textContent = `${trades.length} trade${trades.length !== 1 ? 's' : ''} executed`;
+  if (badgeEl) {
+    badgeEl.style.display = 'inline-block';
+    const daySign = totalDayNet >= 0 ? '+$' : '-$';
+    badgeEl.textContent = `Net: ${daySign}${Math.abs(totalDayNet).toFixed(2)}`;
+    badgeEl.style.color = totalDayNet >= 0 ? '#3fb950' : '#f85149';
+    badgeEl.style.background = totalDayNet >= 0 ? 'rgba(63,185,80,0.15)' : 'rgba(248,81,73,0.15)';
+    badgeEl.style.border = `1px solid ${totalDayNet >= 0 ? 'rgba(63,185,80,0.35)' : 'rgba(248,81,73,0.35)'}`;
   }
   
   trades.forEach((t, idx) => {
     t.trade_index = idx;
     const div = document.createElement('div');
-    div.style.cssText = 'background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px;cursor:pointer;transition:border-color 0.2s;display:flex;flex-direction:column;gap:5px';
+    div.style.cssText = 'background:#0d1117;border:1.5px solid #30363d;border-radius:8px;padding:12px;cursor:pointer;transition:all 0.15s ease-in-out;display:flex;flex-direction:column;gap:8px';
     div.className = 'ana-trade-item';
     div.setAttribute('data-id', idx);
     
-    const grossPnl = t.pnl !== null ? t.pnl : 0;
+    const grossPnl = t.pnl !== null ? Number(t.pnl) : 0;
     const qty = Number(t.qty) || 1.0;
     const cost = t.trade_cost !== undefined ? Number(t.trade_cost) : (qty * 1.0);
-    const netPnl = t.pnl !== null ? (grossPnl - cost) : 0;
-    const netPnlStr = t.pnl !== null ? ((netPnl >= 0 ? '+$' : '-$') + Math.abs(netPnl).toFixed(2)) : 'Open';
-    const netPnlColor = t.pnl !== null ? (netPnl > 0 ? '#3fb950' : '#f85149') : '#8b949e';
+    const netPnl = t.pnl !== null ? (grossPnl - cost) : null;
     
-    // Resolve underlying market direction instead of option position direction
-    const displayDir = (t.option_type === 'PUT') ? (t.direction === 'LONG' ? 'SHORT' : 'LONG') : t.direction;
-    const directionColor = displayDir === 'LONG' ? '#3fb950' : '#f85149';
+    // Net Realized P&L styling
+    const netPnlStr = netPnl !== null ? ((netPnl >= 0 ? '+$' : '-$') + Math.abs(netPnl).toFixed(2)) : 'OPEN';
+    const netPnlColor = netPnl !== null ? (netPnl >= 0 ? '#3fb950' : '#f85149') : '#8b949e';
+    const netPnlBg = netPnl !== null ? (netPnl >= 0 ? 'rgba(63,185,80,0.12)' : 'rgba(248,81,73,0.12)') : 'rgba(139,148,158,0.1)';
+    const netPnlBorder = netPnl !== null ? (netPnl >= 0 ? 'rgba(63,185,80,0.35)' : 'rgba(248,81,73,0.35)') : '#30363d';
     
-    const dateStr = t.entry_time.split(' ')[0];
-    const timeStr = formatTo12Hour(t.entry_time.split(' ')[1]);
+    // Resolve underlying market direction (LONG vs SHORT)
+    const isPut = (t.option_type === 'PUT') || (t.symbol && t.symbol.includes('P00'));
+    let displayDir = t.direction || 'LONG';
+    if (isPut) {
+      displayDir = (t.direction === 'LONG' || !t.direction) ? 'SHORT' : 'LONG';
+    } else if (t.option_type === 'CALL' || (t.symbol && t.symbol.includes('C00'))) {
+      displayDir = (t.direction === 'SHORT') ? 'SHORT' : 'LONG';
+    }
+    const isLong = displayDir === 'LONG';
+    const directionColor = isLong ? '#3fb950' : '#f85149';
+    const directionBg = isLong ? 'rgba(63,185,80,0.18)' : 'rgba(248,81,73,0.18)';
+    const directionBorder = isLong ? '#3fb950' : '#f85149';
+    const optLabel = t.option_type || (isPut ? 'PUT' : 'CALL');
+    
+    // Time Window Calculation
+    const entryTimePart = t.entry_time.includes(' ') ? t.entry_time.split(' ')[1] : t.entry_time;
+    const entryFormatted = formatTo12Hour(entryTimePart);
+    let exitFormatted = 'Open';
+    let durationStr = '';
+    if (t.exit_time) {
+      const exitTimePart = t.exit_time.includes(' ') ? t.exit_time.split(' ')[1] : t.exit_time;
+      exitFormatted = formatTo12Hour(exitTimePart);
+      durationStr = formatTradeDuration(t.entry_time, t.exit_time);
+    }
+    const timeWindowStr = `${entryFormatted} – ${exitFormatted}`;
     
     // Condition badges
-    const bBadge = t.is_b_trade ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#1c2d52;color:#58a6ff;border:1px solid #388bfd;font-weight:700">🏷️ B</span>' : '';
-    const crossBadge = t.is_9_21_cross ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#2d2200;color:#ff9e2c;border:1px solid #ff9e2c;font-weight:700">⚡ 9/21</span>' : '';
-    const fbUpBadge = t.is_fullback_uptrend ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#0d3320;color:#3fb950;border:1px solid #3fb950;font-weight:700">📈 FB Up</span>' : '';
-    const fbDownBadge = t.is_fullback_downtrend ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#381313;color:#ff7b72;border:1px solid #f85149;font-weight:700">📉 FB Down</span>' : '';
+    const bBadge = t.is_b_trade ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#1c2d52;color:#58a6ff;border:1px solid #388bfd;font-weight:700">🏷️ B</span>' : '';
+    const crossBadge = t.is_9_21_cross ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#2d2200;color:#ff9e2c;border:1px solid #ff9e2c;font-weight:700">⚡ 9/21</span>' : '';
+    const fbUpBadge = t.is_fullback_uptrend ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#0d3320;color:#3fb950;border:1px solid #3fb950;font-weight:700">📈 FB Up</span>' : '';
+    const fbDownBadge = t.is_fullback_downtrend ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#381313;color:#ff7b72;border:1px solid #f85149;font-weight:700">📉 FB Down</span>' : '';
     const otherLabel = t.other_setup ? (t.other_setup.length > 12 ? t.other_setup.substring(0, 10) + '..' : t.other_setup) : 'Other';
-    const otherBadge = t.is_other ? `<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#26183b;color:#d2a8ff;border:1px solid #a371f7;font-weight:700" title="${t.other_setup || 'Other'}">📦 ${otherLabel}</span>` : '';
-    const earlyBadge = t.early_exit ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#381313;color:#ff7b72;border:1px solid #f85149;font-weight:700">⏱️ Early</span>' : '';
-    const dirBadge = t.direction_right !== false ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#0d3320;color:#3fb950;border:1px solid #3fb950;font-weight:700">✅ Dir</span>' : '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#3d1515;color:#f85149;border:1px solid #f85149;font-weight:700">❌ Dir</span>';
+    const otherBadge = t.is_other ? `<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#26183b;color:#d2a8ff;border:1px solid #a371f7;font-weight:700" title="${t.other_setup || 'Other'}">📦 ${otherLabel}</span>` : '';
+    const earlyBadge = t.early_exit ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#381313;color:#ff7b72;border:1px solid #f85149;font-weight:700">⏱️ Early</span>' : '';
+    const dirBadge = t.direction_right !== false ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#0d3320;color:#3fb950;border:1px solid #3fb950;font-weight:700">✅ Dir</span>' : '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#3d1515;color:#f85149;border:1px solid #f85149;font-weight:700">❌ Dir</span>';
 
     div.innerHTML = `
+      <!-- Top Row: Trade Number & Symbol -->
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:0.75rem;color:#8b949e">${dateStr} ${timeStr}</span>
-        <span style="font-size:0.85rem;font-weight:700;color:${netPnlColor}">${netPnlStr}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.75rem;font-weight:700;background:#1e293b;color:#79c0ff;padding:1px 6px;border-radius:4px;border:1px solid #388bfd">#${idx + 1}</span>
+          <span style="font-weight:700;color:#e6edf3;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px" title="${t.symbol}">${t.symbol}</span>
+        </div>
+        <span style="font-size:0.72rem;color:#8b949e">Qty: <strong style="color:#e6edf3">${qty}</strong></span>
       </div>
+
+      <!-- Time Window Row -->
+      <div style="background:#161b22;padding:6px 8px;border-radius:5px;display:flex;align-items:center;justify-content:space-between;border:1px solid #21262d">
+        <div style="display:flex;align-items:center;gap:5px;font-size:0.75rem">
+          <span style="color:#58a6ff">⏱️</span>
+          <span style="color:#8b949e;font-weight:600">Time Window:</span>
+          <span style="color:#e6edf3;font-weight:700;font-family:monospace">${timeWindowStr}</span>
+        </div>
+        ${durationStr ? `<span style="font-size:0.7rem;font-weight:700;color:#79c0ff;background:rgba(56,139,253,0.15);padding:1px 6px;border-radius:4px;white-space:nowrap">${durationStr}</span>` : ''}
+      </div>
+
+      <!-- Direction Row -->
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-weight:700;color:#e6edf3;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px">${t.symbol}</span>
-        <span style="font-size:0.7rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(${displayDir==='LONG'?'63,185,80':'248,81,73'},0.15);color:${directionColor}">${displayDir}</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:0.75rem;color:#8b949e;font-weight:600">Direction:</span>
+          <span style="font-size:0.78rem;font-weight:800;padding:2px 8px;border-radius:4px;background:${directionBg};color:${directionColor};border:1px solid ${directionBorder};display:inline-flex;align-items:center;gap:4px">
+            ${isLong ? '🟢 LONG' : '🔴 SHORT'}
+          </span>
+          <span style="font-size:0.7rem;color:#8b949e;background:#1e222a;border:1px solid #30363d;padding:2px 6px;border-radius:4px;font-weight:600">${optLabel}</span>
+        </div>
       </div>
-      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">
+
+      <!-- Net Realized P&L Box -->
+      <div style="background:${netPnlBg};border:1px solid ${netPnlBorder};border-radius:6px;padding:7px 10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:0.72rem;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px">Net Realized P&amp;L</span>
+          <span style="font-size:1.05rem;font-weight:800;color:${netPnlColor};font-family:monospace">${netPnlStr}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;font-size:0.68rem;color:#8b949e;border-top:1px dashed rgba(255,255,255,0.08);padding-top:3px">
+          <span>Gross: ${grossPnl >= 0 ? '+$' : '-$'}${Math.abs(grossPnl).toFixed(2)}</span>
+          <span style="color:#ff9e2c;font-weight:600">Cost: -$${cost.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <!-- Condition Badges Row -->
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
         ${bBadge} ${crossBadge} ${fbUpBadge} ${fbDownBadge} ${otherBadge} ${earlyBadge} ${dirBadge}
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #21262d;font-size:0.7rem;color:#8b949e">
-        <span>Gross: ${grossPnl >= 0 ? '+$' : '-$'}${Math.abs(grossPnl).toFixed(2)}</span>
-        <span style="color:#ff9e2c;font-weight:700">Cost: $${cost.toFixed(2)}</span>
       </div>
     `;
 
     div.addEventListener('click', () => {
-      document.querySelectorAll('.ana-trade-item').forEach(item => item.style.borderColor = '#30363d');
+      document.querySelectorAll('.ana-trade-item').forEach(item => {
+        item.style.borderColor = '#30363d';
+        item.style.background = '#0d1117';
+      });
       div.style.borderColor = '#58a6ff';
+      div.style.background = '#161b22';
       selectAnaTrade(t);
     });
     
@@ -5375,7 +5485,11 @@ function renderAnaTradeList(trades) {
   });
   
   if (trades.length > 0) {
-    listEl.firstChild.click();
+    const selectedIdx = selectedAnaTrade ? selectedAnaTrade.trade_index : 0;
+    const toSelect = listEl.children[selectedIdx] || listEl.firstChild;
+    if (toSelect) {
+      toSelect.click();
+    }
   }
 }
 
@@ -5442,8 +5556,9 @@ async function selectAnaTrade(trade) {
   const displayDir = (trade.option_type === 'PUT') ? (trade.direction === 'LONG' ? 'SHORT' : 'LONG') : trade.direction;
   const directionColor = displayDir === 'LONG' ? '#3fb950' : '#f85149';
   
+  const optLabel = trade.option_type || ((trade.symbol && trade.symbol.includes('P00')) ? 'PUT' : 'CALL');
   document.getElementById('ana-det-symbol').textContent = trade.symbol;
-  document.getElementById('ana-det-direction').textContent = displayDir;
+  document.getElementById('ana-det-direction').textContent = `${displayDir} (${optLabel})`;
   document.getElementById('ana-det-direction').style.color = directionColor;
   document.getElementById('ana-det-qty').textContent = trade.qty;
 
@@ -5478,8 +5593,9 @@ async function selectAnaTrade(trade) {
   }
   
   const entryTimeFormatted = formatTo12Hour(trade.entry_time.split(' ')[1]);
-  const exitTimeFormatted = trade.exit_time ? formatTo12Hour(trade.exit_time.split(' ')[1]) : '--';
-  document.getElementById('ana-det-time').textContent = `${entryTimeFormatted} - ${exitTimeFormatted}`;
+  const exitTimeFormatted = trade.exit_time ? formatTo12Hour(trade.exit_time.split(' ')[1]) : 'Open';
+  const durationDet = formatTradeDuration(trade.entry_time, trade.exit_time);
+  document.getElementById('ana-det-time').textContent = `${entryTimeFormatted} - ${exitTimeFormatted}${durationDet ? ` (${durationDet})` : ''}`;
   
   const dateStr = trade.entry_time.split(' ')[0];
   const tz = document.getElementById('ana-tz-select').value;
