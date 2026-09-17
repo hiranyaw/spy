@@ -75,6 +75,10 @@ def save_or_update_trade(trade: dict[str, Any]) -> dict[str, Any]:
     # Ensure boolean fields
     trade["is_b_trade"] = bool(trade.get("is_b_trade", False))
     trade["is_9_21_cross"] = bool(trade.get("is_9_21_cross", False))
+    trade["is_fullback_uptrend"] = bool(trade.get("is_fullback_uptrend", False))
+    trade["is_fullback_downtrend"] = bool(trade.get("is_fullback_downtrend", False))
+    trade["is_other"] = bool(trade.get("is_other", False))
+    trade["other_setup"] = str(trade.get("other_setup", "") or "").strip()
     trade["early_exit"] = bool(trade.get("early_exit", False))
     trade["direction_right"] = bool(trade.get("direction_right", True))
 
@@ -237,6 +241,10 @@ def get_condition_stats(year: int | None = None, month: int | None = None) -> di
     cross_9_21 = [t for t in trades if t.get("is_9_21_cross", False)]
     non_cross_9_21 = [t for t in trades if not t.get("is_9_21_cross", False)]
 
+    fullback_uptrend = [t for t in trades if t.get("is_fullback_uptrend", False)]
+    fullback_downtrend = [t for t in trades if t.get("is_fullback_downtrend", False)]
+    other_setups = [t for t in trades if t.get("is_other", False)]
+
     early_exit = [t for t in trades if t.get("early_exit", False)]
     normal_exit = [t for t in trades if not t.get("early_exit", False)]
 
@@ -249,6 +257,9 @@ def get_condition_stats(year: int | None = None, month: int | None = None) -> di
         "non_b_trade": _calc_stats_for_subset(non_b_trades),
         "cross_9_21": _calc_stats_for_subset(cross_9_21),
         "non_cross_9_21": _calc_stats_for_subset(non_cross_9_21),
+        "fullback_uptrend": _calc_stats_for_subset(fullback_uptrend),
+        "fullback_downtrend": _calc_stats_for_subset(fullback_downtrend),
+        "other": _calc_stats_for_subset(other_setups),
         "early_exit": _calc_stats_for_subset(early_exit),
         "normal_exit": _calc_stats_for_subset(normal_exit),
         "direction_right": _calc_stats_for_subset(dir_right),
@@ -311,6 +322,10 @@ def import_trades_from_csv(file_path: str | pathlib.Path) -> tuple[int, int, lis
     cost_col = find_col(["trade cost", "cost", "fee", "commission", "comm", "trade_cost"])
     b_trade_col = find_col(["b_trade", "b trade", "b-trade"])
     cross_col = find_col(["9_21", "9 21", "9/21", "cross"])
+    fb_up_col = find_col(["full back 9 uptrend", "fullback uptrend", "pullback uptrend", "pull back uptrend", "fb up", "fb_up"])
+    fb_down_col = find_col(["full back 9 downtrend", "fullback downtrend", "pullback downtrend", "pull back downtrend", "fb down", "fb_down"])
+    other_col = find_col(["other setup", "other", "is_other"])
+    other_text_col = find_col(["other setup name", "other specify", "other text", "other_setup"])
     early_col = find_col(["early", "early exit", "early_exit"])
     dir_col = find_col(["dir", "direction", "direction right", "right/wrong"])
     notes_col = find_col(["notes", "comment", "setup", "reason", "tags"])
@@ -414,6 +429,12 @@ def import_trades_from_csv(file_path: str | pathlib.Path) -> tuple[int, int, lis
 
         is_b = parse_bool(get_val(b_trade_col), False)
         is_cross = parse_bool(get_val(cross_col), False)
+        is_fb_up = parse_bool(get_val(fb_up_col), False)
+        is_fb_down = parse_bool(get_val(fb_down_col), False)
+        is_other = parse_bool(get_val(other_col), False)
+        other_setup = get_val(other_text_col, "")
+        if other_setup and not is_other:
+            is_other = True
         is_early = parse_bool(get_val(early_col), False)
         dir_right = parse_bool(get_val(dir_col), True if pnl_val >= 0 else False)
 
@@ -432,6 +453,10 @@ def import_trades_from_csv(file_path: str | pathlib.Path) -> tuple[int, int, lis
             "trade_cost": cost_val,
             "is_b_trade": is_b,
             "is_9_21_cross": is_cross,
+            "is_fullback_uptrend": is_fb_up,
+            "is_fullback_downtrend": is_fb_down,
+            "is_other": is_other,
+            "other_setup": other_setup,
             "early_exit": is_early,
             "direction_right": dir_right,
             "notes": notes,

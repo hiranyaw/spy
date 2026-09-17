@@ -64,7 +64,7 @@ def load_trade_classifications():
         print(f"Error loading local trade classifications JSON: {e}")
     return classifications
 
-def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", early_exit_amount=None, exit_reason="TARGET"):
+def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", early_exit_amount=None, exit_reason="TARGET", is_fullback_uptrend=False, is_fullback_downtrend=False, is_other=False, other_setup=""):
     classifications = load_trade_classifications()
     entry = {
         "trade_key": key,
@@ -72,6 +72,10 @@ def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_
         "trade_index": trade_index,
         "is_b_trade": bool(is_b_trade),
         "is_9_21_cross": bool(is_9_21_cross),
+        "is_fullback_uptrend": bool(is_fullback_uptrend),
+        "is_fullback_downtrend": bool(is_fullback_downtrend),
+        "is_other": bool(is_other),
+        "other_setup": str(other_setup or "").strip(),
         "early_exit": bool(early_exit),
         "early_exit_amount": float(early_exit_amount) if early_exit_amount is not None and str(early_exit_amount).strip() != "" else None,
         "exit_reason": str(exit_reason or "TARGET").upper(),
@@ -86,7 +90,7 @@ def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_
         print(f"Error saving trade classifications JSON: {e}")
     if DB_AVAILABLE:
         try:
-            db.save_trade_classification(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes)
+            db.save_trade_classification(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes, is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup)
         except Exception as e:
             print(f"Error saving trade classification to DB: {e}")
 
@@ -1549,7 +1553,14 @@ def analysis_trades():
             t_copy["trade_index"] = idx
             t_copy["is_b_trade"] = cls_item.get("is_b_trade", b_trade_flags.get(trade_key, False))
             t_copy["is_9_21_cross"] = cls_item.get("is_9_21_cross", False)
+            t_copy["is_fullback_uptrend"] = cls_item.get("is_fullback_uptrend", False)
+            t_copy["is_fullback_downtrend"] = cls_item.get("is_fullback_downtrend", False)
+            t_copy["is_other"] = cls_item.get("is_other", False)
+            t_copy["other_setup"] = cls_item.get("other_setup", "")
             t_copy["early_exit"] = cls_item.get("early_exit", False)
+            t_copy["early_exit_amount"] = cls_item.get("early_exit_amount")
+            t_copy["exit_reason"] = cls_item.get("exit_reason")
+            t_copy["classification_notes"] = cls_item.get("notes", "")
             
             pnl_val = t.get("pnl") or 0.0
             default_dir_right = t.get("win", False) if t.get("win") is not None else (pnl_val >= 0)
@@ -2428,6 +2439,10 @@ def classify_trade():
         trade_key = f"{filename}::{idx}"
         is_b_trade = bool(data.get("is_b_trade", False))
         is_9_21_cross = bool(data.get("is_9_21_cross", False))
+        is_fullback_uptrend = bool(data.get("is_fullback_uptrend", False))
+        is_fullback_downtrend = bool(data.get("is_fullback_downtrend", False))
+        is_other = bool(data.get("is_other", False))
+        other_setup = str(data.get("other_setup", "")).strip()
         early_exit = bool(data.get("early_exit", False))
         early_exit_amount = data.get("early_exit_amount")
         exit_reason = data.get("exit_reason", "TARGET")
@@ -2436,7 +2451,8 @@ def classify_trade():
         
         save_trade_classification_item(
             trade_key, filename, idx,
-            is_b_trade, is_9_21_cross, early_exit, direction_right, notes, early_exit_amount, exit_reason
+            is_b_trade, is_9_21_cross, early_exit, direction_right, notes, early_exit_amount, exit_reason,
+            is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup
         )
         
         # Keep b_trade_flags in sync
@@ -2491,6 +2507,10 @@ def api_condition_stats():
                         cls_item = classifications.get(key, {})
                         t_copy["is_b_trade"] = cls_item.get("is_b_trade", b_trade_flags.get(key, False))
                         t_copy["is_9_21_cross"] = cls_item.get("is_9_21_cross", False)
+                        t_copy["is_fullback_uptrend"] = cls_item.get("is_fullback_uptrend", False)
+                        t_copy["is_fullback_downtrend"] = cls_item.get("is_fullback_downtrend", False)
+                        t_copy["is_other"] = cls_item.get("is_other", False)
+                        t_copy["other_setup"] = cls_item.get("other_setup", "")
                         t_copy["early_exit"] = cls_item.get("early_exit", False)
                         pnl = t.get("pnl") or 0.0
                         t_copy["direction_right"] = cls_item.get("direction_right", pnl >= 0)
@@ -2581,6 +2601,9 @@ def api_condition_stats():
             "non_b_trade": calc_group([t for t in all_parsed_trades if not t.get("is_b_trade")]),
             "cross_9_21": calc_group([t for t in all_parsed_trades if t.get("is_9_21_cross")]),
             "non_cross_9_21": calc_group([t for t in all_parsed_trades if not t.get("is_9_21_cross")]),
+            "fullback_uptrend": calc_group([t for t in all_parsed_trades if t.get("is_fullback_uptrend")]),
+            "fullback_downtrend": calc_group([t for t in all_parsed_trades if t.get("is_fullback_downtrend")]),
+            "other": calc_group([t for t in all_parsed_trades if t.get("is_other")]),
             "early_exit": calc_group([t for t in all_parsed_trades if t.get("early_exit")]),
             "normal_exit": calc_group([t for t in all_parsed_trades if not t.get("early_exit")]),
             "direction_right": calc_group([t for t in all_parsed_trades if t.get("direction_right")]),

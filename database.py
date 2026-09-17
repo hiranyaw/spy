@@ -850,33 +850,45 @@ class Database:
                         trade_index INT,
                         is_b_trade BOOLEAN DEFAULT FALSE,
                         is_9_21_cross BOOLEAN DEFAULT FALSE,
+                        is_fullback_uptrend BOOLEAN DEFAULT FALSE,
+                        is_fullback_downtrend BOOLEAN DEFAULT FALSE,
+                        is_other BOOLEAN DEFAULT FALSE,
+                        other_setup TEXT DEFAULT '',
                         early_exit BOOLEAN DEFAULT FALSE,
                         direction_right BOOLEAN DEFAULT TRUE,
                         notes TEXT,
                         updated_at TIMESTAMP DEFAULT NOW()
                     );
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_fullback_uptrend BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_fullback_downtrend BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_other BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS other_setup TEXT DEFAULT '';
                 """)
         except Exception as e:
             logger.error(f"Error ensuring trade_classifications table: {e}")
 
-    def save_trade_classification(self, trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes=""):
+    def save_trade_classification(self, trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", is_fullback_uptrend=False, is_fullback_downtrend=False, is_other=False, other_setup=""):
         self.ensure_connected()
         self._ensure_trade_classifications_table()
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO trade_classifications (trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    INSERT INTO trade_classifications (trade_key, filename, trade_index, is_b_trade, is_9_21_cross, is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup, early_exit, direction_right, notes, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (trade_key) DO UPDATE SET
                         filename = EXCLUDED.filename,
                         trade_index = EXCLUDED.trade_index,
                         is_b_trade = EXCLUDED.is_b_trade,
                         is_9_21_cross = EXCLUDED.is_9_21_cross,
+                        is_fullback_uptrend = EXCLUDED.is_fullback_uptrend,
+                        is_fullback_downtrend = EXCLUDED.is_fullback_downtrend,
+                        is_other = EXCLUDED.is_other,
+                        other_setup = EXCLUDED.other_setup,
                         early_exit = EXCLUDED.early_exit,
                         direction_right = EXCLUDED.direction_right,
                         notes = EXCLUDED.notes,
                         updated_at = NOW();
-                """, (trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes))
+                """, (trade_key, filename, trade_index, is_b_trade, is_9_21_cross, is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup, early_exit, direction_right, notes))
             return True
         except Exception as e:
             logger.error(f"Error saving trade classification: {e}")
@@ -887,7 +899,7 @@ class Database:
         self._ensure_trade_classifications_table()
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes FROM trade_classifications")
+                cur.execute("SELECT trade_key, filename, trade_index, is_b_trade, is_9_21_cross, is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup, early_exit, direction_right, notes FROM trade_classifications")
                 rows = cur.fetchall() or []
                 return {r["trade_key"]: dict(r) for r in rows}
         except Exception as e:

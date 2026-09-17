@@ -1571,7 +1571,7 @@ Only B Trades with FULL confirmation."></textarea>
           <span id="ana-classify-selected-trade" style="font-size:0.75rem;color:#8b949e;font-family:monospace">Select a trade</span>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:10px">
           <label style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;cursor:pointer;user-select:none;transition:all 0.15s">
             <input type="checkbox" id="ana-edit-btrade" style="width:17px;height:17px;cursor:pointer;accent-color:#3fb950">
             <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">🏷️ B-Trade Setup</span>
@@ -1584,6 +1584,24 @@ Only B Trades with FULL confirmation."></textarea>
             <input type="checkbox" id="ana-edit-earlyexit" onchange="onEarlyExitCheckboxChanged()" style="width:17px;height:17px;cursor:pointer;accent-color:#f85149">
             <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">⏱️ Early Exit</span>
           </label>
+          <label style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;cursor:pointer;user-select:none;transition:all 0.15s">
+            <input type="checkbox" id="ana-edit-fullback-uptrend" style="width:17px;height:17px;cursor:pointer;accent-color:#3fb950">
+            <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">📈 Full back to 9 in uptrend</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;cursor:pointer;user-select:none;transition:all 0.15s">
+            <input type="checkbox" id="ana-edit-fullback-downtrend" style="width:17px;height:17px;cursor:pointer;accent-color:#f85149">
+            <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">📉 Full back to 9 in downtrend</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;cursor:pointer;user-select:none;transition:all 0.15s">
+            <input type="checkbox" id="ana-edit-other" onchange="onOtherCheckboxChanged()" style="width:17px;height:17px;cursor:pointer;accent-color:#a371f7">
+            <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">📦 Other</span>
+          </label>
+        </div>
+
+        <!-- Other Setup Specification Row -->
+        <div id="ana-edit-other-container" style="display:flex;align-items:center;gap:10px;margin-bottom:12px;background:#0d1117;border:1px solid #30363d;border-left:3px solid #a371f7;border-radius:8px;padding:10px 14px">
+          <span style="font-size:0.82rem;color:#a371f7;font-weight:700;white-space:nowrap">📦 Specify Other Setup:</span>
+          <input type="text" id="ana-edit-other-specify" placeholder="Type custom setup name (e.g., Level Bounce, Trendline Break, Double Bottom)..." oninput="onOtherSpecifyInput()" style="flex:1;background:#161b22;border:1px solid #30363d;border-radius:4px;padding:6px 10px;color:#e6edf3;font-size:0.85rem;outline:none">
         </div>
 
         <!-- Early Exit Amount Option Selector (Always Visible) -->
@@ -1709,19 +1727,40 @@ Only B Trades with FULL confirmation."></textarea>
             <span id="ana-daily-cond-total-badge" style="font-size:0.75rem;color:#8b949e;background:#161b22;border:1px solid #30363d;border-radius:6px;padding:2px 10px">0 trades</span>
           </div>
 
-          <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(135px, 1fr));gap:10px">
             <!-- B-Trade Card -->
             <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #58a6ff;border-radius:8px;padding:12px;text-align:center">
-              <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">🏷️ B-Trade Setups</div>
+              <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">🏷️ B-Trade</div>
               <div id="ana-daily-cond-btrade-wr" style="font-size:1.35rem;font-weight:800;color:#58a6ff;margin:4px 0">0.0% WR</div>
               <div id="ana-daily-cond-btrade-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
             </div>
 
             <!-- 9/21 Cross Card -->
             <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #ff9e2c;border-radius:8px;padding:12px;text-align:center">
-              <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">⚡ 9/21 EMA Cross</div>
+              <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">⚡ 9/21 Cross</div>
               <div id="ana-daily-cond-921-wr" style="font-size:1.35rem;font-weight:800;color:#ff9e2c;margin:4px 0">0.0% WR</div>
               <div id="ana-daily-cond-921-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- Full back 9 Uptrend Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #3fb950;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">📈 Full back 9 Up</div>
+              <div id="ana-daily-cond-fbup-wr" style="font-size:1.35rem;font-weight:800;color:#3fb950;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-fbup-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- Full back 9 Downtrend Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #f85149;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">📉 Full back 9 Down</div>
+              <div id="ana-daily-cond-fbdown-wr" style="font-size:1.35rem;font-weight:800;color:#f85149;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-fbdown-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- Other Setup Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #a371f7;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">📦 Other Setup</div>
+              <div id="ana-daily-cond-other-wr" style="font-size:1.35rem;font-weight:800;color:#a371f7;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-other-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
             </div>
 
             <!-- Early Exit Card -->
@@ -1736,8 +1775,8 @@ Only B Trades with FULL confirmation."></textarea>
               <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">✅ Direction Right</div>
               <div id="ana-daily-cond-dir-wr" style="font-size:1.35rem;font-weight:800;color:#3fb950;margin:4px 0">0.0% Acc</div>
               <div id="ana-daily-cond-dir-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
           </div>
-        </div>
 
         <!-- ── AI Best Time to Trade Summary ──────────────────────── -->
         <div id="ana-ai-timing-box" style="background:#0d1117;border:1.5px solid #238636;border-radius:10px;padding:16px;margin-bottom:20px">
@@ -1879,13 +1918,13 @@ Only B Trades with FULL confirmation."></textarea>
     <div style="background:#161b22;border:1.5px solid #1e3a5f;border-radius:10px;padding:20px;margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <h4 style="margin:0;color:#58a6ff;font-size:1rem;font-weight:700;display:flex;align-items:center;gap:8px">
-          <span>📊</span> Win Rate % by Trade Condition (B-Trade, 9/21 Cross, Early Exit, Direction)
+          <span>📊</span> Win Rate % by Trade Condition (B-Trade, 9/21 Cross, Full back 9, Other, Early Exit, Direction)
         </h4>
         <span id="ana-conditions-total-badge" style="font-size:0.8rem;color:#8b949e;background:#0d1117;padding:3px 10px;border-radius:6px;border:1px solid #30363d">Loading conditions...</span>
       </div>
 
       <!-- Condition Summary Cards -->
-      <div id="ana-condition-cards-container" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:10px;margin-bottom:16px">
+      <div id="ana-condition-cards-container" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px">
         <!-- Injected via JS -->
       </div>
 
@@ -5215,6 +5254,9 @@ function renderDailyConditionSummary(trades) {
 
   const bTrades = _calc(closedTrades.filter(t => t.is_b_trade));
   const crossTrades = _calc(closedTrades.filter(t => t.is_9_21_cross));
+  const fbUpTrades = _calc(closedTrades.filter(t => t.is_fullback_uptrend));
+  const fbDownTrades = _calc(closedTrades.filter(t => t.is_fullback_downtrend));
+  const otherTrades = _calc(closedTrades.filter(t => t.is_other));
   const earlyTrades = _calc(closedTrades.filter(t => t.early_exit));
   const dirRightTrades = _calc(closedTrades.filter(t => t.direction_right !== false));
 
@@ -5231,6 +5273,9 @@ function renderDailyConditionSummary(trades) {
 
   _updateCard('btrade', bTrades, false);
   _updateCard('921', crossTrades, false);
+  _updateCard('fbup', fbUpTrades, false);
+  _updateCard('fbdown', fbDownTrades, false);
+  _updateCard('other', otherTrades, false);
   _updateCard('early', earlyTrades, false);
   _updateCard('dir', dirRightTrades, true);
 }
@@ -5295,6 +5340,10 @@ function renderAnaTradeList(trades) {
     // Condition badges
     const bBadge = t.is_b_trade ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#1c2d52;color:#58a6ff;border:1px solid #388bfd;font-weight:700">🏷️ B</span>' : '';
     const crossBadge = t.is_9_21_cross ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#2d2200;color:#ff9e2c;border:1px solid #ff9e2c;font-weight:700">⚡ 9/21</span>' : '';
+    const fbUpBadge = t.is_fullback_uptrend ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#0d3320;color:#3fb950;border:1px solid #3fb950;font-weight:700">📈 FB Up</span>' : '';
+    const fbDownBadge = t.is_fullback_downtrend ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#381313;color:#ff7b72;border:1px solid #f85149;font-weight:700">📉 FB Down</span>' : '';
+    const otherLabel = t.other_setup ? (t.other_setup.length > 12 ? t.other_setup.substring(0, 10) + '..' : t.other_setup) : 'Other';
+    const otherBadge = t.is_other ? `<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#26183b;color:#d2a8ff;border:1px solid #a371f7;font-weight:700" title="${t.other_setup || 'Other'}">📦 ${otherLabel}</span>` : '';
     const earlyBadge = t.early_exit ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#381313;color:#ff7b72;border:1px solid #f85149;font-weight:700">⏱️ Early</span>' : '';
     const dirBadge = t.direction_right !== false ? '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#0d3320;color:#3fb950;border:1px solid #3fb950;font-weight:700">✅ Dir</span>' : '<span style="font-size:0.68rem;padding:1px 5px;border-radius:4px;background:#3d1515;color:#f85149;border:1px solid #f85149;font-weight:700">❌ Dir</span>';
 
@@ -5308,7 +5357,7 @@ function renderAnaTradeList(trades) {
         <span style="font-size:0.7rem;font-weight:700;padding:2px 6px;border-radius:4px;background:rgba(${displayDir==='LONG'?'63,185,80':'248,81,73'},0.15);color:${directionColor}">${displayDir}</span>
       </div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">
-        ${bBadge} ${crossBadge} ${earlyBadge} ${dirBadge}
+        ${bBadge} ${crossBadge} ${fbUpBadge} ${fbDownBadge} ${otherBadge} ${earlyBadge} ${dirBadge}
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid #21262d;font-size:0.7rem;color:#8b949e">
         <span>Gross: ${grossPnl >= 0 ? '+$' : '-$'}${Math.abs(grossPnl).toFixed(2)}</span>
@@ -5346,8 +5395,17 @@ async function selectAnaTrade(trade) {
   const radioDirWrong = document.getElementById('ana-edit-dir-wrong');
   const notesInput = document.getElementById('ana-edit-notes');
 
+  const cbFullbackUp = document.getElementById('ana-edit-fullback-uptrend');
+  const cbFullbackDown = document.getElementById('ana-edit-fullback-downtrend');
+  const cbOther = document.getElementById('ana-edit-other');
+  const otherInput = document.getElementById('ana-edit-other-specify');
+
   if (cbB) cbB.checked = !!trade.is_b_trade;
   if (cbCross) cbCross.checked = !!trade.is_9_21_cross;
+  if (cbFullbackUp) cbFullbackUp.checked = !!trade.is_fullback_uptrend;
+  if (cbFullbackDown) cbFullbackDown.checked = !!trade.is_fullback_downtrend;
+  if (cbOther) cbOther.checked = !!trade.is_other;
+  if (otherInput) otherInput.value = trade.other_setup || '';
   if (cbEarly) {
     cbEarly.checked = !!trade.early_exit;
     toggleEarlyExitOptions();
@@ -5852,6 +5910,24 @@ function toggleEarlyExitOptions() {
   if (opt) opt.style.display = 'flex';
 }
 
+function onOtherCheckboxChanged() {
+  const cb = document.getElementById('ana-edit-other');
+  const input = document.getElementById('ana-edit-other-specify');
+  if (cb && cb.checked && input) {
+    input.focus();
+  }
+}
+
+function onOtherSpecifyInput() {
+  const input = document.getElementById('ana-edit-other-specify');
+  const cb = document.getElementById('ana-edit-other');
+  if (input && cb) {
+    if (input.value.trim().length > 0) {
+      cb.checked = true;
+    }
+  }
+}
+
 async function saveTradeClassification() {
   if (!selectedAnaTrade) {
     alert("Please select a trade from the list first.");
@@ -5865,6 +5941,10 @@ async function saveTradeClassification() {
   const tradeIndex = selectedAnaTrade.trade_index !== undefined ? selectedAnaTrade.trade_index : anaTrades.indexOf(selectedAnaTrade);
   const isBTrade = document.getElementById('ana-edit-btrade').checked;
   const is921Cross = document.getElementById('ana-edit-921cross').checked;
+  const isFullbackUp = document.getElementById('ana-edit-fullback-uptrend') ? document.getElementById('ana-edit-fullback-uptrend').checked : false;
+  const isFullbackDown = document.getElementById('ana-edit-fullback-downtrend') ? document.getElementById('ana-edit-fullback-downtrend').checked : false;
+  const isOther = document.getElementById('ana-edit-other') ? document.getElementById('ana-edit-other').checked : false;
+  const otherSpecify = document.getElementById('ana-edit-other-specify') ? document.getElementById('ana-edit-other-specify').value.trim() : '';
   const isEarlyExit = document.getElementById('ana-edit-earlyexit').checked;
   const earlyAmtInput = document.getElementById('ana-edit-earlyexit-amt');
   const earlyExitAmount = (isEarlyExit && earlyAmtInput && earlyAmtInput.value) ? parseFloat(earlyAmtInput.value) : null;
@@ -5883,6 +5963,10 @@ async function saveTradeClassification() {
         trade_index: tradeIndex,
         is_b_trade: isBTrade,
         is_9_21_cross: is921Cross,
+        is_fullback_uptrend: isFullbackUp,
+        is_fullback_downtrend: isFullbackDown,
+        is_other: isOther,
+        other_setup: otherSpecify,
         early_exit: isEarlyExit,
         early_exit_amount: earlyExitAmount,
         exit_reason: exitReason,
@@ -5894,6 +5978,10 @@ async function saveTradeClassification() {
     if (res.ok) {
       selectedAnaTrade.is_b_trade = isBTrade;
       selectedAnaTrade.is_9_21_cross = is921Cross;
+      selectedAnaTrade.is_fullback_uptrend = isFullbackUp;
+      selectedAnaTrade.is_fullback_downtrend = isFullbackDown;
+      selectedAnaTrade.is_other = isOther;
+      selectedAnaTrade.other_setup = otherSpecify;
       selectedAnaTrade.early_exit = isEarlyExit;
       selectedAnaTrade.early_exit_amount = earlyExitAmount;
       selectedAnaTrade.exit_reason = exitReason;
@@ -5949,12 +6037,16 @@ async function renderConditionStatsSection(month) {
           </div>
         `;
       };
+      const emptyGroup = { win_rate: 0, total_pnl: 0, count: 0, wins: 0, losses: 0, amount_lost: 0 };
       container.innerHTML = `
-        ${_cCard('All Trades', s.all, '#58a6ff')}
-        ${_cCard('B-Trade Setup', s.b_trade, '#3fb950')}
-        ${_cCard('9/21 EMA Cross', s.cross_9_21, '#ff9e2c')}
-        ${_cCard('Early Exit', s.early_exit, '#ff7b72')}
-        ${_cCard('Direction Right', s.direction_right, '#3fb950')}
+        ${_cCard('All Trades', s.all || emptyGroup, '#58a6ff')}
+        ${_cCard('B-Trade Setup', s.b_trade || emptyGroup, '#3fb950')}
+        ${_cCard('9/21 EMA Cross', s.cross_9_21 || emptyGroup, '#ff9e2c')}
+        ${_cCard('Full back (Up)', s.fullback_uptrend || emptyGroup, '#2ea043')}
+        ${_cCard('Full back (Down)', s.fullback_downtrend || emptyGroup, '#f85149')}
+        ${_cCard('Other Setup', s.other || emptyGroup, '#a371f7')}
+        ${_cCard('Early Exit', s.early_exit || emptyGroup, '#ff7b72')}
+        ${_cCard('Direction Right', s.direction_right || emptyGroup, '#3fb950')}
       `;
     }
 
@@ -5975,13 +6067,16 @@ async function renderConditionStatsSection(month) {
     const ctx = canvas.getContext('2d');
     if (anaMonthConditionChart) anaMonthConditionChart.destroy();
 
-    const condLabels = ['All Trades', 'B-Trade', 'Non B-Trade', '9/21 Cross', 'Non 9/21 Cross', 'Early Exit', 'Normal Exit', 'Dir Right', 'Dir Wrong'];
+    const condLabels = ['All Trades', 'B-Trade', 'Non B-Trade', '9/21 Cross', 'Non 9/21 Cross', 'FB Uptrend', 'FB Downtrend', 'Other', 'Early Exit', 'Normal Exit', 'Dir Right', 'Dir Wrong'];
     const condRates = [
       s.all.win_rate,
       s.b_trade.win_rate,
       s.non_b_trade.win_rate,
       s.cross_9_21.win_rate,
       s.non_cross_9_21.win_rate,
+      (s.fullback_uptrend || {}).win_rate || 0,
+      (s.fullback_downtrend || {}).win_rate || 0,
+      (s.other || {}).win_rate || 0,
       s.early_exit.win_rate,
       s.normal_exit.win_rate,
       s.direction_right.win_rate,
@@ -5990,23 +6085,32 @@ async function renderConditionStatsSection(month) {
     const condCounts = [
       s.all.count, s.b_trade.count, s.non_b_trade.count,
       s.cross_9_21.count, s.non_cross_9_21.count,
+      (s.fullback_uptrend || {}).count || 0,
+      (s.fullback_downtrend || {}).count || 0,
+      (s.other || {}).count || 0,
       s.early_exit.count, s.normal_exit.count,
       s.direction_right.count, s.direction_wrong.count
     ];
     const condPnls = [
       s.all.total_pnl, s.b_trade.total_pnl, s.non_b_trade.total_pnl,
       s.cross_9_21.total_pnl, s.non_cross_9_21.total_pnl,
+      (s.fullback_uptrend || {}).total_pnl || 0,
+      (s.fullback_downtrend || {}).total_pnl || 0,
+      (s.other || {}).total_pnl || 0,
       s.early_exit.total_pnl, s.normal_exit.total_pnl,
       s.direction_right.total_pnl, s.direction_wrong.total_pnl
     ];
 
     const barColors = condRates.map((r, i) => {
       if (condCounts[i] === 0) return '#21262d';
-      if (condLabels[i].includes('Right') || condLabels[i].includes('B-Trade') || condLabels[i].includes('9/21 Cross')) {
+      if (condLabels[i].includes('Right') || condLabels[i].includes('B-Trade') || condLabels[i].includes('9/21 Cross') || condLabels[i].includes('FB Uptrend')) {
         return r >= 50 ? 'rgba(63,185,80,0.85)' : 'rgba(255,158,44,0.85)';
       }
-      if (condLabels[i].includes('Wrong') || condLabels[i].includes('Early Exit')) {
+      if (condLabels[i].includes('Wrong') || condLabels[i].includes('Early Exit') || condLabels[i].includes('FB Downtrend')) {
         return r < 50 ? 'rgba(248,81,73,0.85)' : 'rgba(255,158,44,0.85)';
+      }
+      if (condLabels[i].includes('Other')) {
+        return r >= 50 ? 'rgba(163,113,247,0.85)' : 'rgba(255,158,44,0.85)';
       }
       return r >= 50 ? 'rgba(88,166,255,0.85)' : 'rgba(255,158,44,0.85)';
     });

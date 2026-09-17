@@ -56,6 +56,9 @@ class TradeConditionCanvas(FigureCanvas):
             ("Non B-Trade", stats["non_b_trade"]),
             ("9/21 Cross", stats["cross_9_21"]),
             ("Non 9/21 Cross", stats["non_cross_9_21"]),
+            ("FB Up", stats.get("fullback_uptrend", {"win_rate": 0.0, "count": 0, "total_pnl": 0.0, "wins": 0, "losses": 0})),
+            ("FB Down", stats.get("fullback_downtrend", {"win_rate": 0.0, "count": 0, "total_pnl": 0.0, "wins": 0, "losses": 0})),
+            ("Other", stats.get("other", {"win_rate": 0.0, "count": 0, "total_pnl": 0.0, "wins": 0, "losses": 0})),
             ("Early Exit", stats["early_exit"]),
             ("Normal Exit", stats["normal_exit"]),
             ("Dir Right", stats["direction_right"]),
@@ -76,10 +79,12 @@ class TradeConditionCanvas(FigureCanvas):
         for label, wr, count in zip(labels, win_rates, counts):
             if count == 0:
                 bar_colors.append("#21262d")
-            elif "Right" in label or "B-Trade" in label or "9/21 Cross" in label:
+            elif "Right" in label or "B-Trade" in label or "9/21 Cross" in label or "FB Up" in label:
                 bar_colors.append("#00e676" if wr >= 50 else "#ff9800")
-            elif "Wrong" in label or "Early Exit" in label:
+            elif "Wrong" in label or "Early Exit" in label or "FB Down" in label:
                 bar_colors.append("#f44336" if wr < 50 else "#ff9800")
+            elif "Other" in label:
+                bar_colors.append("#b388ff" if wr >= 50 else "#ff9800")
             else:
                 bar_colors.append("#58a6ff" if wr >= 50 else "#ff9800")
 
@@ -259,6 +264,9 @@ class TradeAnalysisTab(QWidget):
             "All Setups",
             "B-Trades Only",
             "9/21 Cross Only",
+            "Full back 9 (Uptrend)",
+            "Full back 9 (Downtrend)",
+            "Other Setup Only",
             "Early Exits Only",
             "Direction Right Only",
             "Direction Wrong Only",
@@ -272,9 +280,9 @@ class TradeAnalysisTab(QWidget):
 
         # Trades Table
         self.table = QTableWidget()
-        self.table.setColumnCount(10)
+        self.table.setColumnCount(11)
         self.table.setHorizontalHeaderLabels([
-            "Date / Time", "Symbol", "Side", "Gross ($)", "Cost ($)", "Net P&L ($)", "B-Trade", "9/21", "Early", "Direction"
+            "Date / Time", "Symbol", "Side", "Gross ($)", "Cost ($)", "Net P&L ($)", "B-Trade", "9/21", "FB / Other", "Early", "Direction"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -463,10 +471,28 @@ class TradeAnalysisTab(QWidget):
         # Condition Checkboxes
         self.cb_b_trade = QCheckBox("🏷️  Is B-Trade Setup")
         self.cb_9_21 = QCheckBox("⚡  9 / 21 EMA Cross")
+        self.cb_fullback_uptrend = QCheckBox("📈  Full back to 9 in uptrend")
+        self.cb_fullback_downtrend = QCheckBox("📉  Full back to 9 in downtrend")
+
+        # Other Setup row with checkbox and specify text input
+        other_row = QHBoxLayout()
+        other_row.setSpacing(8)
+        self.cb_other = QCheckBox("📦  Other:")
+        self.cb_other.toggled.connect(self._on_other_cb_toggled)
+        self.edit_other = QLineEdit()
+        self.edit_other.setObjectName("journal_input")
+        self.edit_other.setPlaceholderText("Specify other setup (e.g. Level Bounce, Trendline Break)...")
+        self.edit_other.textChanged.connect(self._on_other_text_changed)
+        other_row.addWidget(self.cb_other)
+        other_row.addWidget(self.edit_other)
+
         self.cb_early_exit = QCheckBox("⏱️  Early Exit (Cut before Target / Stop)")
 
         cond_layout.addWidget(self.cb_b_trade)
         cond_layout.addWidget(self.cb_9_21)
+        cond_layout.addWidget(self.cb_fullback_uptrend)
+        cond_layout.addWidget(self.cb_fullback_downtrend)
+        cond_layout.addLayout(other_row)
         cond_layout.addWidget(self.cb_early_exit)
 
         # Early Exit Amount Option Buttons ($20, $50, $100, $200)
@@ -678,6 +704,12 @@ class TradeAnalysisTab(QWidget):
             trades = [t for t in trades if t.get("is_b_trade", False)]
         elif filter_mode == "9/21 Cross Only":
             trades = [t for t in trades if t.get("is_9_21_cross", False)]
+        elif filter_mode == "Full back 9 (Uptrend)":
+            trades = [t for t in trades if t.get("is_fullback_uptrend", False)]
+        elif filter_mode == "Full back 9 (Downtrend)":
+            trades = [t for t in trades if t.get("is_fullback_downtrend", False)]
+        elif filter_mode == "Other Setup Only":
+            trades = [t for t in trades if t.get("is_other", False)]
         elif filter_mode == "Early Exits Only":
             trades = [t for t in trades if t.get("early_exit", False)]
         elif filter_mode == "Direction Right Only":
@@ -759,18 +791,37 @@ class TradeAnalysisTab(QWidget):
                 item_cross.setForeground(QColor("#ffeb3b"))
             self.table.setItem(r, 7, item_cross)
 
+            # FB / Other badge
+            badges = []
+            if t.get("is_fullback_uptrend"):
+                badges.append("📈 Up")
+            if t.get("is_fullback_downtrend"):
+                badges.append("📉 Down")
+            if t.get("is_other"):
+                o_txt = t.get("other_setup") or "Other"
+                badges.append(f"📦 {o_txt[:8]}")
+            badge_str = " | ".join(badges) if badges else "—"
+            item_fb = QTableWidgetItem(badge_str)
+            if "📈" in badge_str:
+                item_fb.setForeground(QColor("#00e676"))
+            elif "📉" in badge_str:
+                item_fb.setForeground(QColor("#f44336"))
+            elif "📦" in badge_str:
+                item_fb.setForeground(QColor("#b388ff"))
+            self.table.setItem(r, 8, item_fb)
+
             # Early Exit badge
             is_early = t.get("early_exit", False)
             item_early = QTableWidgetItem("⏱️ Early" if is_early else "—")
             if is_early:
                 item_early.setForeground(QColor("#ff9800"))
-            self.table.setItem(r, 8, item_early)
+            self.table.setItem(r, 9, item_early)
 
             # Direction badge
             dir_right = t.get("direction_right", True)
             item_dir = QTableWidgetItem("✅ Right" if dir_right else "❌ Wrong")
             item_dir.setForeground(QColor("#00e676" if dir_right else "#f44336"))
-            self.table.setItem(r, 9, item_dir)
+            self.table.setItem(r, 10, item_dir)
 
         self.table.blockSignals(False)
 
@@ -797,6 +848,9 @@ class TradeAnalysisTab(QWidget):
         all_s = stats["all"]
         b_s = stats["b_trade"]
         cross_s = stats["cross_9_21"]
+        fb_up_s = stats.get("fullback_uptrend", {"win_rate": 0.0, "total_pnl": 0.0, "wins": 0, "losses": 0, "count": 0})
+        fb_down_s = stats.get("fullback_downtrend", {"win_rate": 0.0, "total_pnl": 0.0, "wins": 0, "losses": 0, "count": 0})
+        other_s = stats.get("other", {"win_rate": 0.0, "total_pnl": 0.0, "wins": 0, "losses": 0, "count": 0})
         early_s = stats["early_exit"]
         dir_s = stats["direction_right"]
 
@@ -805,6 +859,9 @@ class TradeAnalysisTab(QWidget):
             f"{_card('All Trades', all_s['win_rate'], all_s['total_pnl'], all_s.get('gross_pnl', 0.0), all_s.get('total_cost', 0.0), all_s['wins'], all_s['losses'], all_s['count'], '#58a6ff')}"
             f"{_card('B-Trade Setup', b_s['win_rate'], b_s['total_pnl'], b_s.get('gross_pnl', 0.0), b_s.get('total_cost', 0.0), b_s['wins'], b_s['losses'], b_s['count'], '#00e676')}"
             f"{_card('9/21 Cross', cross_s['win_rate'], cross_s['total_pnl'], cross_s.get('gross_pnl', 0.0), cross_s.get('total_cost', 0.0), cross_s['wins'], cross_s['losses'], cross_s['count'], '#ffeb3b')}"
+            f"{_card('Full back 9 Up', fb_up_s['win_rate'], fb_up_s['total_pnl'], fb_up_s.get('gross_pnl', 0.0), fb_up_s.get('total_cost', 0.0), fb_up_s['wins'], fb_up_s['losses'], fb_up_s['count'], '#00e676')}"
+            f"{_card('Full back 9 Down', fb_down_s['win_rate'], fb_down_s['total_pnl'], fb_down_s.get('gross_pnl', 0.0), fb_down_s.get('total_cost', 0.0), fb_down_s['wins'], fb_down_s['losses'], fb_down_s['count'], '#f44336')}"
+            f"{_card('Other Setup', other_s['win_rate'], other_s['total_pnl'], other_s.get('gross_pnl', 0.0), other_s.get('total_cost', 0.0), other_s['wins'], other_s['losses'], other_s['count'], '#b388ff')}"
             f"{_card('Early Exit', early_s['win_rate'], early_s['total_pnl'], early_s.get('gross_pnl', 0.0), early_s.get('total_cost', 0.0), early_s['wins'], early_s['losses'], early_s['count'], '#ff9800')}"
             f"{_card('Direction Right', dir_s['win_rate'], dir_s['total_pnl'], dir_s.get('gross_pnl', 0.0), dir_s.get('total_cost', 0.0), dir_s['wins'], dir_s['losses'], dir_s['count'], '#00e676')}"
             f"</div>"
@@ -866,6 +923,10 @@ class TradeAnalysisTab(QWidget):
         # Conditions
         self.cb_b_trade.setChecked(bool(target.get("is_b_trade", False)))
         self.cb_9_21.setChecked(bool(target.get("is_9_21_cross", False)))
+        self.cb_fullback_uptrend.setChecked(bool(target.get("is_fullback_uptrend", False)))
+        self.cb_fullback_downtrend.setChecked(bool(target.get("is_fullback_downtrend", False)))
+        self.cb_other.setChecked(bool(target.get("is_other", False)))
+        self.edit_other.setText(str(target.get("other_setup", "")))
         self.cb_early_exit.setChecked(bool(target.get("early_exit", False)))
         self.edit_early_amt.setValue(float(target.get("early_exit_amount", 0.0) or 0.0))
 
@@ -899,6 +960,14 @@ class TradeAnalysisTab(QWidget):
         self.cb_early_exit.setChecked(True)
         self.edit_early_amt.setValue(amt)
 
+    def _on_other_text_changed(self, text: str):
+        if text.strip() and not self.cb_other.isChecked():
+            self.cb_other.setChecked(True)
+
+    def _on_other_cb_toggled(self, checked: bool):
+        if checked and not self.edit_other.text().strip():
+            self.edit_other.setFocus()
+
     def _clear_editor(self):
         self._current_trade_id = None
         self.edit_date.setDate(QDate.currentDate())
@@ -913,6 +982,10 @@ class TradeAnalysisTab(QWidget):
         self._update_net_pnl_preview()
         self.cb_b_trade.setChecked(False)
         self.cb_9_21.setChecked(False)
+        self.cb_fullback_uptrend.setChecked(False)
+        self.cb_fullback_downtrend.setChecked(False)
+        self.cb_other.setChecked(False)
+        self.edit_other.clear()
         self.cb_early_exit.setChecked(False)
         self.edit_early_amt.setValue(0.0)
         self.radio_dir_right.setChecked(True)
@@ -939,6 +1012,10 @@ class TradeAnalysisTab(QWidget):
         cost = self.edit_cost.value()
         is_b = self.cb_b_trade.isChecked()
         is_cross = self.cb_9_21.isChecked()
+        is_fb_up = self.cb_fullback_uptrend.isChecked()
+        is_fb_down = self.cb_fullback_downtrend.isChecked()
+        is_other = self.cb_other.isChecked()
+        other_setup = self.edit_other.text().strip()
         early = self.cb_early_exit.isChecked()
         early_amt = self.edit_early_amt.value() if early else None
         dir_right = self.radio_dir_right.isChecked()
@@ -967,6 +1044,10 @@ class TradeAnalysisTab(QWidget):
             "trade_cost": cost,
             "is_b_trade": is_b,
             "is_9_21_cross": is_cross,
+            "is_fullback_uptrend": is_fb_up,
+            "is_fullback_downtrend": is_fb_down,
+            "is_other": is_other,
+            "other_setup": other_setup,
             "early_exit": early,
             "early_exit_amount": early_amt,
             "exit_reason": exit_reason,
@@ -1054,7 +1135,9 @@ class TradeAnalysisTab(QWidget):
                 writer = csv.writer(f)
                 writer.writerow([
                     "Date", "Time", "Symbol", "Side", "Qty", "Entry Price", "Exit Price",
-                    "Gross P&L", "Trade Cost", "Net P&L", "Is B-Trade", "Is 9/21 Cross", "Early Exit", "Direction Right", "Notes"
+                    "Gross P&L", "Trade Cost", "Net P&L", "Is B-Trade", "Is 9/21 Cross",
+                    "Is Full back 9 Uptrend", "Is Full back 9 Downtrend", "Is Other", "Other Setup",
+                    "Early Exit", "Direction Right", "Notes"
                 ])
                 for t in trades:
                     pnl_val = float(t.get("pnl", 0))
@@ -1074,6 +1157,10 @@ class TradeAnalysisTab(QWidget):
                         net_val,
                         1 if t.get("is_b_trade") else 0,
                         1 if t.get("is_9_21_cross") else 0,
+                        1 if t.get("is_fullback_uptrend") else 0,
+                        1 if t.get("is_fullback_downtrend") else 0,
+                        1 if t.get("is_other") else 0,
+                        t.get("other_setup", ""),
                         1 if t.get("early_exit") else 0,
                         1 if t.get("direction_right") else 0,
                         t.get("notes", ""),
