@@ -264,6 +264,7 @@ class TradeAnalysisTab(QWidget):
             "All Setups",
             "B-Trades Only",
             "9/21 Cross Only",
+            "B-Trade + 9/21 Only",
             "Full back 9 (Uptrend)",
             "Full back 9 (Downtrend)",
             "Other Setup Only",
@@ -704,6 +705,8 @@ class TradeAnalysisTab(QWidget):
             trades = [t for t in trades if t.get("is_b_trade", False)]
         elif filter_mode == "9/21 Cross Only":
             trades = [t for t in trades if t.get("is_9_21_cross", False)]
+        elif filter_mode == "B-Trade + 9/21 Only":
+            trades = [t for t in trades if t.get("is_b_trade", False) and t.get("is_9_21_cross", False)]
         elif filter_mode == "Full back 9 (Uptrend)":
             trades = [t for t in trades if t.get("is_fullback_uptrend", False)]
         elif filter_mode == "Full back 9 (Downtrend)":
@@ -856,6 +859,7 @@ class TradeAnalysisTab(QWidget):
         all_s = stats["all"]
         b_s = stats["b_trade"]
         cross_s = stats["cross_9_21"]
+        b_cross_s = stats.get("b_and_cross", {"win_rate": 0.0, "total_pnl": 0.0, "wins": 0, "losses": 0, "count": 0})
         fb_up_s = stats.get("fullback_uptrend", {"win_rate": 0.0, "total_pnl": 0.0, "wins": 0, "losses": 0, "count": 0})
         fb_down_s = stats.get("fullback_downtrend", {"win_rate": 0.0, "total_pnl": 0.0, "wins": 0, "losses": 0, "count": 0})
         other_s = stats.get("other", {"win_rate": 0.0, "total_pnl": 0.0, "wins": 0, "losses": 0, "count": 0})
@@ -867,6 +871,7 @@ class TradeAnalysisTab(QWidget):
             f"{_card('All Trades', all_s['win_rate'], all_s['total_pnl'], all_s.get('gross_pnl', 0.0), all_s.get('total_cost', 0.0), all_s['wins'], all_s['losses'], all_s['count'], '#58a6ff')}"
             f"{_card('B-Trade Setup', b_s['win_rate'], b_s['total_pnl'], b_s.get('gross_pnl', 0.0), b_s.get('total_cost', 0.0), b_s['wins'], b_s['losses'], b_s['count'], '#00e676')}"
             f"{_card('9/21 Cross', cross_s['win_rate'], cross_s['total_pnl'], cross_s.get('gross_pnl', 0.0), cross_s.get('total_cost', 0.0), cross_s['wins'], cross_s['losses'], cross_s['count'], '#ffeb3b')}"
+            f"{_card('B-Trade + 9/21', b_cross_s['win_rate'], b_cross_s['total_pnl'], b_cross_s.get('gross_pnl', 0.0), b_cross_s.get('total_cost', 0.0), b_cross_s['wins'], b_cross_s['losses'], b_cross_s['count'], '#00e5ff')}"
             f"{_card('Full back 9 Up', fb_up_s['win_rate'], fb_up_s['total_pnl'], fb_up_s.get('gross_pnl', 0.0), fb_up_s.get('total_cost', 0.0), fb_up_s['wins'], fb_up_s['losses'], fb_up_s['count'], '#00e676')}"
             f"{_card('Full back 9 Down', fb_down_s['win_rate'], fb_down_s['total_pnl'], fb_down_s.get('gross_pnl', 0.0), fb_down_s.get('total_cost', 0.0), fb_down_s['wins'], fb_down_s['losses'], fb_down_s['count'], '#f44336')}"
             f"{_card('Other Setup', other_s['win_rate'], other_s['total_pnl'], other_s.get('gross_pnl', 0.0), other_s.get('total_cost', 0.0), other_s['wins'], other_s['losses'], other_s['count'], '#b388ff')}"

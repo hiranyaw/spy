@@ -2601,6 +2601,7 @@ def api_condition_stats():
             "non_b_trade": calc_group([t for t in all_parsed_trades if not t.get("is_b_trade")]),
             "cross_9_21": calc_group([t for t in all_parsed_trades if t.get("is_9_21_cross")]),
             "non_cross_9_21": calc_group([t for t in all_parsed_trades if not t.get("is_9_21_cross")]),
+            "b_and_cross": calc_group([t for t in all_parsed_trades if t.get("is_b_trade") and t.get("is_9_21_cross")]),
             "fullback_uptrend": calc_group([t for t in all_parsed_trades if t.get("is_fullback_uptrend")]),
             "fullback_downtrend": calc_group([t for t in all_parsed_trades if t.get("is_fullback_downtrend")]),
             "other": calc_group([t for t in all_parsed_trades if t.get("is_other")]),

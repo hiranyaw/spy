@@ -241,6 +241,8 @@ def get_condition_stats(year: int | None = None, month: int | None = None) -> di
     cross_9_21 = [t for t in trades if t.get("is_9_21_cross", False)]
     non_cross_9_21 = [t for t in trades if not t.get("is_9_21_cross", False)]
 
+    b_and_cross = [t for t in trades if t.get("is_b_trade", False) and t.get("is_9_21_cross", False)]
+
     fullback_uptrend = [t for t in trades if t.get("is_fullback_uptrend", False)]
     fullback_downtrend = [t for t in trades if t.get("is_fullback_downtrend", False)]
     other_setups = [t for t in trades if t.get("is_other", False)]
@@ -257,6 +259,7 @@ def get_condition_stats(year: int | None = None, month: int | None = None) -> di
         "non_b_trade": _calc_stats_for_subset(non_b_trades),
         "cross_9_21": _calc_stats_for_subset(cross_9_21),
         "non_cross_9_21": _calc_stats_for_subset(non_cross_9_21),
+        "b_and_cross": _calc_stats_for_subset(b_and_cross),
         "fullback_uptrend": _calc_stats_for_subset(fullback_uptrend),
         "fullback_downtrend": _calc_stats_for_subset(fullback_downtrend),
         "other": _calc_stats_for_subset(other_setups),

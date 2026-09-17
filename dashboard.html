@@ -1748,6 +1748,13 @@ Only B Trades with FULL confirmation."></textarea>
               <div id="ana-daily-cond-921-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
             </div>
 
+            <!-- B-Trade + 9/21 Cross Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #00d2ff;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#00d2ff;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">⭐ B-Trade + 9/21</div>
+              <div id="ana-daily-cond-bcross-wr" style="font-size:1.35rem;font-weight:800;color:#00d2ff;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-bcross-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
             <!-- Full back 9 Uptrend Card -->
             <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #3fb950;border-radius:8px;padding:12px;text-align:center">
               <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">📈 Full back 9 Up</div>
@@ -5266,6 +5273,7 @@ function renderDailyConditionSummary(trades) {
 
   const bTrades = _calc(closedTrades.filter(t => t.is_b_trade));
   const crossTrades = _calc(closedTrades.filter(t => t.is_9_21_cross));
+  const bCrossTrades = _calc(closedTrades.filter(t => t.is_b_trade && t.is_9_21_cross));
   const fbUpTrades = _calc(closedTrades.filter(t => t.is_fullback_uptrend));
   const fbDownTrades = _calc(closedTrades.filter(t => t.is_fullback_downtrend));
   const otherTrades = _calc(closedTrades.filter(t => t.is_other));
@@ -5285,6 +5293,7 @@ function renderDailyConditionSummary(trades) {
 
   _updateCard('btrade', bTrades, false);
   _updateCard('921', crossTrades, false);
+  _updateCard('bcross', bCrossTrades, false);
   _updateCard('fbup', fbUpTrades, false);
   _updateCard('fbdown', fbDownTrades, false);
   _updateCard('other', otherTrades, false);
@@ -6198,6 +6207,7 @@ async function renderConditionStatsSection(month) {
         ${_cCard('All Trades', s.all || emptyGroup, '#58a6ff')}
         ${_cCard('B-Trade Setup', s.b_trade || emptyGroup, '#3fb950')}
         ${_cCard('9/21 EMA Cross', s.cross_9_21 || emptyGroup, '#ff9e2c')}
+        ${_cCard('B-Trade + 9/21', s.b_and_cross || emptyGroup, '#00d2ff')}
         ${_cCard('Full back (Up)', s.fullback_uptrend || emptyGroup, '#2ea043')}
         ${_cCard('Full back (Down)', s.fullback_downtrend || emptyGroup, '#f85149')}
         ${_cCard('Other Setup', s.other || emptyGroup, '#a371f7')}
@@ -6223,13 +6233,14 @@ async function renderConditionStatsSection(month) {
     const ctx = canvas.getContext('2d');
     if (anaMonthConditionChart) anaMonthConditionChart.destroy();
 
-    const condLabels = ['All Trades', 'B-Trade', 'Non B-Trade', '9/21 Cross', 'Non 9/21 Cross', 'FB Uptrend', 'FB Downtrend', 'Other', 'Early Exit', 'Normal Exit', 'Dir Right', 'Dir Wrong'];
+    const condLabels = ['All Trades', 'B-Trade', 'Non B-Trade', '9/21 Cross', 'Non 9/21 Cross', 'B-Trade + 9/21', 'FB Uptrend', 'FB Downtrend', 'Other', 'Early Exit', 'Normal Exit', 'Dir Right', 'Dir Wrong'];
     const condRates = [
       s.all.win_rate,
       s.b_trade.win_rate,
       s.non_b_trade.win_rate,
       s.cross_9_21.win_rate,
       s.non_cross_9_21.win_rate,
+      (s.b_and_cross || {}).win_rate || 0,
       (s.fullback_uptrend || {}).win_rate || 0,
       (s.fullback_downtrend || {}).win_rate || 0,
       (s.other || {}).win_rate || 0,
@@ -6241,6 +6252,7 @@ async function renderConditionStatsSection(month) {
     const condCounts = [
       s.all.count, s.b_trade.count, s.non_b_trade.count,
       s.cross_9_21.count, s.non_cross_9_21.count,
+      (s.b_and_cross || {}).count || 0,
       (s.fullback_uptrend || {}).count || 0,
       (s.fullback_downtrend || {}).count || 0,
       (s.other || {}).count || 0,
@@ -6250,6 +6262,7 @@ async function renderConditionStatsSection(month) {
     const condPnls = [
       s.all.total_pnl, s.b_trade.total_pnl, s.non_b_trade.total_pnl,
       s.cross_9_21.total_pnl, s.non_cross_9_21.total_pnl,
+      (s.b_and_cross || {}).total_pnl || 0,
       (s.fullback_uptrend || {}).total_pnl || 0,
       (s.fullback_downtrend || {}).total_pnl || 0,
       (s.other || {}).total_pnl || 0,
