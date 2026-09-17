@@ -5412,15 +5412,48 @@ function renderAnaTradeList(trades) {
     }
     const timeWindowStr = `${entryFormatted} – ${exitFormatted}`;
     
-    // Condition badges
-    const bBadge = t.is_b_trade ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#1c2d52;color:#58a6ff;border:1px solid #388bfd;font-weight:700">🏷️ B</span>' : '';
-    const crossBadge = t.is_9_21_cross ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#2d2200;color:#ff9e2c;border:1px solid #ff9e2c;font-weight:700">⚡ 9/21</span>' : '';
-    const fbUpBadge = t.is_fullback_uptrend ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#0d3320;color:#3fb950;border:1px solid #3fb950;font-weight:700">📈 FB Up</span>' : '';
-    const fbDownBadge = t.is_fullback_downtrend ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#381313;color:#ff7b72;border:1px solid #f85149;font-weight:700">📉 FB Down</span>' : '';
-    const otherLabel = t.other_setup ? (t.other_setup.length > 12 ? t.other_setup.substring(0, 10) + '..' : t.other_setup) : 'Other';
-    const otherBadge = t.is_other ? `<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#26183b;color:#d2a8ff;border:1px solid #a371f7;font-weight:700" title="${t.other_setup || 'Other'}">📦 ${otherLabel}</span>` : '';
-    const earlyBadge = t.early_exit ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#381313;color:#ff7b72;border:1px solid #f85149;font-weight:700">⏱️ Early</span>' : '';
-    const dirBadge = t.direction_right !== false ? '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#0d3320;color:#3fb950;border:1px solid #3fb950;font-weight:700">✅ Dir</span>' : '<span style="font-size:0.68rem;padding:2px 6px;border-radius:4px;background:#3d1515;color:#f85149;border:1px solid #f85149;font-weight:700">❌ Dir</span>';
+    // Condition tags / badges
+    const tags = [];
+    if (t.is_b_trade) {
+      tags.push('<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#162b4d;color:#79c0ff;border:1px solid #388bfd;font-weight:700;display:inline-flex;align-items:center;gap:4px">🏷️ B-Trade</span>');
+    }
+    if (t.is_9_21_cross) {
+      tags.push('<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#2d2200;color:#ffd33d;border:1px solid #ff9e2c;font-weight:700;display:inline-flex;align-items:center;gap:4px">⚡ 9/21 Cross</span>');
+    }
+    if (t.is_fullback_uptrend) {
+      tags.push('<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#0d3320;color:#56d364;border:1px solid #3fb950;font-weight:700;display:inline-flex;align-items:center;gap:4px">📈 Full back to 9 (Up)</span>');
+    }
+    if (t.is_fullback_downtrend) {
+      tags.push('<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#381313;color:#ff7b72;border:1px solid #f85149;font-weight:700;display:inline-flex;align-items:center;gap:4px">📉 Full back to 9 (Down)</span>');
+    }
+    if (t.is_other) {
+      const otherLabel = t.other_setup ? (t.other_setup.length > 20 ? t.other_setup.substring(0, 18) + '..' : t.other_setup) : 'Other';
+      tags.push(`<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#26183b;color:#d2a8ff;border:1px solid #a371f7;font-weight:700;display:inline-flex;align-items:center;gap:4px" title="${t.other_setup || 'Other'}">📦 ${otherLabel}</span>`);
+    }
+    if (t.early_exit) {
+      const amtStr = t.early_exit_amount ? ` ($${t.early_exit_amount})` : '';
+      tags.push(`<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#381313;color:#ff7b72;border:1px solid #f85149;font-weight:700;display:inline-flex;align-items:center;gap:4px">⏱️ Early Exit${amtStr}</span>`);
+    }
+    if (t.exit_reason) {
+      const reason = String(t.exit_reason).toUpperCase();
+      if (reason === 'TARGET') {
+        tags.push('<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#0d3320;color:#3fb950;border:1px solid #238636;font-weight:700;display:inline-flex;align-items:center;gap:4px">🎯 Target</span>');
+      } else if (reason === 'STOP_LOSS') {
+        tags.push('<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#3d1515;color:#f85149;border:1px solid #da3633;font-weight:700;display:inline-flex;align-items:center;gap:4px">🛑 Stop Loss</span>');
+      } else if (reason === 'BREAKEVEN') {
+        tags.push('<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#1e293b;color:#e6edf3;border:1px solid #8b949e;font-weight:700;display:inline-flex;align-items:center;gap:4px">⚖️ Breakeven</span>');
+      }
+    }
+    if (t.direction_right !== undefined && t.direction_right !== null) {
+      tags.push(t.direction_right !== false 
+        ? '<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#0d3320;color:#3fb950;border:1px solid #238636;font-weight:700;display:inline-flex;align-items:center;gap:4px">✅ Dir Right</span>' 
+        : '<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#3d1515;color:#f85149;border:1px solid #da3633;font-weight:700;display:inline-flex;align-items:center;gap:4px">❌ Dir Wrong</span>'
+      );
+    }
+
+    const tagsHtml = tags.length > 0
+      ? tags.join(' ')
+      : '<span style="font-size:0.7rem;color:#8b949e;background:#161b22;border:1px dashed #30363d;padding:3px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:4px">🏷️ No setup tags yet — click to classify</span>';
 
     div.innerHTML = `
       <!-- Top Row: Trade Number & Symbol -->
@@ -5465,9 +5498,16 @@ function renderAnaTradeList(trades) {
         </div>
       </div>
 
-      <!-- Condition Badges Row -->
-      <div style="display:flex;gap:4px;flex-wrap:wrap">
-        ${bBadge} ${crossBadge} ${fbUpBadge} ${fbDownBadge} ${otherBadge} ${earlyBadge} ${dirBadge}
+      <!-- Tags & Setup Section -->
+      <div style="background:#13171f;border:1px solid #21262d;border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.5px;color:#8b949e;font-weight:700;display:flex;align-items:center;gap:4px">🏷️ Tags &amp; Setup:</span>
+          ${tags.length > 0 ? `<span style="font-size:0.68rem;color:#79c0ff;font-weight:700;background:rgba(56,139,253,0.15);padding:1px 6px;border-radius:4px">${tags.length} tag${tags.length !== 1 ? 's' : ''}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+          ${tagsHtml}
+        </div>
+        ${t.classification_notes ? `<div style="font-size:0.7rem;color:#8b949e;font-style:italic;margin-top:2px;background:#0d1117;padding:4px 6px;border-radius:4px;border:1px solid #21262d">📝 ${t.classification_notes}</div>` : ''}
       </div>
     `;
 
