@@ -5288,7 +5288,7 @@ function renderDailyConditionSummary(trades) {
     wrEl.textContent = data.count > 0 ? `${data.wr.toFixed(1)}% ${labelSuffix}` : `--% ${labelSuffix}`;
     const pnlSign = data.pnl >= 0 ? '+$' : '-$';
     const pnlColor = data.pnl >= 0 ? '#3fb950' : '#f85149';
-    subEl.innerHTML = `${data.count} trade${data.count!==1?'s':''} (${data.wins}W / ${data.losses}L) &nbsp;|&nbsp; <span style="color:${pnlColor};font-weight:700">${pnlSign}$${Math.abs(data.pnl).toFixed(0)} Net</span> <span style="font-size:0.68rem;color:#ff9e2c">($${data.cost.toFixed(0)} cost)</span>`;
+    subEl.innerHTML = `${data.count} trade${data.count!==1?'s':''} (${data.wins}W / ${data.losses}L) &nbsp;|&nbsp; <span style="color:${pnlColor};font-weight:700">${pnlSign}${Math.abs(data.pnl).toFixed(0)} Net</span> <span style="font-size:0.68rem;color:#ff9e2c">($${data.cost.toFixed(0)} cost)</span>`;
   };
 
   _updateCard('btrade', bTrades, false);
@@ -6198,7 +6198,7 @@ async function renderConditionStatsSection(month) {
           <div style="background:#0d1117;border:1px solid #30363d;border-top:3px solid ${color};border-radius:8px;padding:12px;text-align:center">
             <div style="font-size:0.7rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">${title}</div>
             <div style="font-size:1.35rem;font-weight:800;color:${color};margin:4px 0">${data.win_rate.toFixed(1)}% WR</div>
-            <div style="font-size:0.8rem;color:${pnlColor};font-weight:700">${pnlSign}$${Math.abs(data.total_pnl).toFixed(0)} <span style="color:#8b949e;font-size:0.7rem">(${data.wins}W / ${data.losses}L)${lostStr}</span></div>
+            <div style="font-size:0.8rem;color:${pnlColor};font-weight:700">${pnlSign}${Math.abs(data.total_pnl).toFixed(0)} <span style="color:#8b949e;font-size:0.7rem">(${data.wins}W / ${data.losses}L)${lostStr}</span></div>
           </div>
         `;
       };
@@ -6344,7 +6344,7 @@ async function renderConditionStatsSection(month) {
             <div style="font-size:0.75rem;color:#e6edf3;font-weight:700">${item.label}</div>
             <div style="font-size:0.65rem;color:#8b949e;margin-bottom:4px">${item.sub}</div>
             <div style="font-size:1.3rem;font-weight:800;color:${wrColor};margin:2px 0">${item.count > 0 ? item.win_rate.toFixed(1) + '%' : '--%'} WR</div>
-            <div style="font-size:0.75rem;color:${pnlColor};font-weight:700">${item.count > 0 ? pnlSign + '$' + Math.abs(item.total_pnl).toFixed(0) : '$0'} Net</div>
+            <div style="font-size:0.75rem;color:${pnlColor};font-weight:700">${item.count > 0 ? pnlSign + Math.abs(item.total_pnl).toFixed(0) : '$0'} Net</div>
             <div style="font-size:0.72rem;font-weight:700;color:${lostColor};margin-top:2px">Lost: ${lostStr}</div>
             <div style="font-size:0.68rem;color:#8b949e;margin-top:2px">${item.count} trade${item.count !== 1 ? 's' : ''} (${item.wins}W / ${item.losses}L)</div>
             <div style="margin-top:6px;font-size:0.65rem;padding:2px 6px;border-radius:4px;background:#161b22;border:1px solid #30363d;color:#c9d1d9">${item.action}</div>
