@@ -2299,9 +2299,10 @@ def analysis_summary():
                     wrong_direction_count += 1
                     
         total_pnl = sum(t["pnl"] for t in spy_trades)
-        wins = [t for t in spy_trades if t["win"]]
-        losses = [t for t in spy_trades if not t["win"]]
-        win_rate = (len(wins) / len(spy_trades)) * 100 if spy_trades else 0.0
+        wins = [t for t in spy_trades if (t.get("pnl") or 0.0) > 0]
+        losses = [t for t in spy_trades if (t.get("pnl") or 0.0) < 0]
+        decided_count = len(wins) + len(losses)
+        win_rate = (len(wins) / decided_count * 100) if decided_count > 0 else 0.0
         
         avg_drawdown_stopped = sum(stopped_drawdowns) / len(stopped_drawdowns) if stopped_drawdowns else 0.0
         max_early_move = max(early_exit_moves) if early_exit_moves else 0.0
@@ -2534,7 +2535,8 @@ def api_condition_stats():
             gross_pnls = [(t.get("pnl") or 0.0) for t in subset]
             wins = sum(1 for p in net_pnls if p > 0)
             losses = sum(1 for p in net_pnls if p < 0)
-            win_rate = (wins / total * 100.0) if total > 0 else 0.0
+            decided = wins + losses
+            win_rate = (wins / decided * 100.0) if decided > 0 else 0.0
             total_net_pnl = sum(net_pnls)
             total_gross_pnl = sum(gross_pnls)
             total_cost = sum(_trade_cost(t) for t in subset)
@@ -2665,9 +2667,10 @@ def api_analysis_monthly():
 
                 # Basic stats (always computed — no network needed)
                 total_pnl = sum(t["pnl"] for t in spy_trades)
-                wins   = [t for t in spy_trades if t["win"]]
-                losses = [t for t in spy_trades if not t["win"]]
-                win_rate = (len(wins) / len(spy_trades)) * 100 if spy_trades else 0.0
+                wins   = [t for t in spy_trades if (t.get("pnl") or 0.0) > 0]
+                losses = [t for t in spy_trades if (t.get("pnl") or 0.0) < 0]
+                decided_count = len(wins) + len(losses)
+                win_rate = (len(wins) / decided_count * 100) if decided_count > 0 else 0.0
 
                 # Try yfinance for advanced direction-accuracy stats; degrade gracefully if unavailable
                 stopped_out_correct_count = 0

@@ -5264,7 +5264,8 @@ function renderDailyConditionSummary(trades) {
     const netPnls = subset.map(t => (t.pnl || 0) - _getTradeCost(t));
     const wins = netPnls.filter(p => p > 0).length;
     const losses = netPnls.filter(p => p < 0).length;
-    const wr = (wins / cnt) * 100;
+    const decided = wins + losses;
+    const wr = decided > 0 ? (wins / decided) * 100 : 0;
     const gross = subset.reduce((acc, t) => acc + (t.pnl || 0), 0);
     const cost = subset.reduce((acc, t) => acc + _getTradeCost(t), 0);
     const pnl = gross - cost;
@@ -5307,7 +5308,9 @@ function renderAnaStats(trades) {
   const _getTradeCost = (t) => t.trade_cost !== undefined ? Number(t.trade_cost) : ((Number(t.qty) || 1.0) * 1.0);
   const netPnls = closedTrades.map(t => (t.pnl || 0) - _getTradeCost(t));
   const wins = netPnls.filter(p => p > 0).length;
-  const winRate = closedTrades.length > 0 ? ((wins / closedTrades.length) * 100).toFixed(1) : "0.0";
+  const losses = netPnls.filter(p => p < 0).length;
+  const decided = wins + losses;
+  const winRate = decided > 0 ? ((wins / decided) * 100).toFixed(1) : "0.0";
   const totalGrossPnl = closedTrades.reduce((sum, t) => sum + (t.pnl || 0), 0);
   const totalCost = closedTrades.reduce((sum, t) => sum + _getTradeCost(t), 0);
   const totalNetPnl = totalGrossPnl - totalCost;

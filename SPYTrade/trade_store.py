@@ -204,7 +204,8 @@ def _calc_stats_for_subset(subset: list[dict[str, Any]]) -> dict[str, Any]:
     wins = sum(1 for npnl in net_pnls if npnl > 0)
     losses = sum(1 for npnl in net_pnls if npnl < 0)
     even = sum(1 for npnl in net_pnls if npnl == 0)
-    win_rate = (wins / total * 100.0) if total > 0 else 0.0
+    decided = wins + losses
+    win_rate = (wins / decided * 100.0) if decided > 0 else 0.0
     total_net_pnl = sum(net_pnls)
     total_gross_pnl = sum(gross_pnls)
     total_cost = sum(costs)
