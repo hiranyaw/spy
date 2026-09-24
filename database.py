@@ -863,18 +863,36 @@ class Database:
                     ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_fullback_downtrend BOOLEAN DEFAULT FALSE;
                     ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_other BOOLEAN DEFAULT FALSE;
                     ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS other_setup TEXT DEFAULT '';
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_jimmy_recommended BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_followed_9_up BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_followed_9_down BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_hiranya_buy BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_hiranya_sell BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS hiranya_signal_dir VARCHAR(20) DEFAULT '';
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS exit_reason VARCHAR(50) DEFAULT 'TARGET';
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_vwap_touch_exit BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_add_confluence BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS add_value DOUBLE PRECISION;
                 """)
         except Exception as e:
             logger.error(f"Error ensuring trade_classifications table: {e}")
 
-    def save_trade_classification(self, trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", is_fullback_uptrend=False, is_fullback_downtrend=False, is_other=False, other_setup=""):
+    def save_trade_classification(self, trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", is_fullback_uptrend=False, is_fullback_downtrend=False, is_other=False, other_setup="", is_jimmy_recommended=False, is_followed_9_up=False, is_followed_9_down=False, is_hiranya_buy=False, is_hiranya_sell=False, hiranya_signal_dir="", exit_reason="TARGET", is_vwap_touch_exit=False, is_add_confluence=False, add_value=None):
         self.ensure_connected()
         self._ensure_trade_classifications_table()
         try:
             with self.conn.cursor() as cur:
                 cur.execute("""
-                    INSERT INTO trade_classifications (trade_key, filename, trade_index, is_b_trade, is_9_21_cross, is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup, early_exit, direction_right, notes, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    INSERT INTO trade_classifications (
+                        trade_key, filename, trade_index, is_b_trade, is_9_21_cross,
+                        is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup,
+                        early_exit, direction_right, notes,
+                        is_jimmy_recommended, is_followed_9_up, is_followed_9_down,
+                        is_hiranya_buy, is_hiranya_sell, hiranya_signal_dir,
+                        exit_reason, is_vwap_touch_exit, is_add_confluence, add_value,
+                        updated_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (trade_key) DO UPDATE SET
                         filename = EXCLUDED.filename,
                         trade_index = EXCLUDED.trade_index,
@@ -887,8 +905,25 @@ class Database:
                         early_exit = EXCLUDED.early_exit,
                         direction_right = EXCLUDED.direction_right,
                         notes = EXCLUDED.notes,
+                        is_jimmy_recommended = EXCLUDED.is_jimmy_recommended,
+                        is_followed_9_up = EXCLUDED.is_followed_9_up,
+                        is_followed_9_down = EXCLUDED.is_followed_9_down,
+                        is_hiranya_buy = EXCLUDED.is_hiranya_buy,
+                        is_hiranya_sell = EXCLUDED.is_hiranya_sell,
+                        hiranya_signal_dir = EXCLUDED.hiranya_signal_dir,
+                        exit_reason = EXCLUDED.exit_reason,
+                        is_vwap_touch_exit = EXCLUDED.is_vwap_touch_exit,
+                        is_add_confluence = EXCLUDED.is_add_confluence,
+                        add_value = EXCLUDED.add_value,
                         updated_at = NOW();
-                """, (trade_key, filename, trade_index, is_b_trade, is_9_21_cross, is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup, early_exit, direction_right, notes))
+                """, (
+                    trade_key, filename, trade_index, is_b_trade, is_9_21_cross,
+                    is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup,
+                    early_exit, direction_right, notes,
+                    is_jimmy_recommended, is_followed_9_up, is_followed_9_down,
+                    is_hiranya_buy, is_hiranya_sell, hiranya_signal_dir,
+                    exit_reason, is_vwap_touch_exit, is_add_confluence, add_value
+                ))
             return True
         except Exception as e:
             logger.error(f"Error saving trade classification: {e}")
@@ -899,7 +934,7 @@ class Database:
         self._ensure_trade_classifications_table()
         try:
             with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("SELECT trade_key, filename, trade_index, is_b_trade, is_9_21_cross, is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup, early_exit, direction_right, notes FROM trade_classifications")
+                cur.execute("SELECT * FROM trade_classifications")
                 rows = cur.fetchall() or []
                 return {r["trade_key"]: dict(r) for r in rows}
         except Exception as e:

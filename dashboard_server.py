@@ -64,21 +64,46 @@ def load_trade_classifications():
         print(f"Error loading local trade classifications JSON: {e}")
     return classifications
 
-def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", early_exit_amount=None, exit_reason="TARGET", is_fullback_uptrend=False, is_fullback_downtrend=False, is_other=False, other_setup=""):
+def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", early_exit_amount=None, exit_reason="TARGET", is_fullback_uptrend=False, is_fullback_downtrend=False, is_other=False, other_setup="", is_jimmy_recommended=False, hiranya_signal_dir="", is_followed_9_up=None, is_followed_9_down=None, add_value=None, is_add_confluence=False):
     classifications = load_trade_classifications()
+    f9_up = bool(is_followed_9_up if is_followed_9_up is not None else is_fullback_uptrend)
+    f9_down = bool(is_followed_9_down if is_followed_9_down is not None else is_fullback_downtrend)
+    h_dir = str(hiranya_signal_dir or "").upper()
+    is_h_buy = (h_dir == "BUY")
+    is_h_sell = (h_dir == "SELL")
+    exit_r = str(exit_reason or "TARGET").upper()
+    is_vt = (exit_r == "VWAP_TOUCH")
+    
+    add_val_num = None
+    if add_value is not None and str(add_value).strip() != "":
+        try:
+            add_val_num = float(str(add_value).replace("+", "").replace(",", "").strip())
+        except (ValueError, TypeError):
+            add_val_num = None
+    add_conf = bool(is_add_confluence or add_val_num is not None)
+
     entry = {
         "trade_key": key,
         "filename": filename,
         "trade_index": trade_index,
+        "is_jimmy_recommended": bool(is_jimmy_recommended),
         "is_b_trade": bool(is_b_trade),
         "is_9_21_cross": bool(is_9_21_cross),
-        "is_fullback_uptrend": bool(is_fullback_uptrend),
-        "is_fullback_downtrend": bool(is_fullback_downtrend),
+        "is_followed_9_up": f9_up,
+        "is_followed_9_down": f9_down,
+        "is_fullback_uptrend": f9_up,
+        "is_fullback_downtrend": f9_down,
+        "is_hiranya_buy": is_h_buy,
+        "is_hiranya_sell": is_h_sell,
+        "hiranya_signal_dir": h_dir,
+        "is_add_confluence": add_conf,
+        "add_value": add_val_num,
         "is_other": bool(is_other),
         "other_setup": str(other_setup or "").strip(),
-        "early_exit": bool(early_exit),
+        "early_exit": bool(early_exit) or (exit_r == "EARLY_EXIT"),
         "early_exit_amount": float(early_exit_amount) if early_exit_amount is not None and str(early_exit_amount).strip() != "" else None,
-        "exit_reason": str(exit_reason or "TARGET").upper(),
+        "exit_reason": exit_r,
+        "is_vwap_touch_exit": is_vt,
         "direction_right": bool(direction_right),
         "notes": notes,
     }
@@ -90,7 +115,12 @@ def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_
         print(f"Error saving trade classifications JSON: {e}")
     if DB_AVAILABLE:
         try:
-            db.save_trade_classification(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes, is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup)
+            db.save_trade_classification(
+                key, filename, trade_index, is_b_trade, is_9_21_cross,
+                early_exit, direction_right, notes, f9_up, f9_down,
+                is_other, other_setup, is_jimmy_recommended, f9_up, f9_down,
+                is_h_buy, is_h_sell, h_dir, exit_r, is_vt, add_conf, add_val_num
+            )
         except Exception as e:
             print(f"Error saving trade classification to DB: {e}")
 
@@ -1551,15 +1581,24 @@ def analysis_trades():
             cls_item = classifications.get(trade_key, {})
             
             t_copy["trade_index"] = idx
+            t_copy["is_jimmy_recommended"] = cls_item.get("is_jimmy_recommended", False)
             t_copy["is_b_trade"] = cls_item.get("is_b_trade", b_trade_flags.get(trade_key, False))
             t_copy["is_9_21_cross"] = cls_item.get("is_9_21_cross", False)
-            t_copy["is_fullback_uptrend"] = cls_item.get("is_fullback_uptrend", False)
-            t_copy["is_fullback_downtrend"] = cls_item.get("is_fullback_downtrend", False)
+            t_copy["is_followed_9_up"] = cls_item.get("is_followed_9_up", cls_item.get("is_fullback_uptrend", False))
+            t_copy["is_followed_9_down"] = cls_item.get("is_followed_9_down", cls_item.get("is_fullback_downtrend", False))
+            t_copy["is_fullback_uptrend"] = t_copy["is_followed_9_up"]
+            t_copy["is_fullback_downtrend"] = t_copy["is_followed_9_down"]
+            t_copy["is_hiranya_buy"] = cls_item.get("is_hiranya_buy", False) or cls_item.get("hiranya_signal_dir") == "BUY"
+            t_copy["is_hiranya_sell"] = cls_item.get("is_hiranya_sell", False) or cls_item.get("hiranya_signal_dir") == "SELL"
+            t_copy["hiranya_signal_dir"] = cls_item.get("hiranya_signal_dir", "")
             t_copy["is_other"] = cls_item.get("is_other", False)
             t_copy["other_setup"] = cls_item.get("other_setup", "")
             t_copy["early_exit"] = cls_item.get("early_exit", False)
             t_copy["early_exit_amount"] = cls_item.get("early_exit_amount")
             t_copy["exit_reason"] = cls_item.get("exit_reason")
+            t_copy["is_vwap_touch_exit"] = (cls_item.get("exit_reason") == "VWAP_TOUCH") or cls_item.get("is_vwap_touch_exit", False)
+            t_copy["is_add_confluence"] = cls_item.get("is_add_confluence", False) or (cls_item.get("add_value") is not None)
+            t_copy["add_value"] = cls_item.get("add_value")
             t_copy["classification_notes"] = cls_item.get("notes", "")
             
             pnl_val = t.get("pnl") or 0.0
@@ -2438,22 +2477,29 @@ def classify_trade():
             return jsonify({"ok": False, "error": "filename and trade_index are required"}), 400
             
         trade_key = f"{filename}::{idx}"
+        is_jimmy = bool(data.get("is_jimmy_recommended", False))
         is_b_trade = bool(data.get("is_b_trade", False))
         is_9_21_cross = bool(data.get("is_9_21_cross", False))
-        is_fullback_uptrend = bool(data.get("is_fullback_uptrend", False))
-        is_fullback_downtrend = bool(data.get("is_fullback_downtrend", False))
+        is_f9_up = bool(data.get("is_followed_9_up", data.get("is_fullback_uptrend", False)))
+        is_f9_down = bool(data.get("is_followed_9_down", data.get("is_fullback_downtrend", False)))
+        h_dir = str(data.get("hiranya_signal_dir", "")).upper()
         is_other = bool(data.get("is_other", False))
         other_setup = str(data.get("other_setup", "")).strip()
         early_exit = bool(data.get("early_exit", False))
         early_exit_amount = data.get("early_exit_amount")
         exit_reason = data.get("exit_reason", "TARGET")
         direction_right = bool(data.get("direction_right", True))
+        add_val = data.get("add_value")
+        is_add = bool(data.get("is_add_confluence", False) or (add_val is not None and str(add_val).strip() != ""))
         notes = str(data.get("notes", ""))
         
         save_trade_classification_item(
             trade_key, filename, idx,
             is_b_trade, is_9_21_cross, early_exit, direction_right, notes, early_exit_amount, exit_reason,
-            is_fullback_uptrend, is_fullback_downtrend, is_other, other_setup
+            is_f9_up, is_f9_down, is_other, other_setup,
+            is_jimmy_recommended=is_jimmy, hiranya_signal_dir=h_dir,
+            is_followed_9_up=is_f9_up, is_followed_9_down=is_f9_down,
+            add_value=add_val, is_add_confluence=is_add
         )
         
         # Keep b_trade_flags in sync
@@ -2506,10 +2552,20 @@ def api_condition_stats():
                         t_copy = t.copy()
                         key = f"{filename}::{idx}"
                         cls_item = classifications.get(key, {})
+                        t_copy["is_jimmy_recommended"] = cls_item.get("is_jimmy_recommended", False)
                         t_copy["is_b_trade"] = cls_item.get("is_b_trade", b_trade_flags.get(key, False))
                         t_copy["is_9_21_cross"] = cls_item.get("is_9_21_cross", False)
-                        t_copy["is_fullback_uptrend"] = cls_item.get("is_fullback_uptrend", False)
-                        t_copy["is_fullback_downtrend"] = cls_item.get("is_fullback_downtrend", False)
+                        t_copy["is_followed_9_up"] = cls_item.get("is_followed_9_up", cls_item.get("is_fullback_uptrend", False))
+                        t_copy["is_followed_9_down"] = cls_item.get("is_followed_9_down", cls_item.get("is_fullback_downtrend", False))
+                        t_copy["is_fullback_uptrend"] = t_copy["is_followed_9_up"]
+                        t_copy["is_fullback_downtrend"] = t_copy["is_followed_9_down"]
+                        t_copy["is_hiranya_buy"] = cls_item.get("is_hiranya_buy", False) or cls_item.get("hiranya_signal_dir") == "BUY"
+                        t_copy["is_hiranya_sell"] = cls_item.get("is_hiranya_sell", False) or cls_item.get("hiranya_signal_dir") == "SELL"
+                        t_copy["hiranya_signal_dir"] = cls_item.get("hiranya_signal_dir", "")
+                        t_copy["exit_reason"] = cls_item.get("exit_reason")
+                        t_copy["is_vwap_touch_exit"] = (cls_item.get("exit_reason") == "VWAP_TOUCH") or cls_item.get("is_vwap_touch_exit", False)
+                        t_copy["is_add_confluence"] = cls_item.get("is_add_confluence", False) or (cls_item.get("add_value") is not None)
+                        t_copy["add_value"] = cls_item.get("add_value")
                         t_copy["is_other"] = cls_item.get("is_other", False)
                         t_copy["other_setup"] = cls_item.get("other_setup", "")
                         t_copy["early_exit"] = cls_item.get("early_exit", False)
@@ -2599,13 +2655,22 @@ def api_condition_stats():
 
         stats = {
             "all": calc_group(all_parsed_trades),
+            "jimmy_recommended": calc_group([t for t in all_parsed_trades if t.get("is_jimmy_recommended")]),
             "b_trade": calc_group([t for t in all_parsed_trades if t.get("is_b_trade")]),
             "non_b_trade": calc_group([t for t in all_parsed_trades if not t.get("is_b_trade")]),
             "cross_9_21": calc_group([t for t in all_parsed_trades if t.get("is_9_21_cross")]),
             "non_cross_9_21": calc_group([t for t in all_parsed_trades if not t.get("is_9_21_cross")]),
             "b_and_cross": calc_group([t for t in all_parsed_trades if t.get("is_b_trade") and t.get("is_9_21_cross")]),
-            "fullback_uptrend": calc_group([t for t in all_parsed_trades if t.get("is_fullback_uptrend")]),
-            "fullback_downtrend": calc_group([t for t in all_parsed_trades if t.get("is_fullback_downtrend")]),
+            "followed_9_up": calc_group([t for t in all_parsed_trades if t.get("is_followed_9_up") or t.get("is_fullback_uptrend")]),
+            "followed_9_down": calc_group([t for t in all_parsed_trades if t.get("is_followed_9_down") or t.get("is_fullback_downtrend")]),
+            "fullback_uptrend": calc_group([t for t in all_parsed_trades if t.get("is_followed_9_up") or t.get("is_fullback_uptrend")]),
+            "fullback_downtrend": calc_group([t for t in all_parsed_trades if t.get("is_followed_9_down") or t.get("is_fullback_downtrend")]),
+            "hiranya_buy": calc_group([t for t in all_parsed_trades if t.get("is_hiranya_buy")]),
+            "hiranya_sell": calc_group([t for t in all_parsed_trades if t.get("is_hiranya_sell")]),
+            "vwap_touch_exit": calc_group([t for t in all_parsed_trades if t.get("is_vwap_touch_exit")]),
+            "add_confluence": calc_group([t for t in all_parsed_trades if t.get("is_add_confluence")]),
+            "add_positive": calc_group([t for t in all_parsed_trades if t.get("add_value") is not None and float(t["add_value"]) > 0]),
+            "add_negative": calc_group([t for t in all_parsed_trades if t.get("add_value") is not None and float(t["add_value"]) < 0]),
             "other": calc_group([t for t in all_parsed_trades if t.get("is_other")]),
             "early_exit": calc_group([t for t in all_parsed_trades if t.get("early_exit")]),
             "normal_exit": calc_group([t for t in all_parsed_trades if not t.get("early_exit")]),

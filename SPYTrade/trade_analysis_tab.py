@@ -46,24 +46,63 @@ class TradeConditionCanvas(FigureCanvas):
         self.ax = self.fig.add_subplot(111)
         self.fig.subplots_adjust(left=0.08, right=0.96, top=0.88, bottom=0.22)
 
-    def render_stats(self, stats: dict[str, Any], title_suffix: str = ""):
+    def render_stats(self, stats: dict[str, Any], title_suffix: str = "", view_mode: str = "All Conditions & Rules"):
         self.ax.clear()
         self.ax.set_facecolor("#0d1117")
 
-        categories = [
-            ("All Trades", stats["all"]),
-            ("B-Trade", stats["b_trade"]),
-            ("Non B-Trade", stats["non_b_trade"]),
-            ("9/21 Cross", stats["cross_9_21"]),
-            ("Non 9/21 Cross", stats["non_cross_9_21"]),
-            ("FB Up", stats.get("fullback_uptrend", {"win_rate": 0.0, "count": 0, "total_pnl": 0.0, "wins": 0, "losses": 0})),
-            ("FB Down", stats.get("fullback_downtrend", {"win_rate": 0.0, "count": 0, "total_pnl": 0.0, "wins": 0, "losses": 0})),
-            ("Other", stats.get("other", {"win_rate": 0.0, "count": 0, "total_pnl": 0.0, "wins": 0, "losses": 0})),
-            ("Early Exit", stats["early_exit"]),
-            ("Normal Exit", stats["normal_exit"]),
-            ("Dir Right", stats["direction_right"]),
-            ("Dir Wrong", stats["direction_wrong"]),
-        ]
+        zero_stat = {"win_rate": 0.0, "count": 0, "total_pnl": 0.0, "wins": 0, "losses": 0}
+
+        if view_mode == "Core Setups Only":
+            categories = [
+                ("All Trades", stats["all"]),
+                ("Jimmy Rec", stats.get("jimmy_recommended", zero_stat)),
+                ("B-Trade", stats["b_trade"]),
+                ("9/21 Cross", stats["cross_9_21"]),
+                ("Follow 9 Up", stats.get("followed_9_up", zero_stat)),
+                ("Follow 9 Dn", stats.get("followed_9_down", zero_stat)),
+                ("Other", stats.get("other", zero_stat)),
+            ]
+        elif view_mode == "Checklist Confluences Only":
+            categories = [
+                ("All Trades", stats["all"]),
+                ("AK MACD", stats.get("ak_macd_bb", zero_stat)),
+                ("RSI Trend", stats.get("rsi_trendline", zero_stat)),
+                ("HSM Buy", stats.get("hiranya_buy", zero_stat)),
+                ("HSM Sell", stats.get("hiranya_sell", zero_stat)),
+                ("VWAP Align", stats.get("vwap_aligned", zero_stat)),
+                ("QQQ Confl", stats.get("qqq_confluence", zero_stat)),
+                ("ADD Breadth", stats.get("add_confluence", zero_stat)),
+                ("High Confl", stats.get("high_confluence", zero_stat)),
+            ]
+        elif view_mode == "Execution & Direction Only":
+            categories = [
+                ("All Trades", stats["all"]),
+                ("VWAP Exit", stats.get("vwap_touch_exit", zero_stat)),
+                ("Early Exit", stats["early_exit"]),
+                ("Normal Exit", stats["normal_exit"]),
+                ("Dir Right", stats["direction_right"]),
+                ("Dir Wrong", stats["direction_wrong"]),
+            ]
+        else:  # All Conditions & Rules
+            categories = [
+                ("All Trades", stats["all"]),
+                ("Jimmy Rec", stats.get("jimmy_recommended", zero_stat)),
+                ("B-Trade", stats["b_trade"]),
+                ("9/21 Cross", stats["cross_9_21"]),
+                ("Follow 9 Up", stats.get("followed_9_up", zero_stat)),
+                ("Follow 9 Dn", stats.get("followed_9_down", zero_stat)),
+                ("AK MACD", stats.get("ak_macd_bb", zero_stat)),
+                ("RSI Cross", stats.get("rsi_trendline", zero_stat)),
+                ("HSM Buy", stats.get("hiranya_buy", zero_stat)),
+                ("HSM Sell", stats.get("hiranya_sell", zero_stat)),
+                ("VWAP Align", stats.get("vwap_aligned", zero_stat)),
+                ("QQQ Confl", stats.get("qqq_confluence", zero_stat)),
+                ("ADD Breadth", stats.get("add_confluence", zero_stat)),
+                ("High Confl", stats.get("high_confluence", zero_stat)),
+                ("VWAP Exit", stats.get("vwap_touch_exit", zero_stat)),
+                ("Early Exit", stats["early_exit"]),
+                ("Dir Right", stats["direction_right"]),
+            ]
 
         labels = [c[0] for c in categories]
         win_rates = [c[1]["win_rate"] for c in categories]
@@ -79,10 +118,12 @@ class TradeConditionCanvas(FigureCanvas):
         for label, wr, count in zip(labels, win_rates, counts):
             if count == 0:
                 bar_colors.append("#21262d")
-            elif "Right" in label or "B-Trade" in label or "9/21 Cross" in label or "FB Up" in label:
+            elif any(w in label for w in ("Right", "Jimmy", "B-Trade", "9/21 Cross", "Follow 9 Up", "High Confl", "HSM Buy")):
                 bar_colors.append("#00e676" if wr >= 50 else "#ff9800")
-            elif "Wrong" in label or "Early Exit" in label or "FB Down" in label:
+            elif any(w in label for w in ("Wrong", "Early Exit", "Follow 9 Dn", "HSM Sell")):
                 bar_colors.append("#f44336" if wr < 50 else "#ff9800")
+            elif any(w in label for w in ("VWAP Exit", "VWAP Align", "AK MACD", "RSI", "QQQ", "ADD")):
+                bar_colors.append("#00e5ff" if wr >= 50 else "#ff9800")
             elif "Other" in label:
                 bar_colors.append("#b388ff" if wr >= 50 else "#ff9800")
             else:
@@ -261,14 +302,26 @@ class TradeAnalysisTab(QWidget):
         self.filter_combo = QComboBox()
         self.filter_combo.setObjectName("journal_input")
         self.filter_combo.addItems([
-            "All Setups",
+            "All Setups & Confluences",
+            "Jimmy Recommended Only",
             "B-Trades Only",
             "9/21 Cross Only",
             "B-Trade + 9/21 Only",
-            "Full back 9 (Uptrend)",
-            "Full back 9 (Downtrend)",
-            "Other Setup Only",
+            "Followed 9 EMA (Up)",
+            "Followed 9 EMA (Down)",
+            "Hiranya Signal: BUY Only",
+            "Hiranya Signal: SELL Only",
+            "AK MACD Confirmed",
+            "RSI Trendline Cross",
+            "VWAP Aligned",
+            "QQQ Confluence",
+            "ADD Breadth Confluence",
+            "ADD Positive (+ Breadth)",
+            "ADD Negative (- Breadth)",
+            "High Confluence (4+ Rules)",
+            "Exit: VWAP Touch Only",
             "Early Exits Only",
+            "Other Setup Only",
             "Direction Right Only",
             "Direction Wrong Only",
             "Wins Only (+$)",
@@ -283,7 +336,7 @@ class TradeAnalysisTab(QWidget):
         self.table = QTableWidget()
         self.table.setColumnCount(11)
         self.table.setHorizontalHeaderLabels([
-            "Time Window", "Symbol", "Direction / Side", "Gross ($)", "Cost ($)", "Net Realized P&L ($)", "B-Trade", "9/21", "FB / Other", "Early", "Direction"
+            "Time Window", "Symbol", "Direction / Side", "Gross ($)", "Cost ($)", "Net Realized P&L ($)", "Core Setup", "Confluences", "Early", "Direction", "Outcome"
         ])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setStretchLastSection(True)
@@ -469,31 +522,103 @@ class TradeAnalysisTab(QWidget):
         cond_layout = QVBoxLayout(cond_box)
         cond_layout.setSpacing(8)
 
-        # Condition Checkboxes
+        # Two-column layout: Core Setup Triggers (Left) and Checklist Indicator Confluences (Right)
+        cond_cols = QHBoxLayout()
+        cond_cols.setSpacing(12)
+
+        # ── Left Column: Core Setup Triggers ──
+        left_col = QVBoxLayout()
+        left_col.setSpacing(5)
+        lbl_setups = QLabel("<b>📌 Core Setup Triggers:</b>")
+        lbl_setups.setStyleSheet("color:#58a6ff;font-size:11px;")
+        left_col.addWidget(lbl_setups)
+
+        self.cb_jimmy_rec = QCheckBox("🌟  Jimmy Recommended")
         self.cb_b_trade = QCheckBox("🏷️  Is B-Trade Setup")
         self.cb_9_21 = QCheckBox("⚡  9 / 21 EMA Cross")
-        self.cb_fullback_uptrend = QCheckBox("📈  Full back to 9 in uptrend")
-        self.cb_fullback_downtrend = QCheckBox("📉  Full back to 9 in downtrend")
+        self.cb_followed_9_up = QCheckBox("📈  Followed 9 EMA (Up)")
+        self.cb_followed_9_down = QCheckBox("📉  Followed 9 EMA (Down)")
+
+        left_col.addWidget(self.cb_jimmy_rec)
+        left_col.addWidget(self.cb_b_trade)
+        left_col.addWidget(self.cb_9_21)
+        left_col.addWidget(self.cb_followed_9_up)
+        left_col.addWidget(self.cb_followed_9_down)
 
         # Other Setup row with checkbox and specify text input
         other_row = QHBoxLayout()
-        other_row.setSpacing(8)
-        self.cb_other = QCheckBox("📦  Other:")
+        other_row.setSpacing(6)
+        self.cb_other = QCheckBox("📦 Other:")
         self.cb_other.toggled.connect(self._on_other_cb_toggled)
         self.edit_other = QLineEdit()
         self.edit_other.setObjectName("journal_input")
-        self.edit_other.setPlaceholderText("Specify other setup (e.g. Level Bounce, Trendline Break)...")
+        self.edit_other.setPlaceholderText("Specify other setup...")
         self.edit_other.textChanged.connect(self._on_other_text_changed)
         other_row.addWidget(self.cb_other)
         other_row.addWidget(self.edit_other)
+        left_col.addLayout(other_row)
+        cond_cols.addLayout(left_col, stretch=1)
+
+        # ── Right Column: Checklist Indicator Confluences ──
+        right_col = QVBoxLayout()
+        right_col.setSpacing(5)
+        lbl_confl = QLabel("<b>🎯 Checklist Confluences:</b>")
+        lbl_confl.setStyleSheet("color:#7ee787;font-size:11px;")
+        right_col.addWidget(lbl_confl)
+
+        self.cb_ak_macd = QCheckBox("📊  AK MACD BB (Zone)")
+        self.cb_rsi_trendline = QCheckBox("📉  RSI Cross Trendline")
+
+        # Hiranya Signal Monitor: Buy or Sell selector
+        hsm_row = QHBoxLayout()
+        hsm_row.setSpacing(6)
+        hsm_lbl = QLabel("🎯 <b>HSM Signal:</b>")
+        hsm_lbl.setStyleSheet("color:#e6edf3;font-size:11px;")
+        self.combo_hiranya = QComboBox()
+        self.combo_hiranya.setObjectName("journal_input")
+        self.combo_hiranya.addItems(["— None / Off —", "🟢 BUY (Bullish Signal)", "🔴 SELL (Bearish Signal)"])
+        self.combo_hiranya.currentIndexChanged.connect(self._update_confluence_score_display)
+        hsm_row.addWidget(hsm_lbl)
+        hsm_row.addWidget(self.combo_hiranya)
+        right_col.addLayout(hsm_row)
+
+        self.cb_vwap = QCheckBox("🌊  VWAP Aligned / Cross")
+        self.cb_qqq = QCheckBox("🧭  QQQ Direction Confl")
+
+        # NYSE $ADD Breadth with numeric level input
+        add_row = QHBoxLayout()
+        add_row.setSpacing(6)
+        self.cb_add = QCheckBox("📶  NYSE $ADD:")
+        self.cb_add.toggled.connect(self._on_add_cb_toggled)
+        self.edit_add_val = QLineEdit()
+        self.edit_add_val.setObjectName("journal_input")
+        self.edit_add_val.setPlaceholderText("e.g. +1250, -850")
+        self.edit_add_val.setFixedWidth(115)
+        self.edit_add_val.textChanged.connect(self._on_add_text_changed)
+        add_row.addWidget(self.cb_add)
+        add_row.addWidget(self.edit_add_val)
+        add_row.addStretch()
+
+        right_col.addWidget(self.cb_ak_macd)
+        right_col.addWidget(self.cb_rsi_trendline)
+        right_col.addWidget(self.cb_vwap)
+        right_col.addWidget(self.cb_qqq)
+        right_col.addLayout(add_row)
+
+        for cb in [self.cb_jimmy_rec, self.cb_b_trade, self.cb_9_21, self.cb_followed_9_up, self.cb_followed_9_down, self.cb_ak_macd, self.cb_rsi_trendline, self.cb_vwap, self.cb_qqq, self.cb_add]:
+            cb.toggled.connect(self._update_confluence_score_display)
+
+        cond_cols.addLayout(right_col, stretch=1)
+        cond_layout.addLayout(cond_cols)
+
+        # Confluence Score Badge
+        self.confluence_badge = QLabel("✨ <b>Confluence Score:</b> 0 / 6 Rules Aligned")
+        self.confluence_badge.setStyleSheet(
+            "background:#0d1b2a;border:1px solid #1e3a5f;border-radius:4px;padding:4px 8px;color:#8b949e;font-size:11px;"
+        )
+        cond_layout.addWidget(self.confluence_badge)
 
         self.cb_early_exit = QCheckBox("⏱️  Early Exit (Cut before Target / Stop)")
-
-        cond_layout.addWidget(self.cb_b_trade)
-        cond_layout.addWidget(self.cb_9_21)
-        cond_layout.addWidget(self.cb_fullback_uptrend)
-        cond_layout.addWidget(self.cb_fullback_downtrend)
-        cond_layout.addLayout(other_row)
         cond_layout.addWidget(self.cb_early_exit)
 
         # Early Exit Amount Option Buttons ($20, $50, $100, $200)
@@ -557,6 +682,7 @@ class TradeAnalysisTab(QWidget):
         exit_row.setSpacing(12)
         self.radio_exit_target = QRadioButton("🎯 Hit Target")
         self.radio_exit_stop = QRadioButton("🛑 Hit Stop Loss")
+        self.radio_exit_vwap = QRadioButton("🌊 Exit: VWAP Touch")
         self.radio_exit_early = QRadioButton("⏱️ Early Exit")
         self.radio_exit_be = QRadioButton("⚡ Breakeven")
         self.radio_exit_target.setChecked(True)
@@ -564,11 +690,13 @@ class TradeAnalysisTab(QWidget):
         self.exit_group = QButtonGroup(self)
         self.exit_group.addButton(self.radio_exit_target)
         self.exit_group.addButton(self.radio_exit_stop)
+        self.exit_group.addButton(self.radio_exit_vwap)
         self.exit_group.addButton(self.radio_exit_early)
         self.exit_group.addButton(self.radio_exit_be)
 
         exit_row.addWidget(self.radio_exit_target)
         exit_row.addWidget(self.radio_exit_stop)
+        exit_row.addWidget(self.radio_exit_vwap)
         exit_row.addWidget(self.radio_exit_early)
         exit_row.addWidget(self.radio_exit_be)
         exit_row.addStretch()
@@ -624,6 +752,27 @@ class TradeAnalysisTab(QWidget):
         self.cards_label.setWordWrap(True)
         bottom_layout.addWidget(self.cards_label)
 
+        # Chart filter row
+        chart_hdr = QHBoxLayout()
+        chart_hdr.setSpacing(8)
+        chart_title = QLabel("📊 <b>Condition Win Rate % & Performance Breakdown</b>")
+        chart_title.setStyleSheet("color:#90caf9;font-size:12px;font-weight:bold;")
+        chart_hdr.addWidget(chart_title)
+        chart_hdr.addStretch()
+
+        chart_hdr.addWidget(QLabel("<span style='color:#8b949e;font-size:11px;font-weight:bold;'>Chart Focus:</span>"))
+        self.chart_filter_combo = QComboBox()
+        self.chart_filter_combo.setObjectName("journal_input")
+        self.chart_filter_combo.addItems([
+            "All Conditions & Rules",
+            "Core Setups Only",
+            "Checklist Confluences Only",
+            "Execution & Direction Only",
+        ])
+        self.chart_filter_combo.currentIndexChanged.connect(self._on_chart_filter_changed)
+        chart_hdr.addWidget(self.chart_filter_combo)
+        bottom_layout.addLayout(chart_hdr)
+
         # Matplotlib Win Rate Graph
         self.chart_canvas = TradeConditionCanvas(self, width=8, height=3.0)
         bottom_layout.addWidget(self.chart_canvas)
@@ -674,7 +823,8 @@ class TradeAnalysisTab(QWidget):
         # Compute & Render Stats and Graph
         stats = trade_store.get_condition_stats(year=year_filter, month=month_filter)
         self._render_metric_cards(stats)
-        self.chart_canvas.render_stats(stats, title_suffix=stats_title)
+        view_mode = self.chart_filter_combo.currentText() if hasattr(self, "chart_filter_combo") else "All Conditions & Rules"
+        self.chart_canvas.render_stats(stats, title_suffix=stats_title, view_mode=view_mode)
 
     def _on_qty_changed(self, val: float):
         if not self._current_trade_id:
@@ -701,20 +851,49 @@ class TradeAnalysisTab(QWidget):
         )
 
         # Apply dropdown filter
-        if filter_mode == "B-Trades Only":
+        if filter_mode == "Jimmy Recommended Only":
+            trades = [t for t in trades if t.get("is_jimmy_recommended", False)]
+        elif filter_mode == "B-Trades Only":
             trades = [t for t in trades if t.get("is_b_trade", False)]
         elif filter_mode == "9/21 Cross Only":
             trades = [t for t in trades if t.get("is_9_21_cross", False)]
         elif filter_mode == "B-Trade + 9/21 Only":
             trades = [t for t in trades if t.get("is_b_trade", False) and t.get("is_9_21_cross", False)]
-        elif filter_mode == "Full back 9 (Uptrend)":
-            trades = [t for t in trades if t.get("is_fullback_uptrend", False)]
-        elif filter_mode == "Full back 9 (Downtrend)":
-            trades = [t for t in trades if t.get("is_fullback_downtrend", False)]
-        elif filter_mode == "Other Setup Only":
-            trades = [t for t in trades if t.get("is_other", False)]
+        elif filter_mode in ("Followed 9 EMA (Up)", "Full back 9 (Uptrend)"):
+            trades = [t for t in trades if t.get("is_followed_9_up", False) or t.get("is_fullback_uptrend", False)]
+        elif filter_mode in ("Followed 9 EMA (Down)", "Full back 9 (Downtrend)"):
+            trades = [t for t in trades if t.get("is_followed_9_down", False) or t.get("is_fullback_downtrend", False)]
+        elif filter_mode == "Hiranya Signal: BUY Only":
+            trades = [t for t in trades if t.get("is_hiranya_buy", False) or str(t.get("hiranya_signal_dir", "")).upper() == "BUY"]
+        elif filter_mode == "Hiranya Signal: SELL Only":
+            trades = [t for t in trades if t.get("is_hiranya_sell", False) or str(t.get("hiranya_signal_dir", "")).upper() == "SELL"]
+        elif filter_mode == "AK MACD Confirmed":
+            trades = [t for t in trades if t.get("is_ak_macd_bb", False)]
+        elif filter_mode == "RSI Trendline Cross":
+            trades = [t for t in trades if t.get("is_rsi_trendline", False)]
+        elif filter_mode == "Hiranya Signal Confirmed":
+            trades = [t for t in trades if t.get("is_hiranya_signal", False)]
+        elif filter_mode == "VWAP Aligned":
+            trades = [t for t in trades if t.get("is_vwap_aligned", False)]
+        elif filter_mode == "QQQ Confluence":
+            trades = [t for t in trades if t.get("is_qqq_confluence", False)]
+        elif filter_mode == "ADD Breadth Confluence":
+            trades = [t for t in trades if t.get("is_add_confluence", False) or t.get("add_value") is not None]
+        elif filter_mode == "ADD Positive (+ Breadth)":
+            trades = [t for t in trades if t.get("add_value") is not None and float(t["add_value"]) > 0]
+        elif filter_mode == "ADD Negative (- Breadth)":
+            trades = [t for t in trades if t.get("add_value") is not None and float(t["add_value"]) < 0]
+        elif filter_mode == "High Confluence (4+ Rules)":
+            def _score(tr):
+                keys = ("is_ak_macd_bb", "is_rsi_trendline", "is_hiranya_signal", "is_vwap_aligned", "is_qqq_confluence", "is_add_confluence")
+                return sum(1 for k in keys if tr.get(k, False))
+            trades = [t for t in trades if _score(tr) >= 4]
+        elif filter_mode == "Exit: VWAP Touch Only":
+            trades = [t for t in trades if str(t.get("exit_reason", "")).upper() == "VWAP_TOUCH" or t.get("is_vwap_touch_exit", False)]
         elif filter_mode == "Early Exits Only":
             trades = [t for t in trades if t.get("early_exit", False)]
+        elif filter_mode == "Other Setup Only":
+            trades = [t for t in trades if t.get("is_other", False)]
         elif filter_mode == "Direction Right Only":
             trades = [t for t in trades if t.get("direction_right", True)]
         elif filter_mode == "Direction Wrong Only":
@@ -734,7 +913,7 @@ class TradeAnalysisTab(QWidget):
             if t_id == self._current_trade_id:
                 selected_row_idx = r
 
-            # Time Window
+            # Col 0: Time Window
             exit_val = t.get("exit_time")
             if exit_val:
                 exit_str = str(exit_val)
@@ -746,12 +925,12 @@ class TradeAnalysisTab(QWidget):
             item_dt.setData(Qt.UserRole, t_id)
             self.table.setItem(r, 0, item_dt)
 
-            # Symbol
+            # Col 1: Symbol
             item_sym = QTableWidgetItem(t.get("symbol", "SPY"))
             item_sym.setFont(QFont("Segoe UI", 9, QFont.Bold))
             self.table.setItem(r, 1, item_sym)
 
-            # Direction / Side
+            # Col 2: Direction / Side
             dir_str = t.get("direction") or ("SHORT" if "PUT" in str(t.get("option_type", "")).upper() else "LONG")
             opt_type = t.get("option_type", "")
             side_str = f"{dir_str} ({opt_type})" if opt_type else dir_str
@@ -762,7 +941,7 @@ class TradeAnalysisTab(QWidget):
                 item_side.setForeground(QColor("#f44336"))
             self.table.setItem(r, 2, item_side)
 
-            # Gross P&L, Cost, Net P&L
+            # Col 3, 4, 5: Gross P&L, Cost, Net P&L
             gross_pnl = float(t.get("pnl", 0.0))
             qty_val = float(t.get("qty", 1.0))
             cost = float(t.get("trade_cost", qty_val * 1.0))
@@ -788,51 +967,116 @@ class TradeAnalysisTab(QWidget):
             item_net.setForeground(QColor("#00e676" if net_pnl >= 0 else "#f44336"))
             self.table.setItem(r, 5, item_net)
 
-            # B-Trade badge
-            is_b = t.get("is_b_trade", False)
-            item_b = QTableWidgetItem("🏷️ Yes" if is_b else "—")
-            if is_b:
-                item_b.setForeground(QColor("#58a6ff"))
-            self.table.setItem(r, 6, item_b)
-
-            # 9/21 Cross badge
-            is_cross = t.get("is_9_21_cross", False)
-            item_cross = QTableWidgetItem("⚡ Yes" if is_cross else "—")
-            if is_cross:
-                item_cross.setForeground(QColor("#ffeb3b"))
-            self.table.setItem(r, 7, item_cross)
-
-            # FB / Other badge
-            badges = []
-            if t.get("is_fullback_uptrend"):
-                badges.append("📈 Up")
-            if t.get("is_fullback_downtrend"):
-                badges.append("📉 Down")
+            # Col 6: Core Setup
+            setup_badges = []
+            if t.get("is_jimmy_recommended"):
+                setup_badges.append("🌟 Jimmy")
+            if t.get("is_b_trade"):
+                setup_badges.append("🏷️ B-Trade")
+            if t.get("is_9_21_cross"):
+                setup_badges.append("⚡ 9/21")
+            if t.get("is_followed_9_up") or t.get("is_fullback_uptrend"):
+                setup_badges.append("📈 9 EMA Up")
+            if t.get("is_followed_9_down") or t.get("is_fullback_downtrend"):
+                setup_badges.append("📉 9 EMA Down")
             if t.get("is_other"):
                 o_txt = t.get("other_setup") or "Other"
-                badges.append(f"📦 {o_txt[:8]}")
-            badge_str = " | ".join(badges) if badges else "—"
-            item_fb = QTableWidgetItem(badge_str)
-            if "📈" in badge_str:
-                item_fb.setForeground(QColor("#00e676"))
-            elif "📉" in badge_str:
-                item_fb.setForeground(QColor("#f44336"))
-            elif "📦" in badge_str:
-                item_fb.setForeground(QColor("#b388ff"))
-            self.table.setItem(r, 8, item_fb)
+                setup_badges.append(f"📦 {o_txt[:8]}")
+            setup_str = " | ".join(setup_badges) if setup_badges else "—"
+            item_setup = QTableWidgetItem(setup_str)
+            if "Jimmy" in setup_str:
+                item_setup.setForeground(QColor("#ffd700"))
+            elif "B-Trade" in setup_str:
+                item_setup.setForeground(QColor("#58a6ff"))
+            elif "9/21" in setup_str:
+                item_setup.setForeground(QColor("#ffeb3b"))
+            elif "9 EMA Up" in setup_str:
+                item_setup.setForeground(QColor("#00e676"))
+            elif "9 EMA Down" in setup_str:
+                item_setup.setForeground(QColor("#f44336"))
+            elif "Other" in setup_str:
+                item_setup.setForeground(QColor("#b388ff"))
+            self.table.setItem(r, 6, item_setup)
 
-            # Early Exit badge
+            # Col 7: Confluences
+            confl_badges = []
+            if t.get("is_ak_macd_bb"):
+                confl_badges.append("📊 MACD")
+            if t.get("is_rsi_trendline"):
+                confl_badges.append("📉 RSI")
+            if t.get("is_hiranya_buy") or str(t.get("hiranya_signal_dir", "")).upper() == "BUY":
+                confl_badges.append("🎯 HSM BUY")
+            elif t.get("is_hiranya_sell") or str(t.get("hiranya_signal_dir", "")).upper() == "SELL":
+                confl_badges.append("🎯 HSM SELL")
+            elif t.get("is_hiranya_signal"):
+                confl_badges.append("🎯 HSM")
+            if t.get("is_vwap_aligned"):
+                confl_badges.append("🌊 VWAP")
+            if t.get("is_qqq_confluence"):
+                confl_badges.append("🧭 QQQ")
+            if t.get("is_add_confluence") or t.get("add_value") is not None:
+                av = t.get("add_value")
+                if av is not None:
+                    try:
+                        fav = float(av)
+                        sign = "+" if fav > 0 else ""
+                        confl_badges.append(f"📶 ADD {sign}{int(fav) if fav.is_integer() else fav}")
+                    except (ValueError, TypeError):
+                        confl_badges.append(f"📶 ADD {av}")
+                else:
+                    confl_badges.append("📶 ADD")
+
+            confl_count = len(confl_badges)
+            if confl_badges:
+                confl_str = f"[{confl_count}/6] " + " ".join(confl_badges)
+            else:
+                confl_str = "—"
+            item_confl = QTableWidgetItem(confl_str)
+            if confl_count >= 4:
+                item_confl.setForeground(QColor("#00e676"))
+                item_confl.setFont(QFont("Segoe UI", 9, QFont.Bold))
+            elif confl_count >= 2:
+                item_confl.setForeground(QColor("#58a6ff"))
+            else:
+                item_confl.setForeground(QColor("#8b949e"))
+            item_confl.setToolTip(f"{confl_count}/6 Checklist Confluences Confirmed:\n" + ("\n".join(confl_badges) if confl_badges else "None"))
+            self.table.setItem(r, 7, item_confl)
+
+            # Col 8: Early Exit
             is_early = t.get("early_exit", False)
-            item_early = QTableWidgetItem("⏱️ Early" if is_early else "—")
+            early_amt = t.get("early_exit_amount")
+            early_str = f"⏱️ ${early_amt:,.0f}" if (is_early and early_amt) else ("⏱️ Early" if is_early else "—")
+            item_early = QTableWidgetItem(early_str)
             if is_early:
                 item_early.setForeground(QColor("#ff9800"))
-            self.table.setItem(r, 9, item_early)
+            self.table.setItem(r, 8, item_early)
 
-            # Direction badge
+            # Col 9: Direction
             dir_right = t.get("direction_right", True)
             item_dir = QTableWidgetItem("✅ Right" if dir_right else "❌ Wrong")
             item_dir.setForeground(QColor("#00e676" if dir_right else "#f44336"))
-            self.table.setItem(r, 10, item_dir)
+            self.table.setItem(r, 9, item_dir)
+
+            # Col 10: Outcome
+            exit_r = str(t.get("exit_reason", "")).upper()
+            if exit_r == "VWAP_TOUCH" or t.get("is_vwap_touch_exit", False):
+                outcome_str = "🌊 VWAP Touch"
+                out_color = "#00e5ff"
+            elif exit_r == "STOP_LOSS":
+                outcome_str = "🛑 Stop"
+                out_color = "#f44336"
+            elif exit_r == "EARLY_EXIT":
+                outcome_str = "⏱️ Early"
+                out_color = "#ff9800"
+            elif exit_r == "BREAKEVEN":
+                outcome_str = "⚡ BE"
+                out_color = "#e6edf3"
+            else:
+                outcome_str = "🎯 Target"
+                out_color = "#00e676"
+            item_outcome = QTableWidgetItem(outcome_str)
+            item_outcome.setForeground(QColor(out_color))
+            self.table.setItem(r, 10, item_outcome)
 
         self.table.blockSignals(False)
 
@@ -856,27 +1100,50 @@ class TradeAnalysisTab(QWidget):
                 f"</div>"
             )
 
-        all_s = stats["all"]
-        b_s = stats["b_trade"]
-        cross_s = stats["cross_9_21"]
-        b_cross_s = stats.get("b_and_cross", {"win_rate": 0.0, "total_pnl": 0.0, "wins": 0, "losses": 0, "count": 0})
-        fb_up_s = stats.get("fullback_uptrend", {"win_rate": 0.0, "total_pnl": 0.0, "wins": 0, "losses": 0, "count": 0})
-        fb_down_s = stats.get("fullback_downtrend", {"win_rate": 0.0, "total_pnl": 0.0, "wins": 0, "losses": 0, "count": 0})
-        other_s = stats.get("other", {"win_rate": 0.0, "total_pnl": 0.0, "wins": 0, "losses": 0, "count": 0})
-        early_s = stats["early_exit"]
-        dir_s = stats["direction_right"]
+        zero_stat = {"win_rate": 0.0, "total_pnl": 0.0, "gross_pnl": 0.0, "total_cost": 0.0, "wins": 0, "losses": 0, "count": 0}
+        all_s = stats.get("all", zero_stat)
+        jimmy_s = stats.get("jimmy_recommended", zero_stat)
+        b_s = stats.get("b_trade", zero_stat)
+        cross_s = stats.get("cross_9_21", zero_stat)
+        b_cross_s = stats.get("b_and_cross", zero_stat)
+        fb_up_s = stats.get("followed_9_up", stats.get("fullback_uptrend", zero_stat))
+        fb_down_s = stats.get("followed_9_down", stats.get("fullback_downtrend", zero_stat))
+        other_s = stats.get("other", zero_stat)
+        early_s = stats.get("early_exit", zero_stat)
+        vwap_touch_s = stats.get("vwap_touch_exit", zero_stat)
+        dir_s = stats.get("direction_right", zero_stat)
+
+        ak_s = stats.get("ak_macd_bb", zero_stat)
+        rsi_s = stats.get("rsi_trendline", zero_stat)
+        hir_s = stats.get("hiranya_signal", zero_stat)
+        hir_buy_s = stats.get("hiranya_buy", zero_stat)
+        hir_sell_s = stats.get("hiranya_sell", zero_stat)
+        vwap_s = stats.get("vwap_aligned", zero_stat)
+        qqq_s = stats.get("qqq_confluence", zero_stat)
+        add_s = stats.get("add_confluence", zero_stat)
+        high_s = stats.get("high_confluence", zero_stat)
 
         cards_html = (
             f"<div style='display:flex;flex-wrap:wrap;gap:4px;'>"
             f"{_card('All Trades', all_s['win_rate'], all_s['total_pnl'], all_s.get('gross_pnl', 0.0), all_s.get('total_cost', 0.0), all_s['wins'], all_s['losses'], all_s['count'], '#58a6ff')}"
+            f"{_card('Jimmy Rec', jimmy_s['win_rate'], jimmy_s['total_pnl'], jimmy_s.get('gross_pnl', 0.0), jimmy_s.get('total_cost', 0.0), jimmy_s['wins'], jimmy_s['losses'], jimmy_s['count'], '#ffd700')}"
             f"{_card('B-Trade Setup', b_s['win_rate'], b_s['total_pnl'], b_s.get('gross_pnl', 0.0), b_s.get('total_cost', 0.0), b_s['wins'], b_s['losses'], b_s['count'], '#00e676')}"
             f"{_card('9/21 Cross', cross_s['win_rate'], cross_s['total_pnl'], cross_s.get('gross_pnl', 0.0), cross_s.get('total_cost', 0.0), cross_s['wins'], cross_s['losses'], cross_s['count'], '#ffeb3b')}"
             f"{_card('B-Trade + 9/21', b_cross_s['win_rate'], b_cross_s['total_pnl'], b_cross_s.get('gross_pnl', 0.0), b_cross_s.get('total_cost', 0.0), b_cross_s['wins'], b_cross_s['losses'], b_cross_s['count'], '#00e5ff')}"
-            f"{_card('Full back 9 Up', fb_up_s['win_rate'], fb_up_s['total_pnl'], fb_up_s.get('gross_pnl', 0.0), fb_up_s.get('total_cost', 0.0), fb_up_s['wins'], fb_up_s['losses'], fb_up_s['count'], '#00e676')}"
-            f"{_card('Full back 9 Down', fb_down_s['win_rate'], fb_down_s['total_pnl'], fb_down_s.get('gross_pnl', 0.0), fb_down_s.get('total_cost', 0.0), fb_down_s['wins'], fb_down_s['losses'], fb_down_s['count'], '#f44336')}"
-            f"{_card('Other Setup', other_s['win_rate'], other_s['total_pnl'], other_s.get('gross_pnl', 0.0), other_s.get('total_cost', 0.0), other_s['wins'], other_s['losses'], other_s['count'], '#b388ff')}"
+            f"{_card('Follow 9 Up', fb_up_s['win_rate'], fb_up_s['total_pnl'], fb_up_s.get('gross_pnl', 0.0), fb_up_s.get('total_cost', 0.0), fb_up_s['wins'], fb_up_s['losses'], fb_up_s['count'], '#00e676')}"
+            f"{_card('Follow 9 Down', fb_down_s['win_rate'], fb_down_s['total_pnl'], fb_down_s.get('gross_pnl', 0.0), fb_down_s.get('total_cost', 0.0), fb_down_s['wins'], fb_down_s['losses'], fb_down_s['count'], '#f44336')}"
+            f"{_card('HSM Buy', hir_buy_s['win_rate'], hir_buy_s['total_pnl'], hir_buy_s.get('gross_pnl', 0.0), hir_buy_s.get('total_cost', 0.0), hir_buy_s['wins'], hir_buy_s['losses'], hir_buy_s['count'], '#00e676')}"
+            f"{_card('HSM Sell', hir_sell_s['win_rate'], hir_sell_s['total_pnl'], hir_sell_s.get('gross_pnl', 0.0), hir_sell_s.get('total_cost', 0.0), hir_sell_s['wins'], hir_sell_s['losses'], hir_sell_s['count'], '#f44336')}"
+            f"{_card('AK MACD BB', ak_s['win_rate'], ak_s['total_pnl'], ak_s.get('gross_pnl', 0.0), ak_s.get('total_cost', 0.0), ak_s['wins'], ak_s['losses'], ak_s['count'], '#00e5ff')}"
+            f"{_card('RSI Trendline', rsi_s['win_rate'], rsi_s['total_pnl'], rsi_s.get('gross_pnl', 0.0), rsi_s.get('total_cost', 0.0), rsi_s['wins'], rsi_s['losses'], rsi_s['count'], '#00e5ff')}"
+            f"{_card('VWAP Aligned', vwap_s['win_rate'], vwap_s['total_pnl'], vwap_s.get('gross_pnl', 0.0), vwap_s.get('total_cost', 0.0), vwap_s['wins'], vwap_s['losses'], vwap_s['count'], '#00e5ff')}"
+            f"{_card('QQQ Confluence', qqq_s['win_rate'], qqq_s['total_pnl'], qqq_s.get('gross_pnl', 0.0), qqq_s.get('total_cost', 0.0), qqq_s['wins'], qqq_s['losses'], qqq_s['count'], '#00e5ff')}"
+            f"{_card('ADD Breadth', add_s['win_rate'], add_s['total_pnl'], add_s.get('gross_pnl', 0.0), add_s.get('total_cost', 0.0), add_s['wins'], add_s['losses'], add_s['count'], '#00e5ff')}"
+            f"{_card('High Confl (4+)', high_s['win_rate'], high_s['total_pnl'], high_s.get('gross_pnl', 0.0), high_s.get('total_cost', 0.0), high_s['wins'], high_s['losses'], high_s['count'], '#00e676')}"
+            f"{_card('VWAP Exit', vwap_touch_s['win_rate'], vwap_touch_s['total_pnl'], vwap_touch_s.get('gross_pnl', 0.0), vwap_touch_s.get('total_cost', 0.0), vwap_touch_s['wins'], vwap_touch_s['losses'], vwap_touch_s['count'], '#00e5ff')}"
             f"{_card('Early Exit', early_s['win_rate'], early_s['total_pnl'], early_s.get('gross_pnl', 0.0), early_s.get('total_cost', 0.0), early_s['wins'], early_s['losses'], early_s['count'], '#ff9800')}"
             f"{_card('Direction Right', dir_s['win_rate'], dir_s['total_pnl'], dir_s.get('gross_pnl', 0.0), dir_s.get('total_cost', 0.0), dir_s['wins'], dir_s['losses'], dir_s['count'], '#00e676')}"
+            f"{_card('Other Setup', other_s['win_rate'], other_s['total_pnl'], other_s.get('gross_pnl', 0.0), other_s.get('total_cost', 0.0), other_s['wins'], other_s['losses'], other_s['count'], '#b388ff')}"
             f"</div>"
         )
         self.cards_label.setText(cards_html)
@@ -934,14 +1201,41 @@ class TradeAnalysisTab(QWidget):
         self._update_net_pnl_preview()
 
         # Conditions
+        # Conditions
+        self.cb_jimmy_rec.setChecked(bool(target.get("is_jimmy_recommended", False)))
         self.cb_b_trade.setChecked(bool(target.get("is_b_trade", False)))
         self.cb_9_21.setChecked(bool(target.get("is_9_21_cross", False)))
-        self.cb_fullback_uptrend.setChecked(bool(target.get("is_fullback_uptrend", False)))
-        self.cb_fullback_downtrend.setChecked(bool(target.get("is_fullback_downtrend", False)))
+        self.cb_followed_9_up.setChecked(bool(target.get("is_followed_9_up", False) or target.get("is_fullback_uptrend", False)))
+        self.cb_followed_9_down.setChecked(bool(target.get("is_followed_9_down", False) or target.get("is_fullback_downtrend", False)))
+        self.cb_ak_macd.setChecked(bool(target.get("is_ak_macd_bb", False)))
+        self.cb_rsi_trendline.setChecked(bool(target.get("is_rsi_trendline", False)))
+
+        # Hiranya Buy / Sell
+        h_dir = str(target.get("hiranya_signal_dir", "")).upper()
+        if target.get("is_hiranya_buy") or h_dir == "BUY":
+            self.combo_hiranya.setCurrentIndex(1)
+        elif target.get("is_hiranya_sell") or h_dir == "SELL":
+            self.combo_hiranya.setCurrentIndex(2)
+        else:
+            self.combo_hiranya.setCurrentIndex(0)
+
+        self.cb_vwap.setChecked(bool(target.get("is_vwap_aligned", False)))
+        self.cb_qqq.setChecked(bool(target.get("is_qqq_confluence", False)))
+
+        # Load ADD Value
+        add_v = target.get("add_value")
+        if add_v is not None:
+            sign = "+" if add_v > 0 else ""
+            self.edit_add_val.setText(f"{sign}{int(add_v) if isinstance(add_v, (int, float)) and float(add_v).is_integer() else add_v}")
+        else:
+            self.edit_add_val.clear()
+        self.cb_add.setChecked(bool(target.get("is_add_confluence", False) or add_v is not None))
+
         self.cb_other.setChecked(bool(target.get("is_other", False)))
         self.edit_other.setText(str(target.get("other_setup", "")))
         self.cb_early_exit.setChecked(bool(target.get("early_exit", False)))
         self.edit_early_amt.setValue(float(target.get("early_exit_amount", 0.0) or 0.0))
+        self._update_confluence_score_display()
 
         if target.get("direction_right", True):
             self.radio_dir_right.setChecked(True)
@@ -954,7 +1248,9 @@ class TradeAnalysisTab(QWidget):
             exit_reason = "TARGET" if pnl_val > 0 else ("STOP_LOSS" if pnl_val < 0 else "BREAKEVEN")
         
         exit_reason = str(exit_reason).upper()
-        if exit_reason == "STOP_LOSS":
+        if exit_reason == "VWAP_TOUCH":
+            self.radio_exit_vwap.setChecked(True)
+        elif exit_reason == "STOP_LOSS":
             self.radio_exit_stop.setChecked(True)
         elif exit_reason == "EARLY_EXIT":
             self.radio_exit_early.setChecked(True)
@@ -969,6 +1265,34 @@ class TradeAnalysisTab(QWidget):
         if self._status_cb:
             self._status_cb(f"Selected trade {trade_id} ({target.get('symbol')} {target.get('date')})")
 
+    def _on_chart_filter_changed(self):
+        self._load_and_refresh()
+
+    def _update_confluence_score_display(self):
+        if not hasattr(self, "cb_ak_macd") or not hasattr(self, "confluence_badge"):
+            return
+        cbs = [
+            self.cb_ak_macd,
+            self.cb_rsi_trendline,
+            self.cb_vwap,
+            self.cb_qqq,
+            self.cb_add,
+        ]
+        score = sum(1 for cb in cbs if cb.isChecked())
+        if hasattr(self, "combo_hiranya") and self.combo_hiranya.currentIndex() > 0:
+            score += 1
+
+        if score >= 5:
+            quality = "<span style='color:#00e676;font-weight:bold;'>A+ Highest Probability Setup</span>"
+        elif score >= 3:
+            quality = "<span style='color:#58a6ff;font-weight:bold;'>Solid Quality Setup</span>"
+        elif score >= 1:
+            quality = "<span style='color:#ff9800;font-weight:bold;'>Moderate Confluence</span>"
+        else:
+            quality = "<span style='color:#8b949e;'>No Confluence Checked</span>"
+
+        self.confluence_badge.setText(f"✨ <b>Confluence Score:</b> {score} / 6 Rules Aligned — {quality}")
+
     def _set_early_amount(self, amt: float):
         self.cb_early_exit.setChecked(True)
         self.edit_early_amt.setValue(amt)
@@ -980,6 +1304,16 @@ class TradeAnalysisTab(QWidget):
     def _on_other_cb_toggled(self, checked: bool):
         if checked and not self.edit_other.text().strip():
             self.edit_other.setFocus()
+
+    def _on_add_text_changed(self, text: str):
+        if text.strip() and not self.cb_add.isChecked():
+            self.cb_add.setChecked(True)
+        self._update_confluence_score_display()
+
+    def _on_add_cb_toggled(self, checked: bool):
+        if checked and not self.edit_add_val.text().strip():
+            self.edit_add_val.setFocus()
+        self._update_confluence_score_display()
 
     def _clear_editor(self):
         self._current_trade_id = None
@@ -993,10 +1327,19 @@ class TradeAnalysisTab(QWidget):
         self.edit_pnl.setValue(0.0)
         self.edit_cost.setValue(1.0)
         self._update_net_pnl_preview()
+        self.cb_jimmy_rec.setChecked(False)
         self.cb_b_trade.setChecked(False)
         self.cb_9_21.setChecked(False)
-        self.cb_fullback_uptrend.setChecked(False)
-        self.cb_fullback_downtrend.setChecked(False)
+        self.cb_followed_9_up.setChecked(False)
+        self.cb_followed_9_down.setChecked(False)
+        self.cb_ak_macd.setChecked(False)
+        self.cb_rsi_trendline.setChecked(False)
+        self.combo_hiranya.setCurrentIndex(0)
+        self.cb_vwap.setChecked(False)
+        self.cb_qqq.setChecked(False)
+        self.cb_add.setChecked(False)
+        self.edit_add_val.clear()
+        self._update_confluence_score_display()
         self.cb_other.setChecked(False)
         self.edit_other.clear()
         self.cb_early_exit.setChecked(False)
@@ -1023,17 +1366,41 @@ class TradeAnalysisTab(QWidget):
         exit_price = self.edit_exit.value()
         pnl = self.edit_pnl.value()
         cost = self.edit_cost.value()
+        is_jimmy = self.cb_jimmy_rec.isChecked()
         is_b = self.cb_b_trade.isChecked()
         is_cross = self.cb_9_21.isChecked()
-        is_fb_up = self.cb_fullback_uptrend.isChecked()
-        is_fb_down = self.cb_fullback_downtrend.isChecked()
+        is_f9_up = self.cb_followed_9_up.isChecked()
+        is_f9_down = self.cb_followed_9_down.isChecked()
+        is_ak_macd = self.cb_ak_macd.isChecked()
+        is_rsi = self.cb_rsi_trendline.isChecked()
+        
+        h_idx = self.combo_hiranya.currentIndex()
+        is_h_buy = (h_idx == 1)
+        is_h_sell = (h_idx == 2)
+        h_dir = "BUY" if is_h_buy else ("SELL" if is_h_sell else "")
+        is_hiranya = (h_idx > 0)
+
+        is_vwap = self.cb_vwap.isChecked()
+        is_qqq = self.cb_qqq.isChecked()
+        is_add = self.cb_add.isChecked()
+        raw_add_str = self.edit_add_val.text().strip()
+        add_val_num = None
+        if raw_add_str:
+            try:
+                add_val_num = float(raw_add_str.replace("+", "").replace(",", ""))
+                is_add = True
+            except ValueError:
+                add_val_num = None
+
         is_other = self.cb_other.isChecked()
         other_setup = self.edit_other.text().strip()
         early = self.cb_early_exit.isChecked()
         early_amt = self.edit_early_amt.value() if early else None
         dir_right = self.radio_dir_right.isChecked()
         
-        if self.radio_exit_stop.isChecked():
+        if self.radio_exit_vwap.isChecked():
+            exit_reason = "VWAP_TOUCH"
+        elif self.radio_exit_stop.isChecked():
             exit_reason = "STOP_LOSS"
         elif self.radio_exit_early.isChecked():
             exit_reason = "EARLY_EXIT"
@@ -1055,15 +1422,29 @@ class TradeAnalysisTab(QWidget):
             "exit_price": exit_price,
             "pnl": pnl,
             "trade_cost": cost,
+            "is_jimmy_recommended": is_jimmy,
             "is_b_trade": is_b,
             "is_9_21_cross": is_cross,
-            "is_fullback_uptrend": is_fb_up,
-            "is_fullback_downtrend": is_fb_down,
+            "is_followed_9_up": is_f9_up,
+            "is_followed_9_down": is_f9_down,
+            "is_fullback_uptrend": is_f9_up,
+            "is_fullback_downtrend": is_f9_down,
+            "is_ak_macd_bb": is_ak_macd,
+            "is_rsi_trendline": is_rsi,
+            "is_hiranya_signal": is_hiranya,
+            "is_hiranya_buy": is_h_buy,
+            "is_hiranya_sell": is_h_sell,
+            "hiranya_signal_dir": h_dir,
+            "is_vwap_aligned": is_vwap,
+            "is_qqq_confluence": is_qqq,
+            "is_add_confluence": is_add,
+            "add_value": add_val_num,
             "is_other": is_other,
             "other_setup": other_setup,
-            "early_exit": early,
+            "early_exit": early or (exit_reason == "EARLY_EXIT"),
             "early_exit_amount": early_amt,
             "exit_reason": exit_reason,
+            "is_vwap_touch_exit": (exit_reason == "VWAP_TOUCH"),
             "direction_right": dir_right,
             "notes": notes,
         }
@@ -1148,9 +1529,14 @@ class TradeAnalysisTab(QWidget):
                 writer = csv.writer(f)
                 writer.writerow([
                     "Date", "Time", "Symbol", "Side", "Qty", "Entry Price", "Exit Price",
-                    "Gross P&L", "Trade Cost", "Net P&L", "Is B-Trade", "Is 9/21 Cross",
-                    "Is Full back 9 Uptrend", "Is Full back 9 Downtrend", "Is Other", "Other Setup",
-                    "Early Exit", "Direction Right", "Notes"
+                    "Gross P&L", "Trade Cost", "Net P&L",
+                    "Is Jimmy Recommended", "Is B-Trade", "Is 9/21 Cross",
+                    "Followed 9 EMA Up", "Followed 9 EMA Down",
+                    "Is AK MACD BB", "Is RSI Trendline",
+                    "Hiranya Signal Dir", "Is Hiranya Signal",
+                    "Is VWAP Aligned", "Is QQQ Confluence", "Is ADD Confluence", "ADD Value",
+                    "Is Other", "Other Setup",
+                    "Exit Reason", "Early Exit", "Direction Right", "Notes"
                 ])
                 for t in trades:
                     pnl_val = float(t.get("pnl", 0))
@@ -1168,14 +1554,24 @@ class TradeAnalysisTab(QWidget):
                         pnl_val,
                         cost_val,
                         net_val,
+                        1 if t.get("is_jimmy_recommended") else 0,
                         1 if t.get("is_b_trade") else 0,
                         1 if t.get("is_9_21_cross") else 0,
-                        1 if t.get("is_fullback_uptrend") else 0,
-                        1 if t.get("is_fullback_downtrend") else 0,
+                        1 if (t.get("is_followed_9_up") or t.get("is_fullback_uptrend")) else 0,
+                        1 if (t.get("is_followed_9_down") or t.get("is_fullback_downtrend")) else 0,
+                        1 if t.get("is_ak_macd_bb") else 0,
+                        1 if t.get("is_rsi_trendline") else 0,
+                        t.get("hiranya_signal_dir") or ("BUY" if t.get("is_hiranya_buy") else ("SELL" if t.get("is_hiranya_sell") else "")),
+                        1 if (t.get("is_hiranya_signal") or t.get("is_hiranya_buy") or t.get("is_hiranya_sell")) else 0,
+                        1 if t.get("is_vwap_aligned") else 0,
+                        1 if t.get("is_qqq_confluence") else 0,
+                        1 if t.get("is_add_confluence") else 0,
+                        t.get("add_value", "") if t.get("add_value") is not None else "",
                         1 if t.get("is_other") else 0,
                         t.get("other_setup", ""),
+                        t.get("exit_reason", "TARGET"),
                         1 if t.get("early_exit") else 0,
-                        1 if t.get("direction_right") else 0,
+                        1 if t.get("direction_right", True) else 0,
                         t.get("notes", ""),
                     ])
 
