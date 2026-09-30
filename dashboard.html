@@ -1577,6 +1577,46 @@ Only B Trades with FULL confirmation."></textarea>
           <span id="ana-classify-selected-trade" style="font-size:0.75rem;color:#8b949e;font-family:monospace">Select a trade</span>
         </div>
 
+        <!-- Candle Close & Market Structure Row -->
+        <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin-bottom:10px">
+          <!-- Candle Close Selector -->
+          <div style="display:flex;align-items:center;gap:10px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px">
+            <span style="font-size:0.85rem;color:#e6edf3;font-weight:700;white-space:nowrap">🕯️ Candle Close:</span>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.82rem;color:#3fb950;font-weight:700">
+              <input type="radio" name="ana-candle-close-radio" id="ana-edit-candle-close-yes" value="yes" checked style="accent-color:#3fb950"> Yes
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.82rem;color:#ff9e2c;font-weight:700">
+              <input type="radio" name="ana-candle-close-radio" id="ana-edit-candle-close-no" value="no" style="accent-color:#ff9e2c"> No (Intra)
+            </label>
+          </div>
+
+          <!-- Market Structure (Trending vs In Range) -->
+          <div style="display:flex;flex-direction:column;gap:6px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:0.85rem;color:#e6edf3;font-weight:700;white-space:nowrap">📐 Market:</span>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.82rem;color:#58a6ff;font-weight:700">
+                <input type="radio" name="ana-market-struct-radio" id="ana-edit-struct-trending" value="trending" checked onchange="toggleRangeOptions()" style="accent-color:#58a6ff"> 📈 Trending
+              </label>
+              <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.82rem;color:#e3b341;font-weight:700">
+                <input type="radio" name="ana-market-struct-radio" id="ana-edit-struct-range" value="range" onchange="toggleRangeOptions()" style="accent-color:#e3b341"> ↔️ In Range
+              </label>
+            </div>
+            <!-- Dynamic If Range container -->
+            <div id="ana-range-options-container" style="display:none;align-items:center;gap:8px;padding-top:4px;border-top:1px dashed #30363d">
+              <span style="font-size:0.75rem;color:#e3b341;font-weight:700;white-space:nowrap">If Range:</span>
+              <select id="ana-edit-range-type" onchange="onRangeTypeChange()" style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:4px 8px;color:#e6edf3;font-size:0.8rem;outline:none">
+                <option value="Range High">Range High (Resistance)</option>
+                <option value="Range Low">Range Low (Support)</option>
+                <option value="Range Breakout">Range Breakout</option>
+                <option value="Range Breakdown">Range Breakdown</option>
+                <option value="Range Bound / Chop">Range Bound / Chop</option>
+                <option value="Custom">Custom / Other</option>
+              </select>
+              <input type="text" id="ana-edit-range-detail" placeholder="Detail (e.g. 540-542 box)" style="display:none;flex:1;background:#161b22;border:1px solid #30363d;border-radius:4px;padding:4px 8px;color:#e6edf3;font-size:0.8rem;outline:none">
+            </div>
+          </div>
+        </div>
+
         <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-bottom:10px">
           <label style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 12px;cursor:pointer;user-select:none;transition:all 0.15s">
             <input type="checkbox" id="ana-edit-jimmy" style="width:17px;height:17px;cursor:pointer;accent-color:#ffd700">
@@ -1606,6 +1646,38 @@ Only B Trades with FULL confirmation."></textarea>
             <input type="checkbox" id="ana-edit-other" onchange="onOtherCheckboxChanged()" style="width:17px;height:17px;cursor:pointer;accent-color:#a371f7">
             <span style="font-size:0.85rem;font-weight:700;color:#e6edf3">📦 Other</span>
           </label>
+        </div>
+
+        <!-- AA MACD Squeeze & QQQ / SPY Confluence Row -->
+        <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin-bottom:10px">
+          <!-- AA MACD Squeeze -->
+          <div style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="ana-edit-aa-macd" style="width:17px;height:17px;cursor:pointer;accent-color:#3fb950">
+              <span style="font-size:0.85rem;font-weight:700;color:#e6edf3;white-space:nowrap">1. AA MACD:</span>
+            </label>
+            <select id="ana-edit-aa-macd-color" style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:5px 8px;color:#e6edf3;font-size:0.82rem;font-weight:700;outline:none">
+              <option value="GREEN" style="color:#3fb950;font-weight:bold">🟢 Green</option>
+              <option value="RED" style="color:#f85149;font-weight:bold">🔴 Red</option>
+            </select>
+            <select id="ana-edit-aa-macd-sq" style="background:#161b22;border:1px solid #30363d;border-radius:4px;padding:5px 8px;color:#e6edf3;font-size:0.82rem;font-weight:700;outline:none">
+              <option value="SQUEEZE" style="color:#ffd700;font-weight:bold">🟡 Squeeze</option>
+              <option value="NOT_SQUEEZE" style="color:#8b949e">⚪ No Squeeze</option>
+            </select>
+          </div>
+
+          <!-- QQQ / SPY Confluence -->
+          <div style="display:flex;align-items:center;gap:8px;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="ana-edit-qqq-conf" style="width:17px;height:17px;cursor:pointer;accent-color:#58a6ff">
+              <span style="font-size:0.85rem;font-weight:700;color:#e6edf3;white-space:nowrap">6. QQQ/SPY:</span>
+            </label>
+            <select id="ana-edit-qqq-type" style="flex:1;background:#161b22;border:1px solid #30363d;border-radius:4px;padding:5px 8px;color:#58a6ff;font-size:0.82rem;font-weight:700;outline:none">
+              <option value="Bullish Confluence">Bullish Confluence</option>
+              <option value="Bearish Confluence">Bearish Confluence</option>
+              <option value="Diverging / Leading">Diverging / Leading</option>
+            </select>
+          </div>
         </div>
 
         <!-- Indicator Confluences (Hiranya Signal Monitor & NYSE $ADD) Row -->
@@ -1853,6 +1925,55 @@ Only B Trades with FULL confirmation."></textarea>
               <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">✅ Direction Right</div>
               <div id="ana-daily-cond-dir-wr" style="font-size:1.35rem;font-weight:800;color:#3fb950;margin:4px 0">0.0% Acc</div>
               <div id="ana-daily-cond-dir-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- Candle Close Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #3fb950;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#3fb950;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">🕯️ Candle Close</div>
+              <div id="ana-daily-cond-candle-wr" style="font-size:1.35rem;font-weight:800;color:#3fb950;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-candle-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- Range Market Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #e3b341;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#e3b341;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">↔️ In Range</div>
+              <div id="ana-daily-cond-range-wr" style="font-size:1.35rem;font-weight:800;color:#e3b341;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-range-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- Trending Market Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #58a6ff;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#58a6ff;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">📈 Trending</div>
+              <div id="ana-daily-cond-trend-wr" style="font-size:1.35rem;font-weight:800;color:#58a6ff;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-trend-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- AA MACD Green Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #3fb950;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#3fb950;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">🟢 MACD Green</div>
+              <div id="ana-daily-cond-macdgrn-wr" style="font-size:1.35rem;font-weight:800;color:#3fb950;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-macdgrn-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- AA MACD Red Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #f85149;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#f85149;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">🔴 MACD Red</div>
+              <div id="ana-daily-cond-macdred-wr" style="font-size:1.35rem;font-weight:800;color:#f85149;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-macdred-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- In Squeeze Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #ffd700;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#ffd700;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">🟡 In Squeeze</div>
+              <div id="ana-daily-cond-insq-wr" style="font-size:1.35rem;font-weight:800;color:#ffd700;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-insq-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
+            </div>
+
+            <!-- QQQ / SPY Confluence Card -->
+            <div style="background:#161b22;border:1px solid #30363d;border-top:3px solid #58a6ff;border-radius:8px;padding:12px;text-align:center">
+              <div style="font-size:0.72rem;color:#58a6ff;text-transform:uppercase;font-weight:700;letter-spacing:0.5px">🔀 QQQ Conf</div>
+              <div id="ana-daily-cond-qqq-wr" style="font-size:1.35rem;font-weight:800;color:#58a6ff;margin:4px 0">0.0% WR</div>
+              <div id="ana-daily-cond-qqq-sub" style="font-size:0.75rem;color:#8b949e">0 trades | $0.00</div>
             </div>
           </div>
 
@@ -2157,8 +2278,8 @@ Only B Trades with FULL confirmation."></textarea>
           <div class="cl-item" id="cli-ak_macd_bb" onclick="clToggle('ak_macd_bb')">
             <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
             <div class="cl-item-text">
-              <div class="cl-item-label">📊 1. AK MACD BB <span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.18);border:1px solid rgba(248,81,73,0.45);color:#ff7b72;text-transform:uppercase;letter-spacing:0.5px">RED</span></div>
-              <div class="cl-item-sub">AK MACD BB is RED (Bearish momentum / sell zone)</div>
+              <div class="cl-item-label">📊 1. AA MACD Squeeze <span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.18);border:1px solid rgba(248,81,73,0.45);color:#ff7b72;text-transform:uppercase;letter-spacing:0.5px">RED</span></div>
+              <div class="cl-item-sub">AA MACD Squeeze is RED (Bearish momentum / sell zone)</div>
             </div>
             <div style="font-size:0.8rem;font-weight:800;color:#8b949e;min-width:36px;text-align:right;flex-shrink:0">15pt</div>
           </div>
@@ -2197,7 +2318,7 @@ Only B Trades with FULL confirmation."></textarea>
           <div class="cl-item" id="cli-qqq_direction" onclick="clToggle('qqq_direction')">
             <div class="cl-checkbox"><span class="cl-checkmark">✓</span></div>
             <div class="cl-item-text">
-              <div class="cl-item-label">🧭 6. QQQ Direction <span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.18);border:1px solid rgba(248,81,73,0.45);color:#ff7b72;text-transform:uppercase;letter-spacing:0.5px">DOWN / BEARISH</span></div>
+              <div class="cl-item-label">🧭 6. QQQ / SPY Confluence <span style="display:inline-block;margin-left:6px;font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(248,81,73,0.18);border:1px solid rgba(248,81,73,0.45);color:#ff7b72;text-transform:uppercase;letter-spacing:0.5px">DOWN / BEARISH</span></div>
               <div class="cl-item-sub">QQQ moving downward in confluence with SPY</div>
             </div>
             <div style="font-size:0.8rem;font-weight:800;color:#8b949e;min-width:36px;text-align:right;flex-shrink:0">15pt</div>
@@ -5350,6 +5471,13 @@ function renderDailyConditionSummary(trades) {
   const otherTrades = _calc(closedTrades.filter(t => t.is_other));
   const earlyTrades = _calc(closedTrades.filter(t => t.early_exit));
   const dirRightTrades = _calc(closedTrades.filter(t => t.direction_right !== false));
+  const candleTrades = _calc(closedTrades.filter(t => t.candle_close !== false));
+  const rangeTrades = _calc(closedTrades.filter(t => t.is_range));
+  const trendTrades = _calc(closedTrades.filter(t => t.is_range === false));
+  const macdGrnTrades = _calc(closedTrades.filter(t => String(t.aa_macd_color || '').toUpperCase() === 'GREEN'));
+  const macdRedTrades = _calc(closedTrades.filter(t => String(t.aa_macd_color || '').toUpperCase() === 'RED'));
+  const inSqTrades = _calc(closedTrades.filter(t => t.is_in_squeeze || String(t.aa_macd_squeeze || '').toUpperCase() === 'SQUEEZE'));
+  const qqqTrades = _calc(closedTrades.filter(t => t.is_qqq_confluence));
 
   const _updateCard = (prefix, data, isDir) => {
     const wrEl = document.getElementById(`ana-daily-cond-${prefix}-wr`);
@@ -5375,6 +5503,13 @@ function renderDailyConditionSummary(trades) {
   _updateCard('other', otherTrades, false);
   _updateCard('early', earlyTrades, false);
   _updateCard('dir', dirRightTrades, true);
+  _updateCard('candle', candleTrades, false);
+  _updateCard('range', rangeTrades, false);
+  _updateCard('trend', trendTrades, false);
+  _updateCard('macdgrn', macdGrnTrades, false);
+  _updateCard('macdred', macdRedTrades, false);
+  _updateCard('insq', inSqTrades, false);
+  _updateCard('qqq', qqqTrades, false);
 }
 
 function renderAnaStats(trades) {
@@ -5553,6 +5688,31 @@ function renderAnaTradeList(trades) {
         : '<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#3d1515;color:#f85149;border:1px solid #da3633;font-weight:700;display:inline-flex;align-items:center;gap:4px">❌ Dir Wrong</span>'
       );
     }
+    if (t.candle_close !== undefined && t.candle_close !== null) {
+      tags.push(t.candle_close
+        ? '<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#0d3320;color:#56d364;border:1px solid #3fb950;font-weight:700;display:inline-flex;align-items:center;gap:4px">🕯️ Close</span>'
+        : '<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#2d2200;color:#ffd33d;border:1px solid #ff9e2c;font-weight:700;display:inline-flex;align-items:center;gap:4px">⚡ Intra</span>'
+      );
+    }
+    if (t.is_range) {
+      const rngLabel = t.range_type ? `Range: ${t.range_type}` : 'In Range';
+      tags.push(`<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#2d2200;color:#e3b341;border:1px solid #e3b341;font-weight:700;display:inline-flex;align-items:center;gap:4px">↔️ ${rngLabel}</span>`);
+    } else if (t.is_range === false) {
+      tags.push('<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#0f2b3e;color:#79c0ff;border:1px solid #388bfd;font-weight:700;display:inline-flex;align-items:center;gap:4px">📈 Trending</span>');
+    }
+    if (t.is_aa_macd_squeeze || t.aa_macd_color || t.is_in_squeeze) {
+      const isGreen = String(t.aa_macd_color || '').toUpperCase() === 'GREEN';
+      const colText = isGreen ? '🟢 MACD Green' : '🔴 MACD Red';
+      const colBg = isGreen ? '#0d3320' : '#381313';
+      const colColor = isGreen ? '#56d364' : '#ff7b72';
+      const colBorder = isGreen ? '#3fb950' : '#f85149';
+      const sqText = (t.is_in_squeeze || String(t.aa_macd_squeeze || '').toUpperCase() === 'SQUEEZE') ? '🟡 Squeeze' : '⚪ No Squeeze';
+      tags.push(`<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:${colBg};color:${colColor};border:1px solid ${colBorder};font-weight:700;display:inline-flex;align-items:center;gap:4px">${colText} (${sqText})</span>`);
+    }
+    if (t.is_qqq_confluence) {
+      const qqqLabel = t.qqq_confluence_type || 'QQQ Conf';
+      tags.push(`<span style="font-size:0.72rem;padding:3px 7px;border-radius:5px;background:#162b4d;color:#79c0ff;border:1px solid #388bfd;font-weight:700;display:inline-flex;align-items:center;gap:4px">🔀 ${qqqLabel}</span>`);
+    }
 
     const tagsHtml = tags.length > 0
       ? tags.join(' ')
@@ -5671,6 +5831,40 @@ async function selectAnaTrade(trade) {
   if (inputAddVal) inputAddVal.value = (trade.add_value !== null && trade.add_value !== undefined) ? trade.add_value : '';
   if (cbOther) cbOther.checked = !!trade.is_other;
   if (otherInput) otherInput.value = trade.other_setup || '';
+
+  // Candle Close (Yes / No)
+  const rCloseYes = document.getElementById('ana-edit-candle-close-yes');
+  const rCloseNo = document.getElementById('ana-edit-candle-close-no');
+  const isClose = (trade.candle_close !== undefined && trade.candle_close !== null) ? !!trade.candle_close : true;
+  if (rCloseYes) rCloseYes.checked = isClose;
+  if (rCloseNo) rCloseNo.checked = !isClose;
+
+  // Market Structure (Trending vs Range)
+  const rTrending = document.getElementById('ana-edit-struct-trending');
+  const rRange = document.getElementById('ana-edit-struct-range');
+  const isRange = !!trade.is_range;
+  if (rTrending) rTrending.checked = !isRange;
+  if (rRange) rRange.checked = isRange;
+  toggleRangeOptions();
+  const selRangeType = document.getElementById('ana-edit-range-type');
+  const inputRangeDetail = document.getElementById('ana-edit-range-detail');
+  if (selRangeType) selRangeType.value = trade.range_type || 'Range High';
+  if (inputRangeDetail) inputRangeDetail.value = trade.range_detail || '';
+  onRangeTypeChange();
+
+  // AA MACD Squeeze
+  const cbAAMacd = document.getElementById('ana-edit-aa-macd');
+  const selAAMacdColor = document.getElementById('ana-edit-aa-macd-color');
+  const selAAMacdSq = document.getElementById('ana-edit-aa-macd-sq');
+  if (cbAAMacd) cbAAMacd.checked = !!(trade.is_aa_macd_squeeze || trade.aa_macd_color || trade.is_in_squeeze);
+  if (selAAMacdColor) selAAMacdColor.value = (trade.aa_macd_color || 'GREEN').toUpperCase();
+  if (selAAMacdSq) selAAMacdSq.value = (trade.is_in_squeeze || trade.aa_macd_squeeze === 'SQUEEZE') ? 'SQUEEZE' : 'NOT_SQUEEZE';
+
+  // QQQ / SPY Confluence
+  const cbQQQ = document.getElementById('ana-edit-qqq-conf');
+  const selQQQType = document.getElementById('ana-edit-qqq-type');
+  if (cbQQQ) cbQQQ.checked = !!trade.is_qqq_confluence;
+  if (selQQQType) selQQQType.value = trade.qqq_confluence_type || 'Bullish Confluence';
   if (cbEarly) {
     cbEarly.checked = !!trade.early_exit;
     toggleEarlyExitOptions();
@@ -6179,6 +6373,20 @@ function toggleEarlyExitOptions() {
   if (opt) opt.style.display = 'flex';
 }
 
+function toggleRangeOptions() {
+  const isRange = document.getElementById('ana-edit-struct-range')?.checked;
+  const container = document.getElementById('ana-range-options-container');
+  if (container) container.style.display = isRange ? 'flex' : 'none';
+}
+
+function onRangeTypeChange() {
+  const sel = document.getElementById('ana-edit-range-type');
+  const detail = document.getElementById('ana-edit-range-detail');
+  if (sel && detail) {
+    detail.style.display = (sel.value === 'Custom') ? 'block' : 'none';
+  }
+}
+
 function onOtherCheckboxChanged() {
   const cb = document.getElementById('ana-edit-other');
   const input = document.getElementById('ana-edit-other-specify');
@@ -6217,6 +6425,16 @@ async function saveTradeClassification() {
   const isAdd = document.getElementById('ana-edit-add') ? document.getElementById('ana-edit-add').checked : false;
   const addValInput = document.getElementById('ana-edit-add-val');
   const addValue = (isAdd && addValInput && addValInput.value !== '') ? parseFloat(addValInput.value) : null;
+  const isCandleClose = document.getElementById('ana-edit-candle-close-yes') ? document.getElementById('ana-edit-candle-close-yes').checked : true;
+  const isRange = document.getElementById('ana-edit-struct-range') ? document.getElementById('ana-edit-struct-range').checked : false;
+  const rangeType = isRange ? (document.getElementById('ana-edit-range-type')?.value || '') : '';
+  const rangeDetail = isRange ? (document.getElementById('ana-edit-range-detail')?.value || '') : '';
+  const isAAMacd = document.getElementById('ana-edit-aa-macd') ? document.getElementById('ana-edit-aa-macd').checked : false;
+  const aaMacdColor = document.getElementById('ana-edit-aa-macd-color')?.value || 'GREEN';
+  const aaMacdSq = document.getElementById('ana-edit-aa-macd-sq')?.value || 'NOT_SQUEEZE';
+  const isInSqueeze = (aaMacdSq === 'SQUEEZE');
+  const isQQQ = document.getElementById('ana-edit-qqq-conf') ? document.getElementById('ana-edit-qqq-conf').checked : false;
+  const qqqType = document.getElementById('ana-edit-qqq-type')?.value || 'Bullish Confluence';
   const isOther = document.getElementById('ana-edit-other') ? document.getElementById('ana-edit-other').checked : false;
   const otherSpecify = document.getElementById('ana-edit-other-specify') ? document.getElementById('ana-edit-other-specify').value.trim() : '';
   const isEarlyExit = document.getElementById('ana-edit-earlyexit').checked;
@@ -6253,6 +6471,16 @@ async function saveTradeClassification() {
         hiranya_signal_dir: hiranyaSignal,
         is_add_confluence: isAdd,
         add_value: addValue,
+        candle_close: isCandleClose,
+        is_range: isRange,
+        range_type: rangeType,
+        range_detail: rangeDetail,
+        is_aa_macd_squeeze: isAAMacd,
+        aa_macd_color: aaMacdColor,
+        aa_macd_squeeze: aaMacdSq,
+        is_in_squeeze: isInSqueeze,
+        is_qqq_confluence: isQQQ,
+        qqq_confluence_type: qqqType,
         is_vwap_touch_exit: isVwapTouch,
         is_other: isOther,
         other_setup: otherSpecify,
@@ -6277,6 +6505,16 @@ async function saveTradeClassification() {
       selectedAnaTrade.hiranya_signal_dir = hiranyaSignal;
       selectedAnaTrade.is_add_confluence = isAdd;
       selectedAnaTrade.add_value = addValue;
+      selectedAnaTrade.candle_close = isCandleClose;
+      selectedAnaTrade.is_range = isRange;
+      selectedAnaTrade.range_type = rangeType;
+      selectedAnaTrade.range_detail = rangeDetail;
+      selectedAnaTrade.is_aa_macd_squeeze = isAAMacd;
+      selectedAnaTrade.aa_macd_color = aaMacdColor;
+      selectedAnaTrade.aa_macd_squeeze = aaMacdSq;
+      selectedAnaTrade.is_in_squeeze = isInSqueeze;
+      selectedAnaTrade.is_qqq_confluence = isQQQ;
+      selectedAnaTrade.qqq_confluence_type = qqqType;
       selectedAnaTrade.is_vwap_touch_exit = isVwapTouch;
       selectedAnaTrade.is_other = isOther;
       selectedAnaTrade.other_setup = otherSpecify;
@@ -6351,6 +6589,15 @@ async function renderConditionStatsSection(month) {
         ${_cCard('Other Setup', s.other || emptyGroup, '#a371f7')}
         ${_cCard('Early Exit', s.early_exit || emptyGroup, '#ff7b72')}
         ${_cCard('Direction Right', s.direction_right || emptyGroup, '#3fb950')}
+        ${_cCard('🕯️ Candle Close', s.candle_close || emptyGroup, '#3fb950')}
+        ${_cCard('⚡ Intra-candle', s.candle_no_close || emptyGroup, '#ff9e2c')}
+        ${_cCard('↔️ In Range', s.range_market || emptyGroup, '#e3b341')}
+        ${_cCard('📈 Trending', s.trending_market || emptyGroup, '#58a6ff')}
+        ${_cCard('🟢 MACD Green', s.aa_macd_green || emptyGroup, '#3fb950')}
+        ${_cCard('🔴 MACD Red', s.aa_macd_red || emptyGroup, '#f85149')}
+        ${_cCard('🟡 In Squeeze', s.in_squeeze || emptyGroup, '#ffd700')}
+        ${_cCard('⚪ Not Squeeze', s.not_in_squeeze || emptyGroup, '#8b949e')}
+        ${_cCard('🔀 QQQ Confluence', s.qqq_confluence || emptyGroup, '#58a6ff')}
       `;
     }
 
@@ -6374,6 +6621,7 @@ async function renderConditionStatsSection(month) {
     const condLabels = [
       'All Trades', 'Jimmy Rec', 'B-Trade', 'Non B-Trade', '9/21 Cross', 'Non 9/21 Cross', 'B-Trade + 9/21',
       'Follow 9 Up', 'Follow 9 Down', 'HSM Buy', 'HSM Sell', 'VWAP Exit', 'ADD Breadth',
+      'Candle Close', 'Intra-candle', 'In Range', 'Trending', 'MACD Green', 'MACD Red', 'In Squeeze', 'QQQ Conf',
       'Other', 'Early Exit', 'Normal Exit', 'Dir Right', 'Dir Wrong'
     ];
     const condRates = [
@@ -6390,6 +6638,14 @@ async function renderConditionStatsSection(month) {
       (s.hiranya_sell || {}).win_rate || 0,
       (s.vwap_touch_exit || {}).win_rate || 0,
       (s.add_confluence || {}).win_rate || 0,
+      (s.candle_close || {}).win_rate || 0,
+      (s.candle_no_close || {}).win_rate || 0,
+      (s.range_market || {}).win_rate || 0,
+      (s.trending_market || {}).win_rate || 0,
+      (s.aa_macd_green || {}).win_rate || 0,
+      (s.aa_macd_red || {}).win_rate || 0,
+      (s.in_squeeze || {}).win_rate || 0,
+      (s.qqq_confluence || {}).win_rate || 0,
       (s.other || {}).win_rate || 0,
       s.early_exit.win_rate,
       s.normal_exit.win_rate,
@@ -6408,6 +6664,14 @@ async function renderConditionStatsSection(month) {
       (s.hiranya_sell || {}).count || 0,
       (s.vwap_touch_exit || {}).count || 0,
       (s.add_confluence || {}).count || 0,
+      (s.candle_close || {}).count || 0,
+      (s.candle_no_close || {}).count || 0,
+      (s.range_market || {}).count || 0,
+      (s.trending_market || {}).count || 0,
+      (s.aa_macd_green || {}).count || 0,
+      (s.aa_macd_red || {}).count || 0,
+      (s.in_squeeze || {}).count || 0,
+      (s.qqq_confluence || {}).count || 0,
       (s.other || {}).count || 0,
       s.early_exit.count, s.normal_exit.count,
       s.direction_right.count, s.direction_wrong.count
@@ -6424,6 +6688,14 @@ async function renderConditionStatsSection(month) {
       (s.hiranya_sell || {}).total_pnl || 0,
       (s.vwap_touch_exit || {}).total_pnl || 0,
       (s.add_confluence || {}).total_pnl || 0,
+      (s.candle_close || {}).total_pnl || 0,
+      (s.candle_no_close || {}).total_pnl || 0,
+      (s.range_market || {}).total_pnl || 0,
+      (s.trending_market || {}).total_pnl || 0,
+      (s.aa_macd_green || {}).total_pnl || 0,
+      (s.aa_macd_red || {}).total_pnl || 0,
+      (s.in_squeeze || {}).total_pnl || 0,
+      (s.qqq_confluence || {}).total_pnl || 0,
       (s.other || {}).total_pnl || 0,
       s.early_exit.total_pnl, s.normal_exit.total_pnl,
       s.direction_right.total_pnl, s.direction_wrong.total_pnl
@@ -6431,12 +6703,18 @@ async function renderConditionStatsSection(month) {
 
     const barColors = condRates.map((r, i) => {
       if (condCounts[i] === 0) return '#21262d';
-      if (condLabels[i].includes('Jimmy')) return 'rgba(255, 215, 0, 0.85)';
-      if (condLabels[i].includes('Right') || condLabels[i].includes('B-Trade') || condLabels[i].includes('9/21 Cross') || condLabels[i].includes('Follow 9 Up') || condLabels[i].includes('HSM Buy')) {
+      if (condLabels[i].includes('Jimmy') || condLabels[i].includes('In Squeeze')) return 'rgba(255, 215, 0, 0.85)';
+      if (condLabels[i].includes('Right') || condLabels[i].includes('B-Trade') || condLabels[i].includes('9/21 Cross') || condLabels[i].includes('Follow 9 Up') || condLabels[i].includes('HSM Buy') || condLabels[i].includes('Candle Close') || condLabels[i].includes('MACD Green')) {
         return r >= 50 ? 'rgba(63,185,80,0.85)' : 'rgba(255,158,44,0.85)';
       }
-      if (condLabels[i].includes('Wrong') || condLabels[i].includes('Early Exit') || condLabels[i].includes('Follow 9 Down') || condLabels[i].includes('HSM Sell')) {
+      if (condLabels[i].includes('Wrong') || condLabels[i].includes('Early Exit') || condLabels[i].includes('Follow 9 Down') || condLabels[i].includes('HSM Sell') || condLabels[i].includes('Intra') || condLabels[i].includes('MACD Red')) {
         return r < 50 ? 'rgba(248,81,73,0.85)' : 'rgba(255,158,44,0.85)';
+      }
+      if (condLabels[i].includes('In Range')) {
+        return 'rgba(227,179,65,0.85)';
+      }
+      if (condLabels[i].includes('Trending') || condLabels[i].includes('QQQ')) {
+        return 'rgba(88,166,255,0.85)';
       }
       if (condLabels[i].includes('ADD')) {
         return 'rgba(210,168,255,0.85)';
@@ -6814,21 +7092,21 @@ document.addEventListener('DOMContentLoaded', function() {
 // Points total = 100 per trade type (7 conditions)
 const CL_CONDITIONS = {
   PUTS: [
-    { key: 'ak_macd_bb',             label: '1. AK MACD BB',             state: 'RED',            sub: 'AK MACD BB is RED (Bearish momentum / sell zone)',             pts: 15 },
+    { key: 'ak_macd_bb',             label: '1. AA MACD Squeeze',        state: 'RED',            sub: 'AA MACD Squeeze is RED (Bearish momentum / sell zone)',        pts: 15 },
     { key: 'rsi_cross_trendline',    label: '2. RSI Cross Trend Line',   state: 'CROSS DOWN',     sub: 'RSI crosses / breaks down below the trendline',                 pts: 15 },
     { key: 'hiranya_signal_monitor', label: '3. Hiranya Signal Monitor', state: 'RED',            sub: 'Hiranya Signal Monitor is RED (Bearish confirmation)',          pts: 15 },
     { key: 'cross_9_21_vwap',        label: '4. 9 21 Cross & VWAP',      state: '9<21 & <VWAP',   sub: '9 EMA crossed below 21 EMA & price is below VWAP',              pts: 15 },
     { key: 'b_trade',                label: '5. B-Trade Setup',          state: 'CONFIRMED',      sub: 'Valid B-Trade setup / pullback continuation confirmed',         pts: 15 },
-    { key: 'qqq_direction',          label: '6. QQQ Direction',          state: 'DOWN / BEARISH', sub: 'QQQ moving downward in confluence with SPY',                    pts: 15 },
+    { key: 'qqq_direction',          label: '6. QQQ / SPY Confluence',   state: 'DOWN / BEARISH', sub: 'QQQ moving downward in confluence with SPY',                    pts: 15 },
     { key: 'add_direction',          label: '7. ADD Direction',          state: 'DECLINING',      sub: 'NYSE $ADD breadth declining / in negative territory',           pts: 10 },
   ],
   CALLS: [
-    { key: 'ak_macd_bb',             label: '1. AK MACD BB',             state: 'GREEN',          sub: 'AK MACD BB is GREEN (Bullish momentum / buy zone)',            pts: 15 },
+    { key: 'ak_macd_bb',             label: '1. AA MACD Squeeze',        state: 'GREEN',          sub: 'AA MACD Squeeze is GREEN (Bullish momentum / buy zone)',       pts: 15 },
     { key: 'rsi_cross_trendline',    label: '2. RSI Cross Trend Line',   state: 'CROSS UP',       sub: 'RSI crosses / breaks up above the trendline',                  pts: 15 },
     { key: 'hiranya_signal_monitor', label: '3. Hiranya Signal Monitor', state: 'GREEN',          sub: 'Hiranya Signal Monitor is GREEN (Bullish confirmation)',        pts: 15 },
     { key: 'cross_9_21_vwap',        label: '4. 9 21 Cross & VWAP',      state: '9>21 & >VWAP',   sub: '9 EMA crossed above 21 EMA & price is above VWAP',              pts: 15 },
     { key: 'b_trade',                label: '5. B-Trade Setup',          state: 'CONFIRMED',      sub: 'Valid B-Trade setup / pullback continuation confirmed',         pts: 15 },
-    { key: 'qqq_direction',          label: '6. QQQ Direction',          state: 'UP / BULLISH',   sub: 'QQQ moving upward in confluence with SPY',                      pts: 15 },
+    { key: 'qqq_direction',          label: '6. QQQ / SPY Confluence',   state: 'UP / BULLISH',   sub: 'QQQ moving upward in confluence with SPY',                      pts: 15 },
     { key: 'add_direction',          label: '7. ADD Direction',          state: 'ADVANCING',      sub: 'NYSE $ADD breadth advancing / in positive territory',           pts: 10 },
   ]
 };

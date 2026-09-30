@@ -33,21 +33,21 @@ _CHECKLIST_FILE = _DATA_DIR / "trade_checklist.json"
 
 CL_CONDITIONS = {
     "PUTS": [
-        {"key": "ak_macd_bb",             "label": "1. AK MACD BB",             "state": "RED",            "sub": "AK MACD BB is RED (Bearish momentum / sell zone)",             "pts": 15},
+        {"key": "ak_macd_bb",             "label": "1. AA MACD Squeeze",         "state": "RED",            "sub": "AA MACD Squeeze is RED (Bearish momentum / sell zone)",         "pts": 15},
         {"key": "rsi_cross_trendline",    "label": "2. RSI Cross Trend Line",   "state": "CROSS DOWN",     "sub": "RSI crosses / breaks down below the trendline",                 "pts": 15},
         {"key": "hiranya_signal_monitor", "label": "3. Hiranya Signal Monitor", "state": "RED",            "sub": "Hiranya Signal Monitor is RED (Bearish confirmation)",          "pts": 15},
         {"key": "cross_9_21_vwap",        "label": "4. 9 21 Cross & VWAP",      "state": "9<21 & <VWAP",   "sub": "9 EMA crossed below 21 EMA & price is below VWAP",              "pts": 15},
         {"key": "b_trade",                "label": "5. B-Trade Setup",          "state": "CONFIRMED",      "sub": "Valid B-Trade setup / pullback continuation confirmed",         "pts": 15},
-        {"key": "qqq_direction",          "label": "6. QQQ Direction",          "state": "DOWN / BEARISH", "sub": "QQQ moving downward in confluence with SPY",                    "pts": 15},
+        {"key": "qqq_direction",          "label": "6. QQQ / SPY Confluence",    "state": "DOWN / BEARISH", "sub": "QQQ moving downward in confluence with SPY",                    "pts": 15},
         {"key": "add_direction",          "label": "7. ADD Direction",          "state": "DECLINING",      "sub": "NYSE $ADD breadth declining / in negative territory",           "pts": 10},
     ],
     "CALLS": [
-        {"key": "ak_macd_bb",             "label": "1. AK MACD BB",             "state": "GREEN",          "sub": "AK MACD BB is GREEN (Bullish momentum / buy zone)",            "pts": 15},
+        {"key": "ak_macd_bb",             "label": "1. AA MACD Squeeze",         "state": "GREEN",          "sub": "AA MACD Squeeze is GREEN (Bullish momentum / buy zone)",        "pts": 15},
         {"key": "rsi_cross_trendline",    "label": "2. RSI Cross Trend Line",   "state": "CROSS UP",       "sub": "RSI crosses / breaks up above the trendline",                  "pts": 15},
         {"key": "hiranya_signal_monitor", "label": "3. Hiranya Signal Monitor", "state": "GREEN",          "sub": "Hiranya Signal Monitor is GREEN (Bullish confirmation)",        "pts": 15},
         {"key": "cross_9_21_vwap",        "label": "4. 9 21 Cross & VWAP",      "state": "9>21 & >VWAP",   "sub": "9 EMA crossed above 21 EMA & price is above VWAP",              "pts": 15},
         {"key": "b_trade",                "label": "5. B-Trade Setup",          "state": "CONFIRMED",      "sub": "Valid B-Trade setup / pullback continuation confirmed",         "pts": 15},
-        {"key": "qqq_direction",          "label": "6. QQQ Direction",          "state": "UP / BULLISH",   "sub": "QQQ moving upward in confluence with SPY",                      "pts": 15},
+        {"key": "qqq_direction",          "label": "6. QQQ / SPY Confluence",    "state": "UP / BULLISH",   "sub": "QQQ moving upward in confluence with SPY",                      "pts": 15},
         {"key": "add_direction",          "label": "7. ADD Direction",          "state": "ADVANCING",      "sub": "NYSE $ADD breadth advancing / in positive territory",           "pts": 10},
     ]
 }

@@ -64,7 +64,7 @@ def load_trade_classifications():
         print(f"Error loading local trade classifications JSON: {e}")
     return classifications
 
-def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", early_exit_amount=None, exit_reason="TARGET", is_fullback_uptrend=False, is_fullback_downtrend=False, is_other=False, other_setup="", is_jimmy_recommended=False, hiranya_signal_dir="", is_followed_9_up=None, is_followed_9_down=None, add_value=None, is_add_confluence=False):
+def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", early_exit_amount=None, exit_reason="TARGET", is_fullback_uptrend=False, is_fullback_downtrend=False, is_other=False, other_setup="", is_jimmy_recommended=False, hiranya_signal_dir="", is_followed_9_up=None, is_followed_9_down=None, add_value=None, is_add_confluence=False, candle_close=True, is_range=False, range_type="", range_detail="", is_aa_macd_squeeze=False, aa_macd_color="", aa_macd_squeeze="", is_in_squeeze=False, is_qqq_confluence=False, qqq_confluence_type=""):
     classifications = load_trade_classifications()
     f9_up = bool(is_followed_9_up if is_followed_9_up is not None else is_fullback_uptrend)
     f9_down = bool(is_followed_9_down if is_followed_9_down is not None else is_fullback_downtrend)
@@ -82,6 +82,17 @@ def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_
             add_val_num = None
     add_conf = bool(is_add_confluence or add_val_num is not None)
 
+    c_close = bool(candle_close if candle_close is not None else True)
+    rng = bool(is_range)
+    rng_type = str(range_type or "").strip()
+    rng_detail = str(range_detail or "").strip()
+    aa_col = str(aa_macd_color or "").upper().strip()
+    aa_sq = str(aa_macd_squeeze or "").upper().strip()
+    in_sq = bool(is_in_squeeze or aa_sq == "SQUEEZE")
+    aa_macd = bool(is_aa_macd_squeeze if is_aa_macd_squeeze is not None else (aa_col in ("GREEN", "RED") or in_sq))
+    qqq_conf = bool(is_qqq_confluence or (qqq_confluence_type and str(qqq_confluence_type).strip() != ""))
+    qqq_type = str(qqq_confluence_type or "").strip()
+
     entry = {
         "trade_key": key,
         "filename": filename,
@@ -98,6 +109,16 @@ def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_
         "hiranya_signal_dir": h_dir,
         "is_add_confluence": add_conf,
         "add_value": add_val_num,
+        "candle_close": c_close,
+        "is_range": rng,
+        "range_type": rng_type,
+        "range_detail": rng_detail,
+        "is_aa_macd_squeeze": aa_macd,
+        "aa_macd_color": aa_col,
+        "aa_macd_squeeze": aa_sq,
+        "is_in_squeeze": in_sq,
+        "is_qqq_confluence": qqq_conf,
+        "qqq_confluence_type": qqq_type,
         "is_other": bool(is_other),
         "other_setup": str(other_setup or "").strip(),
         "early_exit": bool(early_exit) or (exit_r == "EARLY_EXIT"),
@@ -119,7 +140,10 @@ def save_trade_classification_item(key, filename, trade_index, is_b_trade, is_9_
                 key, filename, trade_index, is_b_trade, is_9_21_cross,
                 early_exit, direction_right, notes, f9_up, f9_down,
                 is_other, other_setup, is_jimmy_recommended, f9_up, f9_down,
-                is_h_buy, is_h_sell, h_dir, exit_r, is_vt, add_conf, add_val_num
+                is_h_buy, is_h_sell, h_dir, exit_r, is_vt, add_conf, add_val_num,
+                candle_close=c_close, is_range=rng, range_type=rng_type, range_detail=rng_detail,
+                is_aa_macd_squeeze=aa_macd, aa_macd_color=aa_col, aa_macd_squeeze=aa_sq, is_in_squeeze=in_sq,
+                is_qqq_confluence=qqq_conf, qqq_confluence_type=qqq_type
             )
         except Exception as e:
             print(f"Error saving trade classification to DB: {e}")
@@ -1599,6 +1623,16 @@ def analysis_trades():
             t_copy["is_vwap_touch_exit"] = (cls_item.get("exit_reason") == "VWAP_TOUCH") or cls_item.get("is_vwap_touch_exit", False)
             t_copy["is_add_confluence"] = cls_item.get("is_add_confluence", False) or (cls_item.get("add_value") is not None)
             t_copy["add_value"] = cls_item.get("add_value")
+            t_copy["candle_close"] = cls_item.get("candle_close", True)
+            t_copy["is_range"] = cls_item.get("is_range", False)
+            t_copy["range_type"] = cls_item.get("range_type", "")
+            t_copy["range_detail"] = cls_item.get("range_detail", "")
+            t_copy["is_aa_macd_squeeze"] = cls_item.get("is_aa_macd_squeeze", False)
+            t_copy["aa_macd_color"] = cls_item.get("aa_macd_color", "")
+            t_copy["aa_macd_squeeze"] = cls_item.get("aa_macd_squeeze", "")
+            t_copy["is_in_squeeze"] = cls_item.get("is_in_squeeze", False)
+            t_copy["is_qqq_confluence"] = cls_item.get("is_qqq_confluence", False)
+            t_copy["qqq_confluence_type"] = cls_item.get("qqq_confluence_type", "")
             t_copy["classification_notes"] = cls_item.get("notes", "")
             
             pnl_val = t.get("pnl") or 0.0
@@ -2491,6 +2525,16 @@ def classify_trade():
         direction_right = bool(data.get("direction_right", True))
         add_val = data.get("add_value")
         is_add = bool(data.get("is_add_confluence", False) or (add_val is not None and str(add_val).strip() != ""))
+        candle_close = data.get("candle_close", True)
+        is_range = bool(data.get("is_range", False))
+        range_type = data.get("range_type", "")
+        range_detail = data.get("range_detail", "")
+        is_aa_macd_squeeze = data.get("is_aa_macd_squeeze")
+        aa_macd_color = data.get("aa_macd_color", "")
+        aa_macd_squeeze = data.get("aa_macd_squeeze", "")
+        is_in_squeeze = bool(data.get("is_in_squeeze", False) or str(aa_macd_squeeze).upper().strip() == "SQUEEZE")
+        is_qqq_confluence = bool(data.get("is_qqq_confluence", False))
+        qqq_confluence_type = data.get("qqq_confluence_type", "")
         notes = str(data.get("notes", ""))
         
         save_trade_classification_item(
@@ -2499,7 +2543,10 @@ def classify_trade():
             is_f9_up, is_f9_down, is_other, other_setup,
             is_jimmy_recommended=is_jimmy, hiranya_signal_dir=h_dir,
             is_followed_9_up=is_f9_up, is_followed_9_down=is_f9_down,
-            add_value=add_val, is_add_confluence=is_add
+            add_value=add_val, is_add_confluence=is_add,
+            candle_close=candle_close, is_range=is_range, range_type=range_type, range_detail=range_detail,
+            is_aa_macd_squeeze=is_aa_macd_squeeze, aa_macd_color=aa_macd_color, aa_macd_squeeze=aa_macd_squeeze,
+            is_in_squeeze=is_in_squeeze, is_qqq_confluence=is_qqq_confluence, qqq_confluence_type=qqq_confluence_type
         )
         
         # Keep b_trade_flags in sync
@@ -2566,6 +2613,16 @@ def api_condition_stats():
                         t_copy["is_vwap_touch_exit"] = (cls_item.get("exit_reason") == "VWAP_TOUCH") or cls_item.get("is_vwap_touch_exit", False)
                         t_copy["is_add_confluence"] = cls_item.get("is_add_confluence", False) or (cls_item.get("add_value") is not None)
                         t_copy["add_value"] = cls_item.get("add_value")
+                        t_copy["candle_close"] = cls_item.get("candle_close", True)
+                        t_copy["is_range"] = cls_item.get("is_range", False)
+                        t_copy["range_type"] = cls_item.get("range_type", "")
+                        t_copy["range_detail"] = cls_item.get("range_detail", "")
+                        t_copy["is_aa_macd_squeeze"] = cls_item.get("is_aa_macd_squeeze", False)
+                        t_copy["aa_macd_color"] = cls_item.get("aa_macd_color", "")
+                        t_copy["aa_macd_squeeze"] = cls_item.get("aa_macd_squeeze", "")
+                        t_copy["is_in_squeeze"] = cls_item.get("is_in_squeeze", False)
+                        t_copy["is_qqq_confluence"] = cls_item.get("is_qqq_confluence", False)
+                        t_copy["qqq_confluence_type"] = cls_item.get("qqq_confluence_type", "")
                         t_copy["is_other"] = cls_item.get("is_other", False)
                         t_copy["other_setup"] = cls_item.get("other_setup", "")
                         t_copy["early_exit"] = cls_item.get("early_exit", False)
@@ -2672,6 +2729,16 @@ def api_condition_stats():
             "add_positive": calc_group([t for t in all_parsed_trades if t.get("add_value") is not None and float(t["add_value"]) > 0]),
             "add_negative": calc_group([t for t in all_parsed_trades if t.get("add_value") is not None and float(t["add_value"]) < 0]),
             "other": calc_group([t for t in all_parsed_trades if t.get("is_other")]),
+            "candle_close": calc_group([t for t in all_parsed_trades if t.get("candle_close", True)]),
+            "candle_no_close": calc_group([t for t in all_parsed_trades if not t.get("candle_close", True)]),
+            "range_market": calc_group([t for t in all_parsed_trades if t.get("is_range")]),
+            "trending_market": calc_group([t for t in all_parsed_trades if not t.get("is_range")]),
+            "aa_macd_squeeze": calc_group([t for t in all_parsed_trades if t.get("is_aa_macd_squeeze")]),
+            "aa_macd_green": calc_group([t for t in all_parsed_trades if str(t.get("aa_macd_color", "")).upper() == "GREEN"]),
+            "aa_macd_red": calc_group([t for t in all_parsed_trades if str(t.get("aa_macd_color", "")).upper() == "RED"]),
+            "in_squeeze": calc_group([t for t in all_parsed_trades if t.get("is_in_squeeze") or str(t.get("aa_macd_squeeze", "")).upper() == "SQUEEZE"]),
+            "not_in_squeeze": calc_group([t for t in all_parsed_trades if str(t.get("aa_macd_squeeze", "")).upper() == "NOT_SQUEEZE"]),
+            "qqq_confluence": calc_group([t for t in all_parsed_trades if t.get("is_qqq_confluence")]),
             "early_exit": calc_group([t for t in all_parsed_trades if t.get("early_exit")]),
             "normal_exit": calc_group([t for t in all_parsed_trades if not t.get("early_exit")]),
             "direction_right": calc_group([t for t in all_parsed_trades if t.get("direction_right")]),

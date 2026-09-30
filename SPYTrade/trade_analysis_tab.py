@@ -60,17 +60,23 @@ class TradeConditionCanvas(FigureCanvas):
                 ("9/21 Cross", stats["cross_9_21"]),
                 ("Follow 9 Up", stats.get("followed_9_up", zero_stat)),
                 ("Follow 9 Dn", stats.get("followed_9_down", zero_stat)),
+                ("Candle Close", stats.get("candle_close", zero_stat)),
+                ("Range Mkt", stats.get("range_market", zero_stat)),
+                ("Trending", stats.get("trending_market", zero_stat)),
                 ("Other", stats.get("other", zero_stat)),
             ]
         elif view_mode == "Checklist Confluences Only":
             categories = [
                 ("All Trades", stats["all"]),
-                ("AK MACD", stats.get("ak_macd_bb", zero_stat)),
+                ("AA MACD", stats.get("aa_macd_squeeze", stats.get("ak_macd_bb", zero_stat))),
+                ("MACD Green", stats.get("aa_macd_green", zero_stat)),
+                ("MACD Red", stats.get("aa_macd_red", zero_stat)),
+                ("In Squeeze", stats.get("in_squeeze", zero_stat)),
                 ("RSI Trend", stats.get("rsi_trendline", zero_stat)),
                 ("HSM Buy", stats.get("hiranya_buy", zero_stat)),
                 ("HSM Sell", stats.get("hiranya_sell", zero_stat)),
                 ("VWAP Align", stats.get("vwap_aligned", zero_stat)),
-                ("QQQ Confl", stats.get("qqq_confluence", zero_stat)),
+                ("QQQ/SPY", stats.get("qqq_confluence", zero_stat)),
                 ("ADD Breadth", stats.get("add_confluence", zero_stat)),
                 ("High Confl", stats.get("high_confluence", zero_stat)),
             ]
@@ -91,12 +97,16 @@ class TradeConditionCanvas(FigureCanvas):
                 ("9/21 Cross", stats["cross_9_21"]),
                 ("Follow 9 Up", stats.get("followed_9_up", zero_stat)),
                 ("Follow 9 Dn", stats.get("followed_9_down", zero_stat)),
-                ("AK MACD", stats.get("ak_macd_bb", zero_stat)),
+                ("Candle Close", stats.get("candle_close", zero_stat)),
+                ("Range Mkt", stats.get("range_market", zero_stat)),
+                ("MACD Green", stats.get("aa_macd_green", zero_stat)),
+                ("MACD Red", stats.get("aa_macd_red", zero_stat)),
+                ("In Squeeze", stats.get("in_squeeze", zero_stat)),
                 ("RSI Cross", stats.get("rsi_trendline", zero_stat)),
                 ("HSM Buy", stats.get("hiranya_buy", zero_stat)),
                 ("HSM Sell", stats.get("hiranya_sell", zero_stat)),
                 ("VWAP Align", stats.get("vwap_aligned", zero_stat)),
-                ("QQQ Confl", stats.get("qqq_confluence", zero_stat)),
+                ("QQQ/SPY", stats.get("qqq_confluence", zero_stat)),
                 ("ADD Breadth", stats.get("add_confluence", zero_stat)),
                 ("High Confl", stats.get("high_confluence", zero_stat)),
                 ("VWAP Exit", stats.get("vwap_touch_exit", zero_stat)),
@@ -309,12 +319,20 @@ class TradeAnalysisTab(QWidget):
             "B-Trade + 9/21 Only",
             "Followed 9 EMA (Up)",
             "Followed 9 EMA (Down)",
+            "Candle Close: Yes Only",
+            "Candle Close: No Only",
+            "Range Market Only",
+            "Not Range (Trending) Only",
+            "AA MACD: Green Only",
+            "AA MACD: Red Only",
+            "AA MACD: In Squeeze Only",
+            "AA MACD: Not in Squeeze Only",
             "Hiranya Signal: BUY Only",
             "Hiranya Signal: SELL Only",
-            "AK MACD Confirmed",
+            "AK / AA MACD Confirmed",
             "RSI Trendline Cross",
             "VWAP Aligned",
-            "QQQ Confluence",
+            "QQQ / SPY Confluence Only",
             "ADD Breadth Confluence",
             "ADD Positive (+ Breadth)",
             "ADD Negative (- Breadth)",
@@ -488,7 +506,8 @@ class TradeAnalysisTab(QWidget):
         right_layout.addLayout(pnl_row)
 
         # ── PROMINENT TRADE CONDITIONS SELECTION ─────────────────────────────
-        cond_box = QGroupBox("🏷️ Trade Conditions & Strategy Rules")
+        # ── PROMINENT TRADE CONDITIONS SELECTION ─────────────────────────────
+        cond_box = QGroupBox("🏷️ Setup Classification & Trade Conditions")
         cond_box.setStyleSheet("""
             QGroupBox {
                 border: 1.5px solid #238636;
@@ -557,6 +576,67 @@ class TradeAnalysisTab(QWidget):
         other_row.addWidget(self.cb_other)
         other_row.addWidget(self.edit_other)
         left_col.addLayout(other_row)
+
+        # Candle Close: Yes or No
+        candle_close_row = QHBoxLayout()
+        candle_close_row.setSpacing(8)
+        lbl_candle = QLabel("🕯️ <b>Candle Close:</b>")
+        lbl_candle.setStyleSheet("color:#e6edf3;font-size:11px;")
+        self.radio_candle_close_yes = QRadioButton("✅ Yes")
+        self.radio_candle_close_no = QRadioButton("❌ No")
+        self.radio_candle_close_yes.setChecked(True)
+        self.candle_close_group = QButtonGroup(self)
+        self.candle_close_group.addButton(self.radio_candle_close_yes)
+        self.candle_close_group.addButton(self.radio_candle_close_no)
+        candle_close_row.addWidget(lbl_candle)
+        candle_close_row.addWidget(self.radio_candle_close_yes)
+        candle_close_row.addWidget(self.radio_candle_close_no)
+        candle_close_row.addStretch()
+        left_col.addLayout(candle_close_row)
+
+        # Market Structure: Range or Not, and if Range
+        range_row = QHBoxLayout()
+        range_row.setSpacing(8)
+        lbl_range = QLabel("📦 <b>Structure:</b>")
+        lbl_range.setStyleSheet("color:#e6edf3;font-size:11px;")
+        self.radio_range_not = QRadioButton("🚀 Trending")
+        self.radio_range_is = QRadioButton("📦 In Range")
+        self.radio_range_not.setChecked(True)
+        self.range_group = QButtonGroup(self)
+        self.range_group.addButton(self.radio_range_not)
+        self.range_group.addButton(self.radio_range_is)
+        range_row.addWidget(lbl_range)
+        range_row.addWidget(self.radio_range_not)
+        range_row.addWidget(self.radio_range_is)
+        range_row.addStretch()
+        left_col.addLayout(range_row)
+
+        # If Range sub-panel
+        self.range_sub_widget = QWidget()
+        range_sub_layout = QHBoxLayout(self.range_sub_widget)
+        range_sub_layout.setContentsMargins(12, 0, 0, 0)
+        range_sub_layout.setSpacing(6)
+        lbl_range_if = QLabel("↳ <i>If Range:</i>")
+        lbl_range_if.setStyleSheet("color:#58a6ff;font-size:11px;")
+        self.combo_range_type = QComboBox()
+        self.combo_range_type.setObjectName("journal_input")
+        self.combo_range_type.addItems([
+            "Range High (Resistance / Short)",
+            "Range Low (Support / Long)",
+            "Range Breakout (Expansion)",
+            "Range Bound / Chop (Mid Range)",
+            "Custom Range Setup",
+        ])
+        self.edit_range_detail = QLineEdit()
+        self.edit_range_detail.setObjectName("journal_input")
+        self.edit_range_detail.setPlaceholderText("Specify range, e.g. 542-545...")
+        range_sub_layout.addWidget(lbl_range_if)
+        range_sub_layout.addWidget(self.combo_range_type)
+        range_sub_layout.addWidget(self.edit_range_detail)
+        self.range_sub_widget.setEnabled(False)
+        self.radio_range_is.toggled.connect(self.range_sub_widget.setEnabled)
+        left_col.addWidget(self.range_sub_widget)
+
         cond_cols.addLayout(left_col, stretch=1)
 
         # ── Right Column: Checklist Indicator Confluences ──
@@ -566,8 +646,42 @@ class TradeAnalysisTab(QWidget):
         lbl_confl.setStyleSheet("color:#7ee787;font-size:11px;")
         right_col.addWidget(lbl_confl)
 
-        self.cb_ak_macd = QCheckBox("📊  AK MACD BB (Zone)")
+        # AA MACD Squeeze: Checkbox + Green/Red + Squeeze or Not
+        macd_sq_box = QVBoxLayout()
+        macd_sq_box.setSpacing(3)
+        self.cb_ak_macd = QCheckBox("📊  AA MACD Squeeze")
+        self.cb_ak_macd.toggled.connect(self._on_aa_macd_cb_toggled)
+        macd_sq_box.addWidget(self.cb_ak_macd)
+
+        macd_opts_row = QHBoxLayout()
+        macd_opts_row.setContentsMargins(18, 0, 0, 0)
+        macd_opts_row.setSpacing(6)
+
+        self.combo_aa_macd_color = QComboBox()
+        self.combo_aa_macd_color.setObjectName("journal_input")
+        self.combo_aa_macd_color.addItems([
+            "— Color Off —",
+            "🟢 Green (Bullish)",
+            "🔴 Red (Bearish)",
+        ])
+        self.combo_aa_macd_color.currentIndexChanged.connect(self._on_aa_macd_changed)
+
+        self.combo_aa_macd_squeeze = QComboBox()
+        self.combo_aa_macd_squeeze.setObjectName("journal_input")
+        self.combo_aa_macd_squeeze.addItems([
+            "— Squeeze Off —",
+            "⚡ In Squeeze",
+            "⭕ Not Squeeze (Open)",
+        ])
+        self.combo_aa_macd_squeeze.currentIndexChanged.connect(self._on_aa_macd_changed)
+
+        macd_opts_row.addWidget(self.combo_aa_macd_color)
+        macd_opts_row.addWidget(self.combo_aa_macd_squeeze)
+        macd_sq_box.addLayout(macd_opts_row)
+        right_col.addLayout(macd_sq_box)
+
         self.cb_rsi_trendline = QCheckBox("📉  RSI Cross Trendline")
+        right_col.addWidget(self.cb_rsi_trendline)
 
         # Hiranya Signal Monitor: Buy or Sell selector
         hsm_row = QHBoxLayout()
@@ -583,7 +697,24 @@ class TradeAnalysisTab(QWidget):
         right_col.addLayout(hsm_row)
 
         self.cb_vwap = QCheckBox("🌊  VWAP Aligned / Cross")
-        self.cb_qqq = QCheckBox("🧭  QQQ Direction Confl")
+        right_col.addWidget(self.cb_vwap)
+
+        # QQQ / SPY Confluence
+        qqq_row = QHBoxLayout()
+        qqq_row.setSpacing(6)
+        self.cb_qqq = QCheckBox("🧭  QQQ / SPY Confl")
+        qqq_row.addWidget(self.cb_qqq)
+        self.combo_qqq_confluence = QComboBox()
+        self.combo_qqq_confluence.setObjectName("journal_input")
+        self.combo_qqq_confluence.addItems([
+            "— Aligned —",
+            "🟢 Bullish (Both Up)",
+            "🔴 Bearish (Both Down)",
+            "⚠️ Diverging",
+        ])
+        self.combo_qqq_confluence.currentIndexChanged.connect(self._on_qqq_combo_changed)
+        qqq_row.addWidget(self.combo_qqq_confluence)
+        right_col.addLayout(qqq_row)
 
         # NYSE $ADD Breadth with numeric level input
         add_row = QHBoxLayout()
@@ -598,11 +729,6 @@ class TradeAnalysisTab(QWidget):
         add_row.addWidget(self.cb_add)
         add_row.addWidget(self.edit_add_val)
         add_row.addStretch()
-
-        right_col.addWidget(self.cb_ak_macd)
-        right_col.addWidget(self.cb_rsi_trendline)
-        right_col.addWidget(self.cb_vwap)
-        right_col.addWidget(self.cb_qqq)
         right_col.addLayout(add_row)
 
         for cb in [self.cb_jimmy_rec, self.cb_b_trade, self.cb_9_21, self.cb_followed_9_up, self.cb_followed_9_down, self.cb_ak_macd, self.cb_rsi_trendline, self.cb_vwap, self.cb_qqq, self.cb_add]:
@@ -867,15 +993,31 @@ class TradeAnalysisTab(QWidget):
             trades = [t for t in trades if t.get("is_hiranya_buy", False) or str(t.get("hiranya_signal_dir", "")).upper() == "BUY"]
         elif filter_mode == "Hiranya Signal: SELL Only":
             trades = [t for t in trades if t.get("is_hiranya_sell", False) or str(t.get("hiranya_signal_dir", "")).upper() == "SELL"]
-        elif filter_mode == "AK MACD Confirmed":
-            trades = [t for t in trades if t.get("is_ak_macd_bb", False)]
+        elif filter_mode == "Candle Close: Yes Only":
+            trades = [t for t in trades if t.get("candle_close", True)]
+        elif filter_mode == "Candle Close: No Only":
+            trades = [t for t in trades if not t.get("candle_close", True)]
+        elif filter_mode == "Range Market Only":
+            trades = [t for t in trades if t.get("is_range", False)]
+        elif filter_mode == "Not Range (Trending) Only":
+            trades = [t for t in trades if not t.get("is_range", False)]
+        elif filter_mode == "AA MACD: Green Only":
+            trades = [t for t in trades if str(t.get("aa_macd_color", "")).upper() == "GREEN"]
+        elif filter_mode == "AA MACD: Red Only":
+            trades = [t for t in trades if str(t.get("aa_macd_color", "")).upper() == "RED"]
+        elif filter_mode == "AA MACD: In Squeeze Only":
+            trades = [t for t in trades if t.get("is_in_squeeze", False) or str(t.get("aa_macd_squeeze", "")).upper() == "SQUEEZE"]
+        elif filter_mode == "AA MACD: Not in Squeeze Only":
+            trades = [t for t in trades if str(t.get("aa_macd_squeeze", "")).upper() == "NOT_SQUEEZE"]
+        elif filter_mode in ("AK MACD Confirmed", "AK / AA MACD Confirmed"):
+            trades = [t for t in trades if t.get("is_ak_macd_bb", False) or t.get("is_aa_macd_squeeze", False)]
         elif filter_mode == "RSI Trendline Cross":
             trades = [t for t in trades if t.get("is_rsi_trendline", False)]
         elif filter_mode == "Hiranya Signal Confirmed":
             trades = [t for t in trades if t.get("is_hiranya_signal", False)]
         elif filter_mode == "VWAP Aligned":
             trades = [t for t in trades if t.get("is_vwap_aligned", False)]
-        elif filter_mode == "QQQ Confluence":
+        elif filter_mode in ("QQQ Confluence", "QQQ / SPY Confluence Only"):
             trades = [t for t in trades if t.get("is_qqq_confluence", False)]
         elif filter_mode == "ADD Breadth Confluence":
             trades = [t for t in trades if t.get("is_add_confluence", False) or t.get("add_value") is not None]
@@ -979,6 +1121,11 @@ class TradeAnalysisTab(QWidget):
                 setup_badges.append("📈 9 EMA Up")
             if t.get("is_followed_9_down") or t.get("is_fullback_downtrend"):
                 setup_badges.append("📉 9 EMA Down")
+            if t.get("is_range"):
+                r_txt = t.get("range_type") or "Range"
+                setup_badges.append(f"📦 {r_txt[:8]}")
+            if not t.get("candle_close", True):
+                setup_badges.append("🕯️ Intra")
             if t.get("is_other"):
                 o_txt = t.get("other_setup") or "Other"
                 setup_badges.append(f"📦 {o_txt[:8]}")
@@ -994,14 +1141,24 @@ class TradeAnalysisTab(QWidget):
                 item_setup.setForeground(QColor("#00e676"))
             elif "9 EMA Down" in setup_str:
                 item_setup.setForeground(QColor("#f44336"))
+            elif "Range" in setup_str:
+                item_setup.setForeground(QColor("#00e5ff"))
             elif "Other" in setup_str:
                 item_setup.setForeground(QColor("#b388ff"))
             self.table.setItem(r, 6, item_setup)
 
             # Col 7: Confluences
             confl_badges = []
-            if t.get("is_ak_macd_bb"):
-                confl_badges.append("📊 MACD")
+            macd_col = str(t.get("aa_macd_color", "") or "").upper()
+            is_sq = t.get("is_in_squeeze") or str(t.get("aa_macd_squeeze", "") or "").upper() == "SQUEEZE"
+            sq_tag = "⚡" if is_sq else ""
+            if macd_col == "GREEN":
+                confl_badges.append(f"📊 MACD 🟢{sq_tag}")
+            elif macd_col == "RED":
+                confl_badges.append(f"📊 MACD 🔴{sq_tag}")
+            elif t.get("is_ak_macd_bb") or t.get("is_aa_macd_squeeze"):
+                confl_badges.append(f"📊 MACD {sq_tag}".strip())
+
             if t.get("is_rsi_trendline"):
                 confl_badges.append("📉 RSI")
             if t.get("is_hiranya_buy") or str(t.get("hiranya_signal_dir", "")).upper() == "BUY":
@@ -1013,7 +1170,7 @@ class TradeAnalysisTab(QWidget):
             if t.get("is_vwap_aligned"):
                 confl_badges.append("🌊 VWAP")
             if t.get("is_qqq_confluence"):
-                confl_badges.append("🧭 QQQ")
+                confl_badges.append("🧭 QQQ/SPY")
             if t.get("is_add_confluence") or t.get("add_value") is not None:
                 av = t.get("add_value")
                 if av is not None:
@@ -1122,6 +1279,11 @@ class TradeAnalysisTab(QWidget):
         qqq_s = stats.get("qqq_confluence", zero_stat)
         add_s = stats.get("add_confluence", zero_stat)
         high_s = stats.get("high_confluence", zero_stat)
+        candle_s = stats.get("candle_close", zero_stat)
+        range_s = stats.get("range_market", zero_stat)
+        macd_grn_s = stats.get("aa_macd_green", zero_stat)
+        macd_red_s = stats.get("aa_macd_red", zero_stat)
+        sq_s = stats.get("in_squeeze", zero_stat)
 
         cards_html = (
             f"<div style='display:flex;flex-wrap:wrap;gap:4px;'>"
@@ -1132,12 +1294,17 @@ class TradeAnalysisTab(QWidget):
             f"{_card('B-Trade + 9/21', b_cross_s['win_rate'], b_cross_s['total_pnl'], b_cross_s.get('gross_pnl', 0.0), b_cross_s.get('total_cost', 0.0), b_cross_s['wins'], b_cross_s['losses'], b_cross_s['count'], '#00e5ff')}"
             f"{_card('Follow 9 Up', fb_up_s['win_rate'], fb_up_s['total_pnl'], fb_up_s.get('gross_pnl', 0.0), fb_up_s.get('total_cost', 0.0), fb_up_s['wins'], fb_up_s['losses'], fb_up_s['count'], '#00e676')}"
             f"{_card('Follow 9 Down', fb_down_s['win_rate'], fb_down_s['total_pnl'], fb_down_s.get('gross_pnl', 0.0), fb_down_s.get('total_cost', 0.0), fb_down_s['wins'], fb_down_s['losses'], fb_down_s['count'], '#f44336')}"
+            f"{_card('Candle Close', candle_s['win_rate'], candle_s['total_pnl'], candle_s.get('gross_pnl', 0.0), candle_s.get('total_cost', 0.0), candle_s['wins'], candle_s['losses'], candle_s['count'], '#00e676')}"
+            f"{_card('Range Market', range_s['win_rate'], range_s['total_pnl'], range_s.get('gross_pnl', 0.0), range_s.get('total_cost', 0.0), range_s['wins'], range_s['losses'], range_s['count'], '#00e5ff')}"
+            f"{_card('MACD Green', macd_grn_s['win_rate'], macd_grn_s['total_pnl'], macd_grn_s.get('gross_pnl', 0.0), macd_grn_s.get('total_cost', 0.0), macd_grn_s['wins'], macd_grn_s['losses'], macd_grn_s['count'], '#00e676')}"
+            f"{_card('MACD Red', macd_red_s['win_rate'], macd_red_s['total_pnl'], macd_red_s.get('gross_pnl', 0.0), macd_red_s.get('total_cost', 0.0), macd_red_s['wins'], macd_red_s['losses'], macd_red_s['count'], '#f44336')}"
+            f"{_card('In Squeeze', sq_s['win_rate'], sq_s['total_pnl'], sq_s.get('gross_pnl', 0.0), sq_s.get('total_cost', 0.0), sq_s['wins'], sq_s['losses'], sq_s['count'], '#ffeb3b')}"
             f"{_card('HSM Buy', hir_buy_s['win_rate'], hir_buy_s['total_pnl'], hir_buy_s.get('gross_pnl', 0.0), hir_buy_s.get('total_cost', 0.0), hir_buy_s['wins'], hir_buy_s['losses'], hir_buy_s['count'], '#00e676')}"
             f"{_card('HSM Sell', hir_sell_s['win_rate'], hir_sell_s['total_pnl'], hir_sell_s.get('gross_pnl', 0.0), hir_sell_s.get('total_cost', 0.0), hir_sell_s['wins'], hir_sell_s['losses'], hir_sell_s['count'], '#f44336')}"
-            f"{_card('AK MACD BB', ak_s['win_rate'], ak_s['total_pnl'], ak_s.get('gross_pnl', 0.0), ak_s.get('total_cost', 0.0), ak_s['wins'], ak_s['losses'], ak_s['count'], '#00e5ff')}"
+            f"{_card('AK/AA MACD', ak_s['win_rate'], ak_s['total_pnl'], ak_s.get('gross_pnl', 0.0), ak_s.get('total_cost', 0.0), ak_s['wins'], ak_s['losses'], ak_s['count'], '#00e5ff')}"
             f"{_card('RSI Trendline', rsi_s['win_rate'], rsi_s['total_pnl'], rsi_s.get('gross_pnl', 0.0), rsi_s.get('total_cost', 0.0), rsi_s['wins'], rsi_s['losses'], rsi_s['count'], '#00e5ff')}"
             f"{_card('VWAP Aligned', vwap_s['win_rate'], vwap_s['total_pnl'], vwap_s.get('gross_pnl', 0.0), vwap_s.get('total_cost', 0.0), vwap_s['wins'], vwap_s['losses'], vwap_s['count'], '#00e5ff')}"
-            f"{_card('QQQ Confluence', qqq_s['win_rate'], qqq_s['total_pnl'], qqq_s.get('gross_pnl', 0.0), qqq_s.get('total_cost', 0.0), qqq_s['wins'], qqq_s['losses'], qqq_s['count'], '#00e5ff')}"
+            f"{_card('QQQ/SPY Confl', qqq_s['win_rate'], qqq_s['total_pnl'], qqq_s.get('gross_pnl', 0.0), qqq_s.get('total_cost', 0.0), qqq_s['wins'], qqq_s['losses'], qqq_s['count'], '#00e5ff')}"
             f"{_card('ADD Breadth', add_s['win_rate'], add_s['total_pnl'], add_s.get('gross_pnl', 0.0), add_s.get('total_cost', 0.0), add_s['wins'], add_s['losses'], add_s['count'], '#00e5ff')}"
             f"{_card('High Confl (4+)', high_s['win_rate'], high_s['total_pnl'], high_s.get('gross_pnl', 0.0), high_s.get('total_cost', 0.0), high_s['wins'], high_s['losses'], high_s['count'], '#00e676')}"
             f"{_card('VWAP Exit', vwap_touch_s['win_rate'], vwap_touch_s['total_pnl'], vwap_touch_s.get('gross_pnl', 0.0), vwap_touch_s.get('total_cost', 0.0), vwap_touch_s['wins'], vwap_touch_s['losses'], vwap_touch_s['count'], '#00e5ff')}"
@@ -1200,14 +1367,60 @@ class TradeAnalysisTab(QWidget):
         self.edit_cost.setValue(float(target.get("trade_cost", qty_val * 1.0)))
         self._update_net_pnl_preview()
 
-        # Conditions
-        # Conditions
+        # Conditions & Setup Classification
         self.cb_jimmy_rec.setChecked(bool(target.get("is_jimmy_recommended", False)))
         self.cb_b_trade.setChecked(bool(target.get("is_b_trade", False)))
         self.cb_9_21.setChecked(bool(target.get("is_9_21_cross", False)))
         self.cb_followed_9_up.setChecked(bool(target.get("is_followed_9_up", False) or target.get("is_fullback_uptrend", False)))
         self.cb_followed_9_down.setChecked(bool(target.get("is_followed_9_down", False) or target.get("is_fullback_downtrend", False)))
-        self.cb_ak_macd.setChecked(bool(target.get("is_ak_macd_bb", False)))
+        
+        # Candle Close: Yes or No
+        if target.get("candle_close", True):
+            self.radio_candle_close_yes.setChecked(True)
+        else:
+            self.radio_candle_close_no.setChecked(True)
+
+        # Market Structure: Range or Not, and if Range
+        is_rng = bool(target.get("is_range", False))
+        if is_rng:
+            self.radio_range_is.setChecked(True)
+            self.range_sub_widget.setEnabled(True)
+        else:
+            self.radio_range_not.setChecked(True)
+            self.range_sub_widget.setEnabled(False)
+        r_type = str(target.get("range_type", "") or "")
+        r_idx = -1
+        for i in range(self.combo_range_type.count()):
+            if r_type and (r_type in self.combo_range_type.itemText(i) or self.combo_range_type.itemText(i) in r_type):
+                r_idx = i
+                break
+        if r_idx >= 0:
+            self.combo_range_type.setCurrentIndex(r_idx)
+        elif r_type:
+            self.combo_range_type.setCurrentIndex(4)  # Custom Range Setup
+        else:
+            self.combo_range_type.setCurrentIndex(0)
+        self.edit_range_detail.setText(str(target.get("range_detail", "") or ""))
+
+        # AA MACD Squeeze & AK MACD BB
+        macd_c = str(target.get("aa_macd_color", "") or "").upper()
+        if macd_c == "GREEN":
+            self.combo_aa_macd_color.setCurrentIndex(1)
+        elif macd_c == "RED":
+            self.combo_aa_macd_color.setCurrentIndex(2)
+        else:
+            self.combo_aa_macd_color.setCurrentIndex(0)
+
+        macd_sq = str(target.get("aa_macd_squeeze", "") or "").upper()
+        if target.get("is_in_squeeze") or macd_sq == "SQUEEZE":
+            self.combo_aa_macd_squeeze.setCurrentIndex(1)
+        elif macd_sq == "NOT_SQUEEZE":
+            self.combo_aa_macd_squeeze.setCurrentIndex(2)
+        else:
+            self.combo_aa_macd_squeeze.setCurrentIndex(0)
+
+        is_macd_active = bool(target.get("is_ak_macd_bb", False) or target.get("is_aa_macd_squeeze", False) or macd_c in ("GREEN", "RED") or macd_sq != "")
+        self.cb_ak_macd.setChecked(is_macd_active)
         self.cb_rsi_trendline.setChecked(bool(target.get("is_rsi_trendline", False)))
 
         # Hiranya Buy / Sell
@@ -1221,6 +1434,13 @@ class TradeAnalysisTab(QWidget):
 
         self.cb_vwap.setChecked(bool(target.get("is_vwap_aligned", False)))
         self.cb_qqq.setChecked(bool(target.get("is_qqq_confluence", False)))
+        q_type = str(target.get("qqq_confluence_type", "") or "")
+        q_idx = -1
+        for i in range(self.combo_qqq_confluence.count()):
+            if q_type and (q_type in self.combo_qqq_confluence.itemText(i) or self.combo_qqq_confluence.itemText(i) in q_type):
+                q_idx = i
+                break
+        self.combo_qqq_confluence.setCurrentIndex(max(0, q_idx if q_idx >= 0 else (1 if target.get("is_qqq_confluence") else 0)))
 
         # Load ADD Value
         add_v = target.get("add_value")
@@ -1293,6 +1513,25 @@ class TradeAnalysisTab(QWidget):
 
         self.confluence_badge.setText(f"✨ <b>Confluence Score:</b> {score} / 6 Rules Aligned — {quality}")
 
+    def _on_aa_macd_cb_toggled(self, checked: bool):
+        if not checked:
+            self.combo_aa_macd_color.setCurrentIndex(0)
+            self.combo_aa_macd_squeeze.setCurrentIndex(0)
+        elif self.combo_aa_macd_color.currentIndex() == 0 and self.combo_aa_macd_squeeze.currentIndex() == 0:
+            self.combo_aa_macd_color.setCurrentIndex(1)
+        self._update_confluence_score_display()
+
+    def _on_aa_macd_changed(self):
+        if self.combo_aa_macd_color.currentIndex() > 0 or self.combo_aa_macd_squeeze.currentIndex() > 0:
+            if not self.cb_ak_macd.isChecked():
+                self.cb_ak_macd.setChecked(True)
+        self._update_confluence_score_display()
+
+    def _on_qqq_combo_changed(self):
+        if self.combo_qqq_confluence.currentIndex() > 0 and not self.cb_qqq.isChecked():
+            self.cb_qqq.setChecked(True)
+        self._update_confluence_score_display()
+
     def _set_early_amount(self, amt: float):
         self.cb_early_exit.setChecked(True)
         self.edit_early_amt.setValue(amt)
@@ -1332,11 +1571,23 @@ class TradeAnalysisTab(QWidget):
         self.cb_9_21.setChecked(False)
         self.cb_followed_9_up.setChecked(False)
         self.cb_followed_9_down.setChecked(False)
+
+        # Reset Candle Close & Range
+        self.radio_candle_close_yes.setChecked(True)
+        self.radio_range_not.setChecked(True)
+        self.combo_range_type.setCurrentIndex(0)
+        self.edit_range_detail.clear()
+        self.range_sub_widget.setEnabled(False)
+
+        # Reset AA MACD Squeeze & Confluences
         self.cb_ak_macd.setChecked(False)
+        self.combo_aa_macd_color.setCurrentIndex(0)
+        self.combo_aa_macd_squeeze.setCurrentIndex(0)
         self.cb_rsi_trendline.setChecked(False)
         self.combo_hiranya.setCurrentIndex(0)
         self.cb_vwap.setChecked(False)
         self.cb_qqq.setChecked(False)
+        self.combo_qqq_confluence.setCurrentIndex(0)
         self.cb_add.setChecked(False)
         self.edit_add_val.clear()
         self._update_confluence_score_display()
@@ -1371,7 +1622,24 @@ class TradeAnalysisTab(QWidget):
         is_cross = self.cb_9_21.isChecked()
         is_f9_up = self.cb_followed_9_up.isChecked()
         is_f9_down = self.cb_followed_9_down.isChecked()
+
+        # Candle Close
+        candle_close = self.radio_candle_close_yes.isChecked()
+
+        # Market Structure: Range or Not, and if Range
+        is_range = self.radio_range_is.isChecked()
+        range_type = self.combo_range_type.currentText() if is_range else ""
+        range_detail = self.edit_range_detail.text().strip() if is_range else ""
+
+        # AA MACD Squeeze
         is_ak_macd = self.cb_ak_macd.isChecked()
+        aa_c_idx = self.combo_aa_macd_color.currentIndex()
+        aa_macd_color = "GREEN" if aa_c_idx == 1 else ("RED" if aa_c_idx == 2 else "")
+        aa_sq_idx = self.combo_aa_macd_squeeze.currentIndex()
+        aa_macd_squeeze = "SQUEEZE" if aa_sq_idx == 1 else ("NOT_SQUEEZE" if aa_sq_idx == 2 else "")
+        is_in_sq = (aa_sq_idx == 1)
+        is_aa_macd = is_ak_macd or (aa_c_idx > 0) or (aa_sq_idx > 0)
+
         is_rsi = self.cb_rsi_trendline.isChecked()
         
         h_idx = self.combo_hiranya.currentIndex()
@@ -1382,6 +1650,8 @@ class TradeAnalysisTab(QWidget):
 
         is_vwap = self.cb_vwap.isChecked()
         is_qqq = self.cb_qqq.isChecked()
+        qqq_type = self.combo_qqq_confluence.currentText() if is_qqq else ""
+
         is_add = self.cb_add.isChecked()
         raw_add_str = self.edit_add_val.text().strip()
         add_val_num = None
@@ -1429,7 +1699,16 @@ class TradeAnalysisTab(QWidget):
             "is_followed_9_down": is_f9_down,
             "is_fullback_uptrend": is_f9_up,
             "is_fullback_downtrend": is_f9_down,
-            "is_ak_macd_bb": is_ak_macd,
+            "candle_close": candle_close,
+            "is_candle_close": candle_close,
+            "is_range": is_range,
+            "range_type": range_type,
+            "range_detail": range_detail,
+            "is_ak_macd_bb": is_aa_macd or is_ak_macd,
+            "is_aa_macd_squeeze": is_aa_macd,
+            "aa_macd_color": aa_macd_color,
+            "aa_macd_squeeze": aa_macd_squeeze,
+            "is_in_squeeze": is_in_sq,
             "is_rsi_trendline": is_rsi,
             "is_hiranya_signal": is_hiranya,
             "is_hiranya_buy": is_h_buy,
@@ -1437,6 +1716,7 @@ class TradeAnalysisTab(QWidget):
             "hiranya_signal_dir": h_dir,
             "is_vwap_aligned": is_vwap,
             "is_qqq_confluence": is_qqq,
+            "qqq_confluence_type": qqq_type,
             "is_add_confluence": is_add,
             "add_value": add_val_num,
             "is_other": is_other,
@@ -1532,9 +1812,11 @@ class TradeAnalysisTab(QWidget):
                     "Gross P&L", "Trade Cost", "Net P&L",
                     "Is Jimmy Recommended", "Is B-Trade", "Is 9/21 Cross",
                     "Followed 9 EMA Up", "Followed 9 EMA Down",
-                    "Is AK MACD BB", "Is RSI Trendline",
-                    "Hiranya Signal Dir", "Is Hiranya Signal",
-                    "Is VWAP Aligned", "Is QQQ Confluence", "Is ADD Confluence", "ADD Value",
+                    "Candle Close", "Is Range", "Range Type", "Range Detail",
+                    "Is AK MACD BB", "AA MACD Color", "AA MACD Squeeze", "In Squeeze",
+                    "Is RSI Trendline", "Hiranya Signal Dir", "Is Hiranya Signal",
+                    "Is VWAP Aligned", "Is QQQ Confluence", "QQQ Confluence Type",
+                    "Is ADD Confluence", "ADD Value",
                     "Is Other", "Other Setup",
                     "Exit Reason", "Early Exit", "Direction Right", "Notes"
                 ])
@@ -1559,12 +1841,20 @@ class TradeAnalysisTab(QWidget):
                         1 if t.get("is_9_21_cross") else 0,
                         1 if (t.get("is_followed_9_up") or t.get("is_fullback_uptrend")) else 0,
                         1 if (t.get("is_followed_9_down") or t.get("is_fullback_downtrend")) else 0,
-                        1 if t.get("is_ak_macd_bb") else 0,
+                        1 if t.get("candle_close", True) else 0,
+                        1 if t.get("is_range") else 0,
+                        t.get("range_type", ""),
+                        t.get("range_detail", ""),
+                        1 if (t.get("is_ak_macd_bb") or t.get("is_aa_macd_squeeze")) else 0,
+                        t.get("aa_macd_color", ""),
+                        t.get("aa_macd_squeeze", ""),
+                        1 if t.get("is_in_squeeze") else 0,
                         1 if t.get("is_rsi_trendline") else 0,
                         t.get("hiranya_signal_dir") or ("BUY" if t.get("is_hiranya_buy") else ("SELL" if t.get("is_hiranya_sell") else "")),
                         1 if (t.get("is_hiranya_signal") or t.get("is_hiranya_buy") or t.get("is_hiranya_sell")) else 0,
                         1 if t.get("is_vwap_aligned") else 0,
                         1 if t.get("is_qqq_confluence") else 0,
+                        t.get("qqq_confluence_type", ""),
                         1 if t.get("is_add_confluence") else 0,
                         t.get("add_value", "") if t.get("add_value") is not None else "",
                         1 if t.get("is_other") else 0,

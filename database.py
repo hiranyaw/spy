@@ -873,11 +873,21 @@ class Database:
                     ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_vwap_touch_exit BOOLEAN DEFAULT FALSE;
                     ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_add_confluence BOOLEAN DEFAULT FALSE;
                     ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS add_value DOUBLE PRECISION;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS candle_close BOOLEAN DEFAULT TRUE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_range BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS range_type VARCHAR(100) DEFAULT '';
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS range_detail VARCHAR(100) DEFAULT '';
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_aa_macd_squeeze BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS aa_macd_color VARCHAR(20) DEFAULT '';
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS aa_macd_squeeze VARCHAR(50) DEFAULT '';
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_in_squeeze BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS is_qqq_confluence BOOLEAN DEFAULT FALSE;
+                    ALTER TABLE trade_classifications ADD COLUMN IF NOT EXISTS qqq_confluence_type VARCHAR(50) DEFAULT '';
                 """)
         except Exception as e:
             logger.error(f"Error ensuring trade_classifications table: {e}")
 
-    def save_trade_classification(self, trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", is_fullback_uptrend=False, is_fullback_downtrend=False, is_other=False, other_setup="", is_jimmy_recommended=False, is_followed_9_up=False, is_followed_9_down=False, is_hiranya_buy=False, is_hiranya_sell=False, hiranya_signal_dir="", exit_reason="TARGET", is_vwap_touch_exit=False, is_add_confluence=False, add_value=None):
+    def save_trade_classification(self, trade_key, filename, trade_index, is_b_trade, is_9_21_cross, early_exit, direction_right, notes="", is_fullback_uptrend=False, is_fullback_downtrend=False, is_other=False, other_setup="", is_jimmy_recommended=False, is_followed_9_up=False, is_followed_9_down=False, is_hiranya_buy=False, is_hiranya_sell=False, hiranya_signal_dir="", exit_reason="TARGET", is_vwap_touch_exit=False, is_add_confluence=False, add_value=None, candle_close=True, is_range=False, range_type="", range_detail="", is_aa_macd_squeeze=False, aa_macd_color="", aa_macd_squeeze="", is_in_squeeze=False, is_qqq_confluence=False, qqq_confluence_type=""):
         self.ensure_connected()
         self._ensure_trade_classifications_table()
         try:
@@ -890,9 +900,12 @@ class Database:
                         is_jimmy_recommended, is_followed_9_up, is_followed_9_down,
                         is_hiranya_buy, is_hiranya_sell, hiranya_signal_dir,
                         exit_reason, is_vwap_touch_exit, is_add_confluence, add_value,
+                        candle_close, is_range, range_type, range_detail,
+                        is_aa_macd_squeeze, aa_macd_color, aa_macd_squeeze, is_in_squeeze,
+                        is_qqq_confluence, qqq_confluence_type,
                         updated_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                     ON CONFLICT (trade_key) DO UPDATE SET
                         filename = EXCLUDED.filename,
                         trade_index = EXCLUDED.trade_index,
@@ -915,6 +928,16 @@ class Database:
                         is_vwap_touch_exit = EXCLUDED.is_vwap_touch_exit,
                         is_add_confluence = EXCLUDED.is_add_confluence,
                         add_value = EXCLUDED.add_value,
+                        candle_close = EXCLUDED.candle_close,
+                        is_range = EXCLUDED.is_range,
+                        range_type = EXCLUDED.range_type,
+                        range_detail = EXCLUDED.range_detail,
+                        is_aa_macd_squeeze = EXCLUDED.is_aa_macd_squeeze,
+                        aa_macd_color = EXCLUDED.aa_macd_color,
+                        aa_macd_squeeze = EXCLUDED.aa_macd_squeeze,
+                        is_in_squeeze = EXCLUDED.is_in_squeeze,
+                        is_qqq_confluence = EXCLUDED.is_qqq_confluence,
+                        qqq_confluence_type = EXCLUDED.qqq_confluence_type,
                         updated_at = NOW();
                 """, (
                     trade_key, filename, trade_index, is_b_trade, is_9_21_cross,
@@ -922,7 +945,10 @@ class Database:
                     early_exit, direction_right, notes,
                     is_jimmy_recommended, is_followed_9_up, is_followed_9_down,
                     is_hiranya_buy, is_hiranya_sell, hiranya_signal_dir,
-                    exit_reason, is_vwap_touch_exit, is_add_confluence, add_value
+                    exit_reason, is_vwap_touch_exit, is_add_confluence, add_value,
+                    candle_close, is_range, range_type, range_detail,
+                    is_aa_macd_squeeze, aa_macd_color, aa_macd_squeeze, is_in_squeeze,
+                    is_qqq_confluence, qqq_confluence_type
                 ))
             return True
         except Exception as e:

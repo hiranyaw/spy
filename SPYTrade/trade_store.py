@@ -85,7 +85,23 @@ def save_or_update_trade(trade: dict[str, Any]) -> dict[str, Any]:
     trade["is_fullback_uptrend"] = is_f9_up
     trade["is_fullback_downtrend"] = is_f9_down
 
-    trade["is_ak_macd_bb"] = bool(trade.get("is_ak_macd_bb", False))
+    # AA MACD Squeeze & AK MACD BB
+    aa_color = str(trade.get("aa_macd_color", "") or "").upper().strip()
+    aa_sq = str(trade.get("aa_macd_squeeze", "") or "").upper().strip()
+    is_in_sq = bool(trade.get("is_in_squeeze", False) or aa_sq == "SQUEEZE")
+    trade["aa_macd_color"] = aa_color
+    trade["aa_macd_squeeze"] = aa_sq
+    trade["is_in_squeeze"] = is_in_sq
+
+    # Rule checkbox flag: backwards compatible between is_aa_macd_squeeze and is_ak_macd_bb
+    if "is_aa_macd_squeeze" in trade:
+        is_rule1 = bool(trade["is_aa_macd_squeeze"])
+    elif "is_ak_macd_bb" in trade:
+        is_rule1 = bool(trade["is_ak_macd_bb"])
+    else:
+        is_rule1 = bool(aa_color in ("GREEN", "RED") or is_in_sq)
+    trade["is_aa_macd_squeeze"] = is_rule1
+    trade["is_ak_macd_bb"] = is_rule1
     trade["is_rsi_trendline"] = bool(trade.get("is_rsi_trendline", False))
 
     # Hiranya Signal Monitor: Buy or Sell
@@ -114,6 +130,18 @@ def save_or_update_trade(trade: dict[str, Any]) -> dict[str, Any]:
 
     trade["is_vwap_aligned"] = bool(trade.get("is_vwap_aligned", False))
     trade["is_qqq_confluence"] = bool(trade.get("is_qqq_confluence", False))
+    trade["qqq_confluence_type"] = str(trade.get("qqq_confluence_type", "") or "").strip()
+
+    # Candle Close: Yes or No
+    trade["candle_close"] = bool(trade.get("candle_close", True))
+    trade["is_candle_close"] = trade["candle_close"]
+
+    # Market Structure: Range or Not, and if Range
+    is_range = bool(trade.get("is_range", False))
+    trade["is_range"] = is_range
+    trade["range_type"] = str(trade.get("range_type", "") or "").strip()
+    trade["range_detail"] = str(trade.get("range_detail", "") or "").strip()
+
     trade["is_add_confluence"] = bool(trade.get("is_add_confluence", False) or trade["add_value"] is not None)
     trade["is_other"] = bool(trade.get("is_other", False))
     trade["other_setup"] = str(trade.get("other_setup", "") or "").strip()
@@ -290,6 +318,20 @@ def get_condition_stats(year: int | None = None, month: int | None = None) -> di
 
     # Checklist indicator confluence subsets
     ak_macd_bb = [t for t in trades if t.get("is_ak_macd_bb", False)]
+    aa_macd_squeeze = [t for t in trades if t.get("is_aa_macd_squeeze", False) or t.get("is_ak_macd_bb", False)]
+    aa_macd_green = [t for t in trades if str(t.get("aa_macd_color", "")).upper() == "GREEN"]
+    aa_macd_red = [t for t in trades if str(t.get("aa_macd_color", "")).upper() == "RED"]
+    in_squeeze = [t for t in trades if t.get("is_in_squeeze", False) or str(t.get("aa_macd_squeeze", "")).upper() == "SQUEEZE"]
+    not_in_squeeze = [t for t in trades if str(t.get("aa_macd_squeeze", "")).upper() == "NOT_SQUEEZE"]
+
+    # Candle Close subsets
+    candle_close = [t for t in trades if t.get("candle_close", True)]
+    candle_no_close = [t for t in trades if not t.get("candle_close", True)]
+
+    # Market Structure: Range vs Trending
+    range_market = [t for t in trades if t.get("is_range", False)]
+    trending_market = [t for t in trades if not t.get("is_range", False)]
+
     rsi_trendline = [t for t in trades if t.get("is_rsi_trendline", False)]
     hiranya_signal = [t for t in trades if t.get("is_hiranya_signal", False)]
     hiranya_buy = [t for t in trades if t.get("is_hiranya_buy", False) or str(t.get("hiranya_signal_dir", "")).upper() == "BUY"]
@@ -330,7 +372,16 @@ def get_condition_stats(year: int | None = None, month: int | None = None) -> di
         "fullback_uptrend": _calc_stats_for_subset(followed_9_up),
         "fullback_downtrend": _calc_stats_for_subset(followed_9_down),
         "other": _calc_stats_for_subset(other_setups),
+        "candle_close": _calc_stats_for_subset(candle_close),
+        "candle_no_close": _calc_stats_for_subset(candle_no_close),
+        "range_market": _calc_stats_for_subset(range_market),
+        "trending_market": _calc_stats_for_subset(trending_market),
         "ak_macd_bb": _calc_stats_for_subset(ak_macd_bb),
+        "aa_macd_squeeze": _calc_stats_for_subset(aa_macd_squeeze),
+        "aa_macd_green": _calc_stats_for_subset(aa_macd_green),
+        "aa_macd_red": _calc_stats_for_subset(aa_macd_red),
+        "in_squeeze": _calc_stats_for_subset(in_squeeze),
+        "not_in_squeeze": _calc_stats_for_subset(not_in_squeeze),
         "rsi_trendline": _calc_stats_for_subset(rsi_trendline),
         "hiranya_signal": _calc_stats_for_subset(hiranya_signal),
         "hiranya_buy": _calc_stats_for_subset(hiranya_buy),
@@ -416,7 +467,15 @@ def import_trades_from_csv(file_path: str | pathlib.Path) -> tuple[int, int, lis
     hsm_sell_col = find_col(["hiranya sell", "hsm sell", "hiranya_sell", "hsm_sell"])
     hsm_dir_col = find_col(["hiranya signal dir", "hiranya dir", "hsm dir", "hiranya action", "hiranya signal action", "hiranya buy/sell"])
     vwap_col = find_col(["vwap_aligned", "vwap aligned", "vwap cross", "vwap_cross", "vwap"])
-    qqq_col = find_col(["qqq_confluence", "qqq confluence", "qqq direction", "qqq_direction", "qqq"])
+    qqq_col = find_col(["qqq_confluence", "qqq confluence", "qqq direction", "qqq_direction", "qqq/spy confluence", "qqq / spy confluence", "qqq"])
+    qqq_type_col = find_col(["qqq confluence type", "qqq type", "qqq_type"])
+    candle_close_col = find_col(["candle close", "candle_close", "candle close yes or no", "candle_close_yes", "closed candle"])
+    is_range_col = find_col(["is range", "range or not", "is_range", "range"])
+    range_type_col = find_col(["range type", "range setup", "if range", "range_type"])
+    range_detail_col = find_col(["range detail", "range level", "range_detail"])
+    aa_macd_color_col = find_col(["aa macd color", "aa_macd_color", "macd color", "aa macd green or red"])
+    aa_macd_squeeze_col = find_col(["aa macd squeeze", "aa_macd_squeeze", "macd squeeze", "squeeze or not"])
+    in_squeeze_col = find_col(["in squeeze", "is in squeeze", "is_in_squeeze"])
     add_col = find_col(["add_confluence", "add confluence", "add direction", "add_direction", "nyse add", "add breadth", "add"])
     add_val_col = find_col(["add_value", "add value", "nyse add value", "add reading", "add val", "$add value", "$add", "add level"])
     other_col = find_col(["other setup", "other", "is_other"])
@@ -557,6 +616,25 @@ def import_trades_from_csv(file_path: str | pathlib.Path) -> tuple[int, int, lis
         is_early = parse_bool(get_val(early_col), False)
         dir_right = parse_bool(get_val(dir_col), True if pnl_val >= 0 else False)
 
+        # Candle Close
+        candle_close = parse_bool(get_val(candle_close_col), True)
+
+        # Market Structure: Range or Not, and if Range
+        is_range = parse_bool(get_val(is_range_col), False)
+        range_type = get_val(range_type_col, "")
+        range_detail = get_val(range_detail_col, "")
+        if range_type and not is_range:
+            is_range = True
+
+        # QQQ / SPY Confluence Type
+        qqq_type = get_val(qqq_type_col, "")
+
+        # AA MACD Squeeze
+        aa_macd_color = get_val(aa_macd_color_col, "").upper()
+        aa_macd_squeeze = get_val(aa_macd_squeeze_col, "").upper()
+        is_in_sq = parse_bool(get_val(in_squeeze_col), False) or ("SQUEEZE" in aa_macd_squeeze and "NOT" not in aa_macd_squeeze)
+        is_aa_macd = is_ak_macd or (aa_macd_color in ("GREEN", "RED")) or is_in_sq
+
         # Exit Reason / VWAP Touch
         raw_exit_r = get_val(exit_reason_col).upper()
         is_vt = parse_bool(get_val(vwap_touch_col), False)
@@ -593,7 +671,11 @@ def import_trades_from_csv(file_path: str | pathlib.Path) -> tuple[int, int, lis
             "is_followed_9_down": is_fb_down,
             "is_fullback_uptrend": is_fb_up,
             "is_fullback_downtrend": is_fb_down,
-            "is_ak_macd_bb": is_ak_macd,
+            "is_ak_macd_bb": is_aa_macd or is_ak_macd,
+            "is_aa_macd_squeeze": is_aa_macd,
+            "aa_macd_color": aa_macd_color,
+            "aa_macd_squeeze": "SQUEEZE" if is_in_sq else ("NOT_SQUEEZE" if "NOT" in aa_macd_squeeze else aa_macd_squeeze),
+            "is_in_squeeze": is_in_sq,
             "is_rsi_trendline": is_rsi,
             "is_hiranya_signal": is_hiranya,
             "is_hiranya_buy": is_h_buy,
@@ -601,6 +683,12 @@ def import_trades_from_csv(file_path: str | pathlib.Path) -> tuple[int, int, lis
             "hiranya_signal_dir": "BUY" if is_h_buy else ("SELL" if is_h_sell else ""),
             "is_vwap_aligned": is_vwap,
             "is_qqq_confluence": is_qqq,
+            "qqq_confluence_type": qqq_type,
+            "candle_close": candle_close,
+            "is_candle_close": candle_close,
+            "is_range": is_range,
+            "range_type": range_type,
+            "range_detail": range_detail,
             "is_add_confluence": is_add,
             "add_value": add_value_parsed,
             "is_other": is_other,
