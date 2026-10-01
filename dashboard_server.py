@@ -863,9 +863,10 @@ def trendline_breaks_endpoint():
 def api_hsm_script():
     """Return the raw TradingView Pine Script for Hiranya Signal Monitor v1.19"""
     try:
-        script_path = BASE / "ak_macd_bb_v1.19.pine"
-        if script_path.exists():
-            content = script_path.read_text(encoding="utf-8", errors="replace")
+        script_path = os.path.join(BASE, "ak_macd_bb_v1.19.pine")
+        if os.path.exists(script_path):
+            with open(script_path, "r", encoding="utf-8", errors="replace") as f:
+                content = f.read()
             return jsonify({
                 "status": "success",
                 "title": "AK MACD BB + QQQ+ADD 1MIN TREND [Hiranya] v1.19",
@@ -908,8 +909,8 @@ def api_hsm_backtest():
         "max_bars": 5
     }
     try:
-        csv_path = BASE / "backtest_ak_macd_v119.csv"
-        if not csv_path.exists():
+        csv_path = os.path.join(BASE, "backtest_ak_macd_v119.csv")
+        if not os.path.exists(csv_path):
             return jsonify({
                 "status": "success",
                 "summary": fallback_summary,
