@@ -1,0 +1,169 @@
+//@version=5
+indicator("AK MACD BB + QQQ+ADD 1MIN TREND [Hiranya] v1.19", overlay=true, max_bars_back=500)
+
+// 5-CONFLUENCE TREND SYSTEM - MACD + QQQ/ADD 1MIN + SPY 5MIN/1MIN — v1.19
+// BIDIRECTIONAL: 5/5 when all UP (BUY) or all DOWN (SELL)
+
+// MACD inputs
+macdFast   = input.int(12,   "MACD Fast",    group="MACD")
+macdSlow   = input.int(26,   "MACD Slow",    group="MACD")
+macdSignal = input.int(9,    "MACD Signal",  group="MACD")
+bbLength   = input.int(20,   "BB Length",    group="MACD")
+bbMult     = input.float(2.0,"BB Mult",      group="MACD")
+
+// Supertrend inputs
+stAtrLen   = input.int(10,   "ST ATR Len",    group="Supertrend")
+stFactor   = input.float(3.0,"ST Factor",     group="Supertrend")
+
+// Level inputs
+lookbackLen = input.int(20, "Lookback Bars", group="Levels")
+
+showBuy = input.bool(true, "Show Buy", group="Display")
+showSell = input.bool(true, "Show Sell", group="Display")
+colorCandles = input.bool(true, "Color Candles", group="Display")
+showTable = input.bool(true, "Show Table", group="Display")
+
+// MACD with Bollinger Bands
+[macdLine, signalLine, histLine] = ta.macd(close, macdFast, macdSlow, macdSignal)
+bbBasis = ta.sma(histLine, bbLength)
+bbDev = bbMult * ta.stdev(histLine, bbLength)
+macdGreenDot = (histLine > 0 and histLine > histLine[1]) or histLine >= bbBasis + bbDev
+macdRedDot = not macdGreenDot
+
+// Supertrend (SPY 1-MIN on chart)
+[stLine, stDir] = ta.supertrend(stFactor, stAtrLen)
+stUp = stDir < 0
+
+// Plot Supertrend on chart
+stColor = stUp ? color.new(color.green, 60) : color.new(color.red, 60)
+plot(stLine, "Supertrend", color=stColor, linewidth=2)
+
+// Key Levels
+recentHigh = ta.highest(high, lookbackLen)
+recentLow = ta.lowest(low, lookbackLen)
+currentPrice = close
+
+// Time to close calculation - updates on every tick
+barOpenTime = time
+secondsIntoBar = (timenow - barOpenTime) / 1000
+secondsRemaining = 60 - secondsIntoBar
+timeRemaining = math.max(0, secondsRemaining)
+
+// Helper: Calculate Supertrend direction for any symbol/timeframe
+calcSTDir(sym, tf) =>
+    [st, dir] = request.security(sym, tf, ta.supertrend(stFactor, stAtrLen), lookahead=barmerge.lookahead_off)
+    dir < 0
+
+// QQQ 1-MIN TREND - Check current candle vs previous candle
+qqqValue = request.security("QQQ", "1", close, lookahead=barmerge.lookahead_off)
+qqqValuePrev = request.security("QQQ", "1", close[1], lookahead=barmerge.lookahead_off)
+qqqUp1 = qqqValue > qqqValuePrev
+
+// ADD 1-MIN TREND - Check current candle vs previous candle
+addValue = request.security("USI:ADD", "1", close, lookahead=barmerge.lookahead_off)
+addValuePrev = request.security("USI:ADD", "1", close[1], lookahead=barmerge.lookahead_off)
+addUp1 = addValue > addValuePrev
+
+// SPY 5-MIN TREND
+spyUp5 = calcSTDir("SPY", "5")
+
+// SPY 1-MIN TREND (current chart)
+spyUp1 = stUp
+
+// BIDIRECTIONAL CONFLUENCE: Count alignment (all up OR all down)
+bullCount = (macdGreenDot ? 1 : 0) + (qqqUp1 ? 1 : 0) + (addUp1 ? 1 : 0) + (spyUp5 ? 1 : 0) + (spyUp1 ? 1 : 0)
+bearCount = (macdRedDot ? 1 : 0) + (not qqqUp1 ? 1 : 0) + (not addUp1 ? 1 : 0) + (not spyUp5 ? 1 : 0) + (not spyUp1 ? 1 : 0)
+conf = math.max(bullCount, bearCount)
+isBullish = bullCount > bearCount
+
+// BUY SIGNAL: ALL 5 UP
+buySignal = macdGreenDot and qqqUp1 and addUp1 and spyUp5 and spyUp1
+// SELL SIGNAL: ALL 5 DOWN
+sellSignal = macdRedDot and (not qqqUp1) and (not addUp1) and (not spyUp5) and (not spyUp1)
+buyClean = buySignal and not buySignal[1]
+sellClean = sellSignal and not sellSignal[1]
+
+// Plot BUY/SELL signals
+plotshape(showBuy and buyClean, title="BUY", location=location.belowbar, style=shape.triangleup, color=color.lime, size=size.large, text="BUY", textcolor=color.white)
+plotshape(showSell and sellClean, title="SELL", location=location.abovebar, style=shape.triangledown, color=color.red, size=size.large, text="SELL", textcolor=color.white)
+
+// Color candles
+barcolor(colorCandles and buySignal ? color.new(color.lime, 10) : na)
+barcolor(colorCandles and sellSignal ? color.new(color.red, 10) : na)
+
+// TABLE - 5 CONFLUENCE + LEVELS + TIME WITH TOOLTIPS
+var table dashTable = na
+
+if showTable
+    if na(dashTable)
+        dashTable := table.new(position.top_right, 5, 12, border_color=color.white, border_width=3)
+
+    // SIGNAL ROW
+    table.cell(dashTable, 0, 0, "SIGNAL", text_size=size.large, bgcolor=color.new(color.gray, 50), text_color=color.white, tooltip="Trade signal direction based on confluence")
+    sigColor = isBullish ? color.new(color.green, 0) : color.new(color.red, 0)
+    sigText = isBullish ? "BUY" : "SELL"
+    table.cell(dashTable, 1, 0, sigText, text_size=size.large, bgcolor=sigColor, text_color=color.white, tooltip="BUY when 5/5 all up, SELL when 5/5 all down")
+
+    // MACD
+    table.cell(dashTable, 0, 1, "MACD", text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="MACD histogram with BB envelope - green=bullish, red=bearish")
+    macdBG = macdGreenDot ? color.new(color.green, 20) : color.new(color.red, 20)
+    macdDot = macdGreenDot ? "🟢" : "🔴"
+    table.cell(dashTable, 1, 1, macdDot, text_size=size.normal, bgcolor=macdBG, text_color=color.black, tooltip="Green dot = MACD bullish, Red dot = MACD bearish")
+
+    // QQQ 1-MIN TREND
+    table.cell(dashTable, 0, 2, "QQQ 1m", text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="QQQ candle direction - tech stocks strength")
+    qqqBG = qqqUp1 ? color.new(color.green, 20) : color.new(color.red, 20)
+    table.cell(dashTable, 1, 2, qqqUp1 ? "↑" : "↓", text_size=size.normal, bgcolor=qqqBG, text_color=color.black, tooltip="Up = current candle higher, Down = current candle lower")
+    table.cell(dashTable, 2, 2, str.tostring(math.round(qqqValue, 2)), text_size=size.normal, bgcolor=qqqBG, text_color=color.black, tooltip="Current QQQ price")
+
+    // ADD 1-MIN TREND
+    table.cell(dashTable, 0, 3, "ADD 1m", text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="ADD candle direction - advance/decline breadth")
+    addBG = addUp1 ? color.new(color.green, 20) : color.new(color.red, 20)
+    table.cell(dashTable, 1, 3, addUp1 ? "↑" : "↓", text_size=size.normal, bgcolor=addBG, text_color=color.black, tooltip="Up = current candle higher, Down = current candle lower")
+    table.cell(dashTable, 2, 3, str.tostring(math.round(addValue, 0)), text_size=size.normal, bgcolor=addBG, text_color=color.black, tooltip="ADD indicator value")
+
+    // SPY 5-MIN TREND
+    table.cell(dashTable, 0, 4, "SPY 5m", text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="SPY Supertrend on 5-min - intermediate trend")
+    spyBG5 = spyUp5 ? color.new(color.green, 20) : color.new(color.red, 20)
+    table.cell(dashTable, 1, 4, spyUp5 ? "↑" : "↓", text_size=size.normal, bgcolor=spyBG5, text_color=color.black, tooltip="Up = 5min uptrend, Down = 5min downtrend")
+
+    // SPY 1-MIN TREND
+    table.cell(dashTable, 0, 5, "SPY 1m", text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="SPY Supertrend on 1-min - entry timing")
+    spyBG1 = spyUp1 ? color.new(color.green, 20) : color.new(color.red, 20)
+    table.cell(dashTable, 1, 5, spyUp1 ? "↑" : "↓", text_size=size.normal, bgcolor=spyBG1, text_color=color.black, tooltip="Up = 1min uptrend, Down = 1min downtrend")
+
+    // CONFLUENCE COUNT
+    table.cell(dashTable, 0, 6, "CONF", text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="Consensus count - how many factors agree (0-5)")
+    table.cell(dashTable, 1, 6, str.tostring(conf) + "/5", text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="5/5 = all factors aligned, ready to trade")
+
+    // STATUS ROW
+    table.cell(dashTable, 0, 7, "STATUS", text_size=size.normal, bgcolor=color.new(color.gray, 50), text_color=color.white, tooltip="READY=all 5/5 factors aligned, WAIT=waiting for 5/5")
+    statusColor = isBullish ? color.new(color.green, 0) : color.new(color.red, 0)
+    statusText = conf == 5 ? "READY" : "WAIT"
+    table.cell(dashTable, 1, 7, statusText, text_size=size.normal, bgcolor=statusColor, text_color=color.white, tooltip="READY=go trade now (5/5), WAIT=all 5 factors must align before trading")
+
+    // ALIGNMENT CHECK
+    table.cell(dashTable, 0, 8, "ALIGN", text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="Alignment quality - 5/5 is perfect, 4/5 is strong")
+    alignText = conf == 5 ? "5/5 ✓" : conf >= 4 ? "4/5" : "LOW"
+    table.cell(dashTable, 1, 8, alignText, text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="Perfect alignment when 5/5, good when 4/5, weak when 3 or less")
+
+    // LEVELS SECTION
+    table.cell(dashTable, 0, 9, "PRICE", text_size=size.normal, bgcolor=color.new(color.gray, 50), text_color=color.white, tooltip="Current price - where we are now")
+    table.cell(dashTable, 1, 9, str.tostring(math.round(currentPrice, 2)), text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="Real-time price reference")
+    table.cell(dashTable, 2, 9, "RESIST", text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="Recent resistance - wait for price break above")
+    table.cell(dashTable, 3, 9, str.tostring(math.round(recentHigh, 2)), text_size=size.normal, bgcolor=color.new(color.red, 15), text_color=color.black, tooltip="Highest price in last 20 bars - resistance zone for long trades")
+
+    table.cell(dashTable, 0, 10, "SUPPORT", text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="Recent support - watch if price breaks below")
+    table.cell(dashTable, 1, 10, str.tostring(math.round(recentLow, 2)), text_size=size.normal, bgcolor=color.new(color.green, 15), text_color=color.black, tooltip="Lowest price in last 20 bars - support floor for bounces")
+    table.cell(dashTable, 2, 10, "ST LVL", text_size=size.normal, bgcolor=color.white, text_color=color.black, tooltip="Supertrend level - key dynamic support/resistance")
+    stBG = stUp ? color.new(color.green, 15) : color.new(color.red, 15)
+    table.cell(dashTable, 3, 10, str.tostring(math.round(stLine, 2)), text_size=size.normal, bgcolor=stBG, text_color=color.black, tooltip="Dynamic S/R from ATR+price action. In uptrend=support floor. In downtrend=resistance ceiling. Break=reversal")
+
+    // TIME TO CLOSE
+    table.cell(dashTable, 0, 11, "TIME", text_size=size.normal, bgcolor=color.new(color.gray, 50), text_color=color.white, tooltip="Seconds remaining until candle close")
+    timeBarColor = timeRemaining > 33 ? color.new(color.green, 0) : timeRemaining > 15 ? color.new(color.orange, 0) : color.new(color.red, 0)
+    timeText = str.tostring(math.round(timeRemaining, 0)) + "s"
+    table.cell(dashTable, 1, 11, timeText, text_size=size.normal, bgcolor=timeBarColor, text_color=color.white, tooltip="Green=>33s, Orange=15-33s, Red=<15s")
+
+alertcondition(buyClean, title="BUY", message="✅ 5/5 BUY - ALL FACTORS ALIGNED UP")
+alertcondition(sellClean, title="SELL", message="⛔ 5/5 SELL - ALL FACTORS ALIGNED DOWN")

@@ -26,7 +26,9 @@ chrome_pids.txt
 
 # Data files (use .env instead)
 *.csv
+!backtest_ak_macd_v119.csv
 backtest_*.csv
+!backtest_ak_macd_v119.csv
 strat_*.csv
 v*_*.csv
 
@@ -73,6 +75,7 @@ get_tv_script.py
 
 # Pine Script files
 *.pine
+!ak_macd_bb_v1.19.pine
 
 # JSON data files (keep for local use, exclude from git)
 signals.json
