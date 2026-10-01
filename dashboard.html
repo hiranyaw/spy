@@ -306,6 +306,7 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
 
 <div class="tabs">
   <div class="tab on" data-tab="live" onclick="sw('live')">Live Signal</div>
+  <div class="tab"    data-tab="hsm" onclick="sw('hsm')">🎯 Signal Monitor 1.9</div>
   <div class="tab"    data-tab="guide" onclick="sw('guide')">Symbol Guide</div>
   <div class="tab"    data-tab="paper" onclick="sw('paper')">Paper Trading</div>
   <div class="tab"    data-tab="tl" onclick="sw('tl')">📊 Trendline Breaks</div>
@@ -2502,7 +2503,276 @@ Only B Trades with FULL confirmation."></textarea>
 </div>
 </div><!-- /tab-checklist -->
 
-</div> <!-- Close main-content wrapper -->
+<!-- ══ TAB: HIRANYA SIGNAL MONITOR 1.9 ══ -->
+<div class="tc" id="tab-hsm">
+<div style="padding:20px;max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:18px">
+
+  <!-- Top Hero Header -->
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="width:48px;height:48px;border-radius:10px;background:rgba(63,185,80,0.15);border:1px solid rgba(63,185,80,0.35);display:flex;align-items:center;justify-content:center;font-size:1.6rem">🎯</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <h2 style="color:#e6edf3;margin:0;font-size:1.35rem;font-weight:700">Hiranya Signal Monitor 1.9</h2>
+          <span style="background:#21262d;color:#58a6ff;border:1px solid #30363d;border-radius:12px;font-size:0.7rem;font-weight:700;padding:2px 8px">v1.19 / Pine v5</span>
+          <span style="background:rgba(63,185,80,0.15);color:#3fb950;border:1px solid rgba(63,185,80,0.3);border-radius:12px;font-size:0.7rem;font-weight:700;padding:2px 8px" id="hsm-live-status-pill">FEED ACTIVE</span>
+        </div>
+        <div style="color:#8b949e;font-size:0.8rem;margin-top:4px">
+          5-Confluence Scalping System: AK MACD BB + QQQ 1m + NYSE $ADD 1m + SPY 5m Supertrend + SPY 1m Supertrend
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="refreshHSM()" style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:7px 14px;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:600">
+        <span>🔄</span> Refresh
+      </button>
+      <button onclick="openPineScriptModal()" style="background:#238636;color:#ffffff;border:none;border-radius:6px;padding:7px 14px;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:700">
+        <span>📋</span> View &amp; Copy Pine Script v1.19
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Hero Card: Live Signal + Confluence Meter + Key Levels & Time -->
+  <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px">
+    
+    <!-- 1. Live Signal Banner -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px 22px;display:flex;flex-direction:column;justify-content:space-between" id="hsm-hero-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;font-weight:700">Live Trade Signal</div>
+          <div id="hsm-signal-text" style="font-size:2.2rem;font-weight:900;color:#8b949e;line-height:1.2;margin:6px 0">WAITING</div>
+          <div id="hsm-signal-sub" style="font-size:0.75rem;color:#8b949e">Awaiting multi-market confluence...</div>
+        </div>
+        <div id="hsm-signal-badge" style="font-size:2.2rem">⚖️</div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid #21262d;padding-top:10px;margin-top:10px">
+        <span style="font-size:0.78rem;color:#8b949e">Execution Status:</span>
+        <span id="hsm-status-tag" style="background:#21262d;color:#8b949e;font-size:0.75rem;font-weight:800;padding:3px 10px;border-radius:6px">WAIT</span>
+      </div>
+    </div>
+
+    <!-- 2. Confluence Meter -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px 22px;display:flex;flex-direction:column;justify-content:space-between">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;font-weight:700">Confluence Agreement</div>
+        <span id="hsm-align-quality" style="font-size:0.75rem;font-weight:700;color:#58a6ff;background:rgba(88,166,255,0.15);padding:2px 8px;border-radius:4px">LOW</span>
+      </div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin:8px 0">
+        <span id="hsm-conf-score" style="font-size:2.4rem;font-weight:900;color:#c9d1d9">--/5</span>
+        <span style="font-size:0.82rem;color:#8b949e">factors aligned</span>
+      </div>
+      <div>
+        <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:5px;height:8px;margin-bottom:6px" id="hsm-meter-bars">
+          <div style="background:#21262d;border-radius:3px"></div>
+          <div style="background:#21262d;border-radius:3px"></div>
+          <div style="background:#21262d;border-radius:3px"></div>
+          <div style="background:#21262d;border-radius:3px"></div>
+          <div style="background:#21262d;border-radius:3px"></div>
+        </div>
+        <div style="font-size:0.72rem;color:#8b949e;text-align:right" id="hsm-meter-desc">5/5 required for execution</div>
+      </div>
+    </div>
+
+    <!-- 3. Key Levels & Candle Countdown -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px 22px;display:flex;flex-direction:column;justify-content:space-between">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;font-weight:700">1-Min Candle Time &amp; Price</div>
+        <span id="hsm-time-remaining" style="font-size:0.85rem;font-weight:800;color:#58a6ff;background:#21262d;padding:2px 8px;border-radius:4px">--s</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
+        <div>
+          <div style="font-size:0.68rem;color:#8b949e;text-transform:uppercase">SPY Live</div>
+          <div id="hsm-spy-price" style="font-size:1.15rem;font-weight:800;color:#c9d1d9">$---.--</div>
+        </div>
+        <div>
+          <div style="font-size:0.68rem;color:#8b949e;text-transform:uppercase">Supertrend Line</div>
+          <div id="hsm-st-level" style="font-size:1.15rem;font-weight:800;color:#58a6ff">$---.--</div>
+        </div>
+        <div>
+          <div style="font-size:0.68rem;color:#8b949e;text-transform:uppercase">20-Bar Resist</div>
+          <div id="hsm-resist-price" style="font-size:1.0rem;font-weight:700;color:#f85149">$---.--</div>
+        </div>
+        <div>
+          <div style="font-size:0.68rem;color:#8b949e;text-transform:uppercase">20-Bar Support</div>
+          <div id="hsm-support-price" style="font-size:1.0rem;font-weight:700;color:#3fb950">$---.--</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- The 5 Confluence Factors Live Cards Grid -->
+  <div>
+    <h3 style="color:#e6edf3;font-size:1.05rem;margin:10px 0;display:flex;align-items:center;gap:8px">
+      <span>⚡</span> Real-Time 5-Factor Confluence Breakdown
+    </h3>
+    <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:12px">
+      <!-- Factor 1: MACD BB -->
+      <div class="hsm-factor-card" id="hsm-f-macd" style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:0.75rem;font-weight:700;color:#8b949e">1. AK MACD BB</span>
+          <span id="hsm-fv-macd-dot" style="font-size:1.1rem">⚪</span>
+        </div>
+        <div style="font-size:1.25rem;font-weight:800;color:#c9d1d9" id="hsm-fv-macd-dir">--</div>
+        <div style="font-size:0.68rem;color:#8b949e;line-height:1.3" id="hsm-fv-macd-desc">Hist &gt; 0 &amp; rising OR BB upper breakout</div>
+      </div>
+
+      <!-- Factor 2: QQQ 1m -->
+      <div class="hsm-factor-card" id="hsm-f-qqq" style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:0.75rem;font-weight:700;color:#8b949e">2. QQQ 1m Trend</span>
+          <span id="hsm-fv-qqq-icon" style="font-size:1.1rem">➖</span>
+        </div>
+        <div style="font-size:1.25rem;font-weight:800;color:#c9d1d9" id="hsm-fv-qqq-dir">--</div>
+        <div style="font-size:0.68rem;color:#8b949e;line-height:1.3" id="hsm-fv-qqq-price">Close vs prev close (Tech flow)</div>
+      </div>
+
+      <!-- Factor 3: ADD 1m -->
+      <div class="hsm-factor-card" id="hsm-f-add" style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:0.75rem;font-weight:700;color:#8b949e">3. NYSE $ADD 1m</span>
+          <span id="hsm-fv-add-icon" style="font-size:1.1rem">➖</span>
+        </div>
+        <div style="font-size:1.25rem;font-weight:800;color:#c9d1d9" id="hsm-fv-add-dir">--</div>
+        <div style="font-size:0.68rem;color:#8b949e;line-height:1.3" id="hsm-fv-add-val">NYSE Advance-Decline breadth</div>
+      </div>
+
+      <!-- Factor 4: SPY 5m Supertrend -->
+      <div class="hsm-factor-card" id="hsm-f-spy5" style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:0.75rem;font-weight:700;color:#8b949e">4. SPY 5m Trend</span>
+          <span id="hsm-fv-spy5-icon" style="font-size:1.1rem">➖</span>
+        </div>
+        <div style="font-size:1.25rem;font-weight:800;color:#c9d1d9" id="hsm-fv-spy5-dir">--</div>
+        <div style="font-size:0.68rem;color:#8b949e;line-height:1.3">SPY 5-min Supertrend (Higher TF)</div>
+      </div>
+
+      <!-- Factor 5: SPY 1m Supertrend -->
+      <div class="hsm-factor-card" id="hsm-f-spy1" style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:0.75rem;font-weight:700;color:#8b949e">5. SPY 1m Trend</span>
+          <span id="hsm-fv-spy1-icon" style="font-size:1.1rem">➖</span>
+        </div>
+        <div style="font-size:1.25rem;font-weight:800;color:#c9d1d9" id="hsm-fv-spy1-dir">--</div>
+        <div style="font-size:0.68rem;color:#8b949e;line-height:1.3">SPY 1-min Supertrend (Chart TF)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Strategy Playbook & Execution Rules + Backtest Stats Section -->
+  <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:16px">
+    
+    <!-- Strategy Playbook Card -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px 20px">
+      <h3 style="color:#e6edf3;font-size:1.0rem;margin:0 0 12px;display:flex;align-items:center;gap:6px">
+        <span>📖</span> Execution Playbook &amp; Rules
+      </h3>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:0.8rem">
+        <div style="background:#0d1117;border-left:4px solid #3fb950;padding:8px 12px;border-radius:0 6px 6px 0">
+          <div style="font-weight:700;color:#3fb950;margin-bottom:2px">🟢 BUY Signal Trigger (CALLS)</div>
+          <div style="color:#c9d1d9;font-size:0.76rem">ALL 5 factors must be UP: MACD BB Green + QQQ 1m ↑ + $ADD 1m ↑ + SPY 5m ↑ + SPY 1m ↑.</div>
+        </div>
+        <div style="background:#0d1117;border-left:4px solid #f85149;padding:8px 12px;border-radius:0 6px 6px 0">
+          <div style="font-weight:700;color:#f85149;margin-bottom:2px">🔴 SELL Signal Trigger (PUTS)</div>
+          <div style="color:#c9d1d9;font-size:0.76rem">ALL 5 factors must be DOWN: MACD BB Red + QQQ 1m ↓ + $ADD 1m ↓ + SPY 5m ↓ + SPY 1m ↓.</div>
+        </div>
+        <div style="background:#0d1117;border-left:4px solid #d29922;padding:8px 12px;border-radius:0 6px 6px 0">
+          <div style="font-weight:700;color:#d29922;margin-bottom:2px">⏱️ Trade Management &amp; Window</div>
+          <div style="color:#c9d1d9;font-size:0.76rem">
+            • <b>Window:</b> 06:30 – 08:15 AM PT (high volatility session)<br>
+            • <b>Take Profit (TP):</b> +0.12% (~$0.60–$0.90 SPY move)<br>
+            • <b>Stop Loss (SL):</b> -0.09% (~$0.45–$0.70 SPY move)<br>
+            • <b>Time Exit:</b> Close trade after max 5 candles (5 min) if not hit
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backtest Performance Stats Card -->
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px 20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="color:#e6edf3;font-size:1.0rem;margin:0;display:flex;align-items:center;gap:6px">
+          <span>📊</span> v1.19 Backtest Verification
+        </h3>
+        <span style="font-size:0.72rem;color:#8b949e" id="hsm-bt-window-label">6:30 - 8:15 AM PT</span>
+      </div>
+      <!-- Stat chips grid -->
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;margin-bottom:14px">
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:0.68rem;color:#8b949e;text-transform:uppercase">Win Rate</div>
+          <div id="hsm-bt-winrate" style="font-size:1.25rem;font-weight:800;color:#3fb950">--%</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:0.68rem;color:#8b949e;text-transform:uppercase">Total Trades</div>
+          <div id="hsm-bt-total" style="font-size:1.25rem;font-weight:800;color:#c9d1d9">--</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:0.68rem;color:#8b949e;text-transform:uppercase">Profit Factor</div>
+          <div id="hsm-bt-pf" style="font-size:1.25rem;font-weight:800;color:#58a6ff">--</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:0.68rem;color:#8b949e;text-transform:uppercase">Total P&amp;L</div>
+          <div id="hsm-bt-pnl" style="font-size:1.25rem;font-weight:800;color:#3fb950">-- pts</div>
+        </div>
+      </div>
+      <!-- Sub-stats bar -->
+      <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0d1117;border-radius:6px;font-size:0.75rem;color:#8b949e">
+        <span>Wins: <b id="hsm-bt-wins" style="color:#3fb950">--</b> | Losses: <b id="hsm-bt-losses" style="color:#f85149">--</b></span>
+        <span>Avg Win: <b id="hsm-bt-avgwin" style="color:#3fb950">--</b> | Avg Loss: <b id="hsm-bt-avgloss" style="color:#f85149">--</b></span>
+        <span>BUY Win%: <b id="hsm-bt-buywin" style="color:#c9d1d9">--%</b> | SELL Win%: <b id="hsm-bt-sellwin" style="color:#c9d1d9">--%</b></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historical 5-Confluence Signals Table -->
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:18px 20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h3 style="color:#e6edf3;font-size:1.0rem;margin:0;display:flex;align-items:center;gap:6px">
+        <span>🕒</span> Historical Confluence Signals Log
+      </h3>
+      <div style="font-size:0.75rem;color:#8b949e">Showing live snapshots &amp; 5-confluence triggers</div>
+    </div>
+    <div style="max-height:280px;overflow-y:auto;border:1px solid #21262d;border-radius:8px">
+      <table style="width:100%;border-collapse:collapse;font-size:0.75rem">
+        <thead style="background:#0d1117;position:sticky;top:0;border-bottom:1px solid #30363d;color:#8b949e">
+          <tr>
+            <th style="padding:8px 12px;text-align:left">Time</th>
+            <th style="padding:8px 12px;text-align:left">Signal</th>
+            <th style="padding:8px 12px;text-align:center">Confluence</th>
+            <th style="padding:8px 12px;text-align:right">SPY</th>
+            <th style="padding:8px 12px;text-align:right">QQQ</th>
+            <th style="padding:8px 12px;text-align:right">NYSE $ADD</th>
+            <th style="padding:8px 12px;text-align:center">Factors (M / Q / A / S5 / S1)</th>
+            <th style="padding:8px 12px;text-align:right">Outcome</th>
+          </tr>
+        </thead>
+        <tbody id="hsm-signals-table-body">
+          <tr>
+            <td colspan="8" style="text-align:center;color:#8b949e;padding:20px">Loading confluence signals...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div><!-- /tab-hsm -->
+
+<!-- Pine Script Modal -->
+<div id="hsm-script-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;width:90%;max-width:850px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:14px 18px;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-weight:700;color:#e6edf3;font-size:0.95rem">TradingView Pine Script — Hiranya Signal Monitor v1.19</div>
+      <button onclick="closePineScriptModal()" style="background:none;border:none;color:#8b949e;font-size:1.2rem;cursor:pointer">&times;</button>
+    </div>
+    <div style="padding:12px 18px;background:#0d1117;flex:1;overflow-y:auto">
+      <pre id="hsm-script-code-block" style="margin:0;font-family:Consolas,monospace;font-size:0.75rem;color:#c9d1d9;white-space:pre-wrap;word-break:break-all"></pre>
+    </div>
+    <div style="padding:12px 18px;border-top:1px solid #30363d;display:flex;justify-content:flex-end;gap:10px">
+      <button onclick="closePineScriptModal()" style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:6px 14px;font-size:0.8rem;cursor:pointer">Close</button>
+      <button onclick="copyPineScript()" style="background:#238636;color:#ffffff;border:none;border-radius:6px;padding:6px 16px;font-size:0.8rem;font-weight:700;cursor:pointer">📋 Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════════════════
@@ -2704,15 +2974,17 @@ function parseLocalISO(s) {
 }
 
 function sw(n){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',['live','guide','paper','tl','journal','ctrl','analysis','checklist'][i]===n));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.getAttribute('data-tab')===n));
   document.querySelectorAll('.tc').forEach(c=>c.classList.remove('on'));
-  document.getElementById('tab-'+n).classList.add('on');
+  const target = document.getElementById('tab-'+n);
+  if (target) target.classList.add('on');
   // Clear any existing live interval when switching tabs
   if (window.liveIntervalId) { clearInterval(window.liveIntervalId); window.liveIntervalId = null; }
   if(n==='ctrl') refreshStatus();
   if(n==='journal') loadJournal();
   if(n==='analysis') initAnalysis();
   if(n==='checklist') initChecklist();
+  if(n==='hsm') initHSM();
   if(n==='live') {
     if (liveChart) {
       const container = document.getElementById('live-chart-container');
@@ -2956,6 +3228,7 @@ async function refresh(){
     updateLive(d);
     updatePaper(d);
     updateManualTrading(d);
+    updateHSM(d);
     loadHighConfTracker();
   }catch(e){
     document.getElementById('dot').className='dot gr';
@@ -7871,6 +8144,327 @@ function ptrUpdateProgress() {
       badge.textContent = '⬜ Not Started';
     }
   }
+// ══════════════════════════════════════════════
+//  HIRANYA SIGNAL MONITOR 1.9 (v1.19) LOGIC
+// ══════════════════════════════════════════════
+let hsmScriptCode = '';
+let hsmBacktestData = null;
+let hsmInitialized = false;
+
+async function initHSM() {
+  if (!hsmInitialized) {
+    hsmInitialized = true;
+    loadHSMBacktest();
+    loadHSMScript();
+  }
+  try {
+    const res = await fetch('/data');
+    const d = await res.json();
+    if (d) updateHSM(d);
+  } catch(e) {
+    console.warn('initHSM fetch error:', e);
+  }
+}
+
+async function refreshHSM() {
+  try {
+    const res = await fetch('/data');
+    const d = await res.json();
+    if (d) updateHSM(d);
+    await loadHSMBacktest();
+  } catch(e) {
+    console.error('refreshHSM error:', e);
+  }
+}
+
+async function loadHSMBacktest() {
+  try {
+    const res = await fetch('/api/hsm/backtest');
+    const data = await res.json();
+    if (data.status === 'success') {
+      hsmBacktestData = data;
+      renderHSMBacktest(data.summary, data.trades);
+    }
+  } catch(e) {
+    console.warn('loadHSMBacktest error:', e);
+  }
+}
+
+function renderHSMBacktest(summary, trades) {
+  if (!summary) return;
+  const wrEl = document.getElementById('hsm-bt-winrate');
+  const totEl = document.getElementById('hsm-bt-total');
+  const pfEl = document.getElementById('hsm-bt-pf');
+  const pnlEl = document.getElementById('hsm-bt-pnl');
+  const winEl = document.getElementById('hsm-bt-wins');
+  const lossEl = document.getElementById('hsm-bt-losses');
+  const awEl = document.getElementById('hsm-bt-avgwin');
+  const alEl = document.getElementById('hsm-bt-avgloss');
+  const bwEl = document.getElementById('hsm-bt-buywin');
+  const swEl = document.getElementById('hsm-bt-sellwin');
+  const winLabel = document.getElementById('hsm-bt-window-label');
+
+  if (wrEl) wrEl.textContent = summary.win_rate + '%';
+  if (totEl) totEl.textContent = summary.total_trades;
+  if (pfEl) pfEl.textContent = summary.profit_factor;
+  if (pnlEl) {
+    pnlEl.textContent = (summary.total_pnl >= 0 ? '+' : '') + summary.total_pnl + ' pts';
+    pnlEl.style.color = summary.total_pnl >= 0 ? '#3fb950' : '#f85149';
+  }
+  if (winEl) winEl.textContent = summary.wins;
+  if (lossEl) lossEl.textContent = summary.losses;
+  if (awEl) awEl.textContent = '+' + summary.avg_win;
+  if (alEl) alEl.textContent = '-' + summary.avg_loss;
+  if (bwEl) bwEl.textContent = summary.buy_win_rate + '%';
+  if (swEl) swEl.textContent = summary.sell_win_rate + '%';
+  if (winLabel) winLabel.textContent = summary.window;
+
+  // Render recent trades table
+  const tbody = document.getElementById('hsm-signals-table-body');
+  if (tbody && trades && trades.length > 0) {
+    tbody.innerHTML = trades.slice(0, 40).map(t => {
+      const sigColor = t.signal === 'BUY' ? '#3fb950' : '#f85149';
+      const sigBadge = t.signal === 'BUY' ? '🟢 BUY' : '🔴 SELL';
+      const pnlColor = t.pnl > 0 ? '#3fb950' : t.pnl < 0 ? '#f85149' : '#8b949e';
+      const pnlStr = (t.pnl >= 0 ? '+' : '') + t.pnl.toFixed(3);
+      const outcome = t.win ? `<span style="color:#3fb950;font-weight:700">WIN (${t.exit})</span>` :
+                              `<span style="color:#f85149;font-weight:700">LOSS (${t.exit})</span>`;
+
+      // Factors mini icons
+      const f1 = t.f1_macd ? '<span style="color:#3fb950">M</span>' : '<span style="color:#f85149">M</span>';
+      const f2 = t.f2_qqq ? '<span style="color:#3fb950">Q</span>' : '<span style="color:#f85149">Q</span>';
+      const f3 = t.f3_add ? '<span style="color:#3fb950">A</span>' : '<span style="color:#f85149">A</span>';
+      const f4 = t.f4_spy5 ? '<span style="color:#3fb950">S5</span>' : '<span style="color:#f85149">S5</span>';
+      const f5 = t.f5_spy1 ? '<span style="color:#3fb950">S1</span>' : '<span style="color:#f85149">S1</span>';
+
+      return `<tr style="border-bottom:1px solid #21262d">
+        <td style="padding:7px 12px;color:#c9d1d9">${t.date} ${t.time}</td>
+        <td style="padding:7px 12px;font-weight:700;color:${sigColor}">${sigBadge}</td>
+        <td style="padding:7px 12px;text-align:center"><span style="background:#21262d;color:#58a6ff;padding:2px 6px;border-radius:4px;font-weight:700">${t.conf || '5/5'}</span></td>
+        <td style="padding:7px 12px;text-align:right;font-weight:600;color:#c9d1d9">$${t.entry.toFixed(2)}</td>
+        <td style="padding:7px 12px;text-align:right;color:#8b949e">--</td>
+        <td style="padding:7px 12px;text-align:right;color:#8b949e">--</td>
+        <td style="padding:7px 12px;text-align:center;font-weight:700;letter-spacing:1px">${f1} ${f2} ${f3} ${f4} ${f5}</td>
+        <td style="padding:7px 12px;text-align:right;font-weight:700">${outcome} <span style="color:${pnlColor};margin-left:6px">${pnlStr}</span></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+async function loadHSMScript() {
+  try {
+    const res = await fetch('/api/hsm/script');
+    const data = await res.json();
+    if (data.status === 'success') {
+      hsmScriptCode = data.code;
+      const block = document.getElementById('hsm-script-code-block');
+      if (block) block.textContent = data.code;
+    }
+  } catch(e) {
+    console.warn('loadHSMScript error:', e);
+  }
+}
+
+function openPineScriptModal() {
+  const modal = document.getElementById('hsm-script-modal');
+  if (modal) modal.style.display = 'flex';
+  if (!hsmScriptCode) loadHSMScript();
+}
+
+function closePineScriptModal() {
+  const modal = document.getElementById('hsm-script-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function copyPineScript() {
+  if (!hsmScriptCode) return;
+  navigator.clipboard.writeText(hsmScriptCode).then(() => {
+    alert('✅ Hiranya Signal Monitor v1.19 Pine Script copied to clipboard!');
+  }).catch(() => {
+    const textarea = document.createElement('textarea');
+    textarea.value = hsmScriptCode;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    alert('✅ Hiranya Signal Monitor v1.19 Pine Script copied to clipboard!');
+  });
+}
+
+function updateHSM(d) {
+  if (!d) return;
+  const det = d.details || {};
+
+  const tvSig = (det.signal_tv || '').toUpperCase();
+  const tvConf = det.conf_tv || '--';
+  const tvStatus = (det.status_tv || 'WAIT').toUpperCase();
+
+  const heroCard = document.getElementById('hsm-hero-card');
+  const sigText = document.getElementById('hsm-signal-text');
+  const sigSub = document.getElementById('hsm-signal-sub');
+  const sigBadge = document.getElementById('hsm-signal-badge');
+  const statusTag = document.getElementById('hsm-status-tag');
+  const confScore = document.getElementById('hsm-conf-score');
+  const alignQuality = document.getElementById('hsm-align-quality');
+  const meterBars = document.getElementById('hsm-meter-bars');
+  const meterDesc = document.getElementById('hsm-meter-desc');
+
+  // Determine signal direction
+  let isBuy = tvSig === 'BUY' || (d.signal && d.signal.includes('BUY'));
+  let isSell = tvSig === 'SELL' || (d.signal && d.signal.includes('SELL'));
+
+  if (isBuy) {
+    if (sigText) { sigText.textContent = 'BUY (CALLS)'; sigText.style.color = '#3fb950'; }
+    if (sigBadge) sigBadge.textContent = '🟢';
+    if (sigSub) sigSub.textContent = `All factors aligned UP (${tvConf} Confluence)`;
+    if (heroCard) {
+      heroCard.style.background = 'linear-gradient(135deg, rgba(63, 185, 80, 0.15), rgba(22, 27, 34, 0.95))';
+      heroCard.style.borderColor = 'rgba(63, 185, 80, 0.45)';
+    }
+  } else if (isSell) {
+    if (sigText) { sigText.textContent = 'SELL (PUTS)'; sigText.style.color = '#f85149'; }
+    if (sigBadge) sigBadge.textContent = '🔴';
+    if (sigSub) sigSub.textContent = `All factors aligned DOWN (${tvConf} Confluence)`;
+    if (heroCard) {
+      heroCard.style.background = 'linear-gradient(135deg, rgba(248, 81, 73, 0.15), rgba(22, 27, 34, 0.95))';
+      heroCard.style.borderColor = 'rgba(248, 81, 73, 0.45)';
+    }
+  } else {
+    if (sigText) { sigText.textContent = 'WAITING'; sigText.style.color = '#8b949e'; }
+    if (sigBadge) sigBadge.textContent = '⚖️';
+    if (sigSub) sigSub.textContent = 'Awaiting multi-market confluence alignment...';
+    if (heroCard) {
+      heroCard.style.background = '#161b22';
+      heroCard.style.borderColor = '#30363d';
+    }
+  }
+
+  // Execution Status Tag
+  const isReady = tvStatus === 'READY' || tvConf === '5/5';
+  if (statusTag) {
+    statusTag.textContent = isReady ? 'READY TO EXECUTE' : 'WAIT FOR 5/5';
+    statusTag.style.background = isReady ? 'rgba(63, 185, 80, 0.2)' : '#21262d';
+    statusTag.style.color = isReady ? '#3fb950' : '#8b949e';
+    statusTag.style.border = isReady ? '1px solid rgba(63, 185, 80, 0.4)' : '1px solid #30363d';
+  }
+
+  // Confluence Score and Gauge
+  let confNum = 0;
+  if (tvConf.includes('/')) {
+    confNum = parseInt(tvConf.split('/')[0]) || 0;
+  }
+  if (confScore) confScore.textContent = (confNum > 0 ? confNum : '--') + '/5';
+
+  if (alignQuality) {
+    if (confNum === 5) {
+      alignQuality.textContent = '5/5 ✓ PERFECT';
+      alignQuality.style.color = '#3fb950';
+      alignQuality.style.background = 'rgba(63, 185, 80, 0.18)';
+    } else if (confNum === 4) {
+      alignQuality.textContent = '4/5 STRONG';
+      alignQuality.style.color = '#d29922';
+      alignQuality.style.background = 'rgba(210, 153, 34, 0.18)';
+    } else {
+      alignQuality.textContent = confNum > 0 ? `${confNum}/5 LOW` : 'AWAITING';
+      alignQuality.style.color = '#8b949e';
+      alignQuality.style.background = '#21262d';
+    }
+  }
+
+  if (meterBars) {
+    const bars = meterBars.children;
+    const barActiveColor = isBuy ? '#3fb950' : isSell ? '#f85149' : '#58a6ff';
+    for (let i = 0; i < bars.length; i++) {
+      if (i < confNum) {
+        bars[i].style.background = barActiveColor;
+        bars[i].style.boxShadow = `0 0 6px ${barActiveColor}66`;
+      } else {
+        bars[i].style.background = '#21262d';
+        bars[i].style.boxShadow = 'none';
+      }
+    }
+  }
+
+  if (meterDesc) {
+    meterDesc.textContent = confNum === 5 ? '✅ All 5 factors aligned — optimal setup' : '5/5 required for execution';
+  }
+
+  // Prices & Key Levels
+  const spyP = det.spy_price ? parseFloat(det.spy_price) : null;
+  const qqqP = det.qqq_price ? parseFloat(det.qqq_price) : null;
+  const addVal = det.add != null ? det.add : det.add_value != null ? det.add_value : null;
+
+  const spyEl = document.getElementById('hsm-spy-price');
+  const stEl = document.getElementById('hsm-st-level');
+  const resEl = document.getElementById('hsm-resist-price');
+  const supEl = document.getElementById('hsm-support-price');
+  const timeEl = document.getElementById('hsm-time-remaining');
+
+  if (spyEl && spyP) spyEl.textContent = '$' + spyP.toFixed(2);
+  if (stEl && det.st_level) stEl.textContent = '$' + parseFloat(det.st_level).toFixed(2);
+  if (resEl && det.resist) resEl.textContent = '$' + parseFloat(det.resist).toFixed(2);
+  if (supEl && det.support) supEl.textContent = '$' + parseFloat(det.support).toFixed(2);
+
+  // Time remaining
+  if (timeEl && det.time_left != null) {
+    const sec = parseInt(det.time_left);
+    timeEl.textContent = sec + 's';
+    if (sec > 33) {
+      timeEl.style.color = '#3fb950';
+      timeEl.style.background = 'rgba(63, 185, 80, 0.15)';
+    } else if (sec > 15) {
+      timeEl.style.color = '#d29922';
+      timeEl.style.background = 'rgba(210, 153, 34, 0.15)';
+    } else {
+      timeEl.style.color = '#f85149';
+      timeEl.style.background = 'rgba(248, 81, 73, 0.15)';
+    }
+  }
+
+  // 5 Factors Cards Update
+  function updateFactor(cardId, dirId, iconId, dir, descId, customDesc) {
+    const card = document.getElementById(cardId);
+    const dEl = document.getElementById(dirId);
+    const iEl = document.getElementById(iconId);
+    const descEl = descId ? document.getElementById(descId) : null;
+
+    if (!card || !dEl) return;
+    const isUp = dir === 'UP';
+    const isDn = dir === 'DN';
+
+    if (isUp) {
+      dEl.textContent = 'UP';
+      dEl.style.color = '#3fb950';
+      if (iEl) { iEl.textContent = '🟢'; }
+      card.style.borderColor = 'rgba(63, 185, 80, 0.4)';
+    } else if (isDn) {
+      dEl.textContent = 'DOWN';
+      dEl.style.color = '#f85149';
+      if (iEl) { iEl.textContent = '🔴'; }
+      card.style.borderColor = 'rgba(248, 81, 73, 0.4)';
+    } else {
+      dEl.textContent = '--';
+      dEl.style.color = '#8b949e';
+      if (iEl) { iEl.textContent = '⚪'; }
+      card.style.borderColor = '#30363d';
+    }
+
+    if (descEl && customDesc) {
+      descEl.textContent = customDesc;
+    }
+  }
+
+  updateFactor('hsm-f-macd', 'hsm-fv-macd-dir', 'hsm-fv-macd-dot', det.macd_dir, 'hsm-fv-macd-desc',
+    det.macd_dir === 'UP' ? 'Hist > 0 & rising (Bullish)' : det.macd_dir === 'DN' ? 'Hist < 0 or falling (Bearish)' : 'Awaiting MACD signal');
+
+  updateFactor('hsm-f-qqq', 'hsm-fv-qqq-dir', 'hsm-fv-qqq-icon', det.qqq_dir, 'hsm-fv-qqq-price',
+    qqqP ? `QQQ $${qqqP.toFixed(2)} (${det.qqq_dir || '--'})` : 'Close vs prev close (Tech flow)');
+
+  updateFactor('hsm-f-add', 'hsm-fv-add-dir', 'hsm-fv-add-icon', det.add_dir, 'hsm-fv-add-val',
+    addVal != null ? `NYSE $ADD ${Math.round(addVal)} (${det.add_dir || '--'})` : 'NYSE Advance-Decline breadth');
+
+  updateFactor('hsm-f-spy5', 'hsm-fv-spy5-dir', 'hsm-fv-spy5-icon', det.spy5_dir);
+  updateFactor('hsm-f-spy1', 'hsm-fv-spy1-dir', 'hsm-fv-spy1-icon', det.spy1_dir);
 }
 </script>
 

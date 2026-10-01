@@ -859,6 +859,97 @@ def trendline_breaks_endpoint():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/hsm/script")
+def api_hsm_script():
+    """Return the raw TradingView Pine Script for Hiranya Signal Monitor v1.19"""
+    try:
+        script_path = BASE / "ak_macd_bb_v1.19.pine"
+        if script_path.exists():
+            content = script_path.read_text(encoding="utf-8", errors="replace")
+            return jsonify({
+                "status": "success",
+                "title": "AK MACD BB + QQQ+ADD 1MIN TREND [Hiranya] v1.19",
+                "version": "1.19",
+                "filename": "ak_macd_bb_v1.19.pine",
+                "code": content
+            })
+        return jsonify({"status": "error", "message": "Script file not found"}), 404
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/api/hsm/backtest")
+def api_hsm_backtest():
+    """Return statistics and trade history for the v1.19 5-confluence backtest"""
+    import csv
+    try:
+        csv_path = BASE / "backtest_ak_macd_v119.csv"
+        if not csv_path.exists():
+            return jsonify({"status": "error", "message": "Backtest file not found"}), 404
+
+        trades = []
+        with open(csv_path, mode="r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                pnl = float(row.get("pnl", 0))
+                is_win = row.get("win", "").strip().lower() == "true"
+                trades.append({
+                    "date": row.get("date"),
+                    "time": row.get("time"),
+                    "signal": row.get("signal"),
+                    "conf": row.get("conf"),
+                    "entry": float(row.get("entry", 0)),
+                    "pnl": pnl,
+                    "exit": row.get("exit"),
+                    "win": is_win,
+                    "f1_macd": row.get("f1_macd", "").strip().lower() == "true",
+                    "f2_qqq": row.get("f2_qqq", "").strip().lower() == "true",
+                    "f3_add": row.get("f3_add", "").strip().lower() == "true",
+                    "f4_spy5": row.get("f4_spy5", "").strip().lower() == "true",
+                    "f5_spy1": row.get("f5_spy1", "").strip().lower() == "true",
+                })
+
+        total = len(trades)
+        wins = sum(1 for t in trades if t["win"])
+        losses = total - wins
+        win_rate = round((wins / total * 100), 1) if total > 0 else 0.0
+        tot_pnl = round(sum(t["pnl"] for t in trades), 3)
+
+        gross_win = sum(t["pnl"] for t in trades if t["pnl"] > 0)
+        gross_loss = abs(sum(t["pnl"] for t in trades if t["pnl"] < 0))
+        pf = round(gross_win / gross_loss, 2) if gross_loss > 0 else 999.0
+        avg_win = round(gross_win / wins, 3) if wins > 0 else 0.0
+        avg_loss = round(gross_loss / losses, 3) if losses > 0 else 0.0
+
+        buy_trades = [t for t in trades if t["signal"] == "BUY"]
+        sell_trades = [t for t in trades if t["signal"] == "SELL"]
+        buy_win_rate = round(sum(1 for t in buy_trades if t["win"]) / len(buy_trades) * 100, 1) if buy_trades else 0.0
+        sell_win_rate = round(sum(1 for t in sell_trades if t["win"]) / len(sell_trades) * 100, 1) if sell_trades else 0.0
+
+        return jsonify({
+            "status": "success",
+            "summary": {
+                "total_trades": total,
+                "wins": wins,
+                "losses": losses,
+                "win_rate": win_rate,
+                "total_pnl": tot_pnl,
+                "profit_factor": pf,
+                "avg_win": avg_win,
+                "avg_loss": avg_loss,
+                "buy_count": len(buy_trades),
+                "buy_win_rate": buy_win_rate,
+                "sell_count": len(sell_trades),
+                "sell_win_rate": sell_win_rate,
+                "window": "6:30 - 8:15 AM PT",
+                "tp_pct": 0.12,
+                "sl_pct": 0.09,
+                "max_bars": 5
+            },
+            "trades": list(reversed(trades))  # newest first
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route("/webhook/trendline", methods=["POST"])
 def webhook_trendline():
     """Receive trendline breaks or trade close signals from TradingView"""
