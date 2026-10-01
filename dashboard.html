@@ -2754,6 +2754,316 @@ Only B Trades with FULL confirmation."></textarea>
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <!--  FULL TECHNICAL SPECIFICATION & ARCHITECTURE REFERENCE               -->
+  <!-- ══════════════════════════════════════════════════════════════════════ -->
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:22px 24px;display:flex;flex-direction:column;gap:20px">
+    
+    <div style="border-bottom:1px solid #21262d;padding-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div>
+        <h3 style="color:#e6edf3;font-size:1.15rem;margin:0;display:flex;align-items:center;gap:8px">
+          <span>📚</span> Technical Specification &amp; System Architecture
+        </h3>
+        <p style="color:#8b949e;font-size:0.78rem;margin:4px 0 0">
+          Complete reference guide for the Hiranya Signal Monitor 1.9 (v1.19) 5-Confluence Strategy
+        </p>
+      </div>
+      <span style="background:#21262d;color:#58a6ff;padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700">Official Specification</span>
+    </div>
+
+    <!-- Section 1: Core Architecture & Philosophy -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h4 style="color:#58a6ff;font-size:0.95rem;margin:0;display:flex;align-items:center;gap:6px">
+        <span>1.</span> Core Architecture &amp; Philosophy
+      </h4>
+      <p style="color:#c9d1d9;font-size:0.82rem;line-height:1.55;margin:0">
+        The system's core premise is that high-probability 1-minute SPY trades occur only when <b>momentum</b>, <b>cross-market tech flow</b>, <b>broad market breadth</b>, <b>intermediate trend</b>, and <b>local trend</b> all point in the exact same direction.
+      </p>
+
+      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin:6px 0">
+        <div style="background:#0d1117;border:1px solid rgba(63,185,80,0.3);border-radius:8px;padding:12px 14px">
+          <div style="color:#3fb950;font-weight:800;font-size:0.85rem;margin-bottom:4px">🟢 5/5 Bullish Alignment</div>
+          <div style="color:#e6edf3;font-size:1.05rem;font-weight:900">&rarr; BUY / READY (Green)</div>
+          <div style="color:#8b949e;font-size:0.74rem;margin-top:4px">All 5 independent market factors are trending UP simultaneously.</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid rgba(248,81,73,0.3);border-radius:8px;padding:12px 14px">
+          <div style="color:#f85149;font-weight:800;font-size:0.85rem;margin-bottom:4px">🔴 5/5 Bearish Alignment</div>
+          <div style="color:#e6edf3;font-size:1.05rem;font-weight:900">&rarr; SELL / READY (Red)</div>
+          <div style="color:#8b949e;font-size:0.74rem;margin-top:4px">All 5 independent market factors are trending DOWN simultaneously.</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid rgba(210,153,34,0.3);border-radius:8px;padding:12px 14px">
+          <div style="color:#d29922;font-weight:800;font-size:0.85rem;margin-bottom:4px">🟡 &lt; 5/5 Alignment</div>
+          <div style="color:#e6edf3;font-size:1.05rem;font-weight:900">&rarr; WAIT (Chop Avoidance)</div>
+          <div style="color:#8b949e;font-size:0.74rem;margin-top:4px">Divergence or mixed signals. Standing aside avoids choppy shakeouts.</div>
+        </div>
+      </div>
+
+      <!-- Confluence Flow Diagram -->
+      <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:0.72rem;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;font-weight:700">Confluence Evaluation Pipeline</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:0.78rem">
+          <div style="background:#161b22;border:1px solid #30363d;padding:8px 12px;border-radius:6px;text-align:center;flex:1;min-width:110px">
+            <div style="color:#8b949e;font-size:0.7rem">MOMENTUM</div>
+            <div style="color:#e6edf3;font-weight:700">AK MACD BB</div>
+          </div>
+          <span style="color:#58a6ff;font-weight:bold">+</span>
+          <div style="background:#161b22;border:1px solid #30363d;padding:8px 12px;border-radius:6px;text-align:center;flex:1;min-width:110px">
+            <div style="color:#8b949e;font-size:0.7rem">TECH FLOW</div>
+            <div style="color:#e6edf3;font-weight:700">QQQ 1-Min</div>
+          </div>
+          <span style="color:#58a6ff;font-weight:bold">+</span>
+          <div style="background:#161b22;border:1px solid #30363d;padding:8px 12px;border-radius:6px;text-align:center;flex:1;min-width:110px">
+            <div style="color:#8b949e;font-size:0.7rem">BREADTH</div>
+            <div style="color:#e6edf3;font-weight:700">NYSE $ADD 1m</div>
+          </div>
+          <span style="color:#58a6ff;font-weight:bold">+</span>
+          <div style="background:#161b22;border:1px solid #30363d;padding:8px 12px;border-radius:6px;text-align:center;flex:1;min-width:110px">
+            <div style="color:#8b949e;font-size:0.7rem">HIGHER TF</div>
+            <div style="color:#e6edf3;font-weight:700">SPY 5m ST</div>
+          </div>
+          <span style="color:#58a6ff;font-weight:bold">+</span>
+          <div style="background:#161b22;border:1px solid #30363d;padding:8px 12px;border-radius:6px;text-align:center;flex:1;min-width:110px">
+            <div style="color:#8b949e;font-size:0.7rem">LOCAL CHART</div>
+            <div style="color:#e6edf3;font-weight:700">SPY 1m ST</div>
+          </div>
+          <span style="color:#3fb950;font-weight:bold">&rArr;</span>
+          <div style="background:rgba(63,185,80,0.18);border:1px solid rgba(63,185,80,0.4);padding:8px 14px;border-radius:6px;text-align:center">
+            <div style="color:#3fb950;font-size:0.7rem;font-weight:800">5/5 CONSENSUS</div>
+            <div style="color:#3fb950;font-weight:900">EXECUTE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: The 5 Confluence Factors Table -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h4 style="color:#58a6ff;font-size:0.95rem;margin:0;display:flex;align-items:center;gap:6px">
+        <span>2.</span> The 5 Confluence Factors
+      </h4>
+      <p style="color:#8b949e;font-size:0.78rem;margin:0">
+        Every tick and at every 1-minute candle close, the script evaluates 5 independent binary factors:
+      </p>
+      
+      <div style="overflow-x:auto;border:1px solid #21262d;border-radius:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+          <thead style="background:#0d1117;border-bottom:1px solid #30363d;color:#8b949e">
+            <tr>
+              <th style="padding:10px 12px;text-align:center;width:40px">#</th>
+              <th style="padding:10px 12px;text-align:left;width:140px">Factor</th>
+              <th style="padding:10px 12px;text-align:left">Logic / Formula</th>
+              <th style="padding:10px 12px;text-align:left;color:#3fb950">Bullish Condition (UP)</th>
+              <th style="padding:10px 12px;text-align:left;color:#f85149">Bearish Condition (DOWN)</th>
+            </tr>
+          </thead>
+          <tbody style="color:#c9d1d9">
+            <tr style="border-bottom:1px solid #21262d">
+              <td style="padding:10px 12px;text-align:center;font-weight:bold;color:#8b949e">1</td>
+              <td style="padding:10px 12px;font-weight:700;color:#e6edf3">AK MACD BB</td>
+              <td style="padding:10px 12px;color:#8b949e">Fast EMA (12), Slow EMA (26), Signal (9). Histogram <code style="color:#c9d1d9">H = MACD - Signal</code>. Bollinger Bands on histogram (Length: 20, Mult: 2.0).</td>
+              <td style="padding:10px 12px;color:#3fb950;font-weight:600"><code style="background:#0d1117;padding:2px 6px;border-radius:4px">(H &gt; 0 and H &gt; H[1]) or H &ge; (basis + 2&sigma;)</code><br><span style="font-size:0.72rem;color:#8b949e">(Rising or BB upper breakout)</span></td>
+              <td style="padding:10px 12px;color:#f85149;font-weight:600"><code style="background:#0d1117;padding:2px 6px;border-radius:4px">H &le; 0 or H &le; H[1]</code><br><span style="font-size:0.72rem;color:#8b949e">(Histogram declining / below BB)</span></td>
+            </tr>
+            <tr style="border-bottom:1px solid #21262d">
+              <td style="padding:10px 12px;text-align:center;font-weight:bold;color:#8b949e">2</td>
+              <td style="padding:10px 12px;font-weight:700;color:#e6edf3">QQQ 1m Trend</td>
+              <td style="padding:10px 12px;color:#8b949e">Cross-asset tech correlation via <code style="color:#c9d1d9">request.security("QQQ", "1", close)</code></td>
+              <td style="padding:10px 12px;color:#3fb950;font-weight:600">Current QQQ close &gt; Previous QQQ close<br><code style="background:#0d1117;padding:2px 6px;border-radius:4px">(qqqValue &gt; qqqValuePrev)</code></td>
+              <td style="padding:10px 12px;color:#f85149;font-weight:600">Current QQQ close &le; Previous QQQ close</td>
+            </tr>
+            <tr style="border-bottom:1px solid #21262d">
+              <td style="padding:10px 12px;text-align:center;font-weight:bold;color:#8b949e">3</td>
+              <td style="padding:10px 12px;font-weight:700;color:#e6edf3">ADD 1m Breadth</td>
+              <td style="padding:10px 12px;color:#8b949e">NYSE Advance-Decline breadth via <code style="color:#c9d1d9">request.security("USI:ADD", "1", close)</code></td>
+              <td style="padding:10px 12px;color:#3fb950;font-weight:600">Current $ADD &gt; Previous $ADD<br><code style="background:#0d1117;padding:2px 6px;border-radius:4px">(addValue &gt; addValuePrev)</code></td>
+              <td style="padding:10px 12px;color:#f85149;font-weight:600">Current $ADD &le; Previous $ADD</td>
+            </tr>
+            <tr style="border-bottom:1px solid #21262d">
+              <td style="padding:10px 12px;text-align:center;font-weight:bold;color:#8b949e">4</td>
+              <td style="padding:10px 12px;font-weight:700;color:#e6edf3">SPY 5m Supertrend</td>
+              <td style="padding:10px 12px;color:#8b949e">Higher-timeframe trend filter via <code style="color:#c9d1d9">request.security("SPY", "5", Supertrend(ATR=10, Factor=3.0))</code></td>
+              <td style="padding:10px 12px;color:#3fb950;font-weight:600">5-min Supertrend is green / uptrend<br><code style="background:#0d1117;padding:2px 6px;border-radius:4px">(dir &lt; 0)</code></td>
+              <td style="padding:10px 12px;color:#f85149;font-weight:600">5-min Supertrend is red / downtrend<br><code style="background:#0d1117;padding:2px 6px;border-radius:4px">(dir &gt; 0)</code></td>
+            </tr>
+            <tr>
+              <td style="padding:10px 12px;text-align:center;font-weight:bold;color:#8b949e">5</td>
+              <td style="padding:10px 12px;font-weight:700;color:#e6edf3">SPY 1m Supertrend</td>
+              <td style="padding:10px 12px;color:#8b949e">Local execution trend directly on chart via <code style="color:#c9d1d9">ta.supertrend(Factor=3.0, ATR=10)</code></td>
+              <td style="padding:10px 12px;color:#3fb950;font-weight:600">1-min Supertrend is green / uptrend<br><code style="background:#0d1117;padding:2px 6px;border-radius:4px">(stUp = true)</code></td>
+              <td style="padding:10px 12px;color:#f85149;font-weight:600">1-min Supertrend is red / downtrend<br><code style="background:#0d1117;padding:2px 6px;border-radius:4px">(stUp = false)</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 3: Signal Triggering & Filtering -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h4 style="color:#58a6ff;font-size:0.95rem;margin:0;display:flex;align-items:center;gap:6px">
+        <span>3.</span> Signal Triggering &amp; Filtering Mechanics
+      </h4>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <!-- Left: Formulas -->
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;font-weight:700">Alignment Calculations</div>
+          <div style="font-family:Consolas,monospace;font-size:0.8rem;color:#e6edf3;line-height:1.6;background:#161b22;padding:8px 12px;border-radius:6px;border:1px solid #30363d">
+            bullCount = &sum;(factors UP)<br>
+            bearCount = 5 - bullCount<br>
+            conf = max(bullCount, bearCount)<br>
+            isBullish = bullCount &gt; bearCount
+          </div>
+          <div style="font-size:0.76rem;color:#c9d1d9;line-height:1.5">
+            • <b>BUY Trigger:</b> <code style="color:#3fb950">bullCount == 5</code> (all 5 factors UP)<br>
+            • <b>SELL Trigger:</b> <code style="color:#f85149">bearCount == 5</code> (all 5 factors DOWN)<br>
+            • <b>Clean Signal Logic:</b> Fires only on first transition (<code style="color:#58a6ff">buySignal and not buySignal[1]</code>) to avoid duplicate alert spamming.
+          </div>
+        </div>
+
+        <!-- Right: TV Visuals -->
+        <div style="background:#0d1117;border:1px solid #21262d;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:0.75rem;color:#8b949e;text-transform:uppercase;font-weight:700">TradingView Visual Output</div>
+          <div style="font-size:0.78rem;color:#c9d1d9;line-height:1.55">
+            • <b>BUY Shapes:</b> Green triangle up (<code style="color:#3fb950">BUY</code>) plotted below the trigger candle.<br>
+            • <b>SELL Shapes:</b> Red triangle down (<code style="color:#f85149">SELL</code>) plotted above the trigger candle.<br>
+            • <b>Candle Tinting:</b> When a signal is active, candles are tinted lime green (<code style="color:#3fb950">#00e676</code>) or red (<code style="color:#f85149">#f44336</code>).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: The On-Chart HUD Table -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h4 style="color:#58a6ff;font-size:0.95rem;margin:0;display:flex;align-items:center;gap:6px">
+        <span>4.</span> The On-Chart HUD Table (12 Rows)
+      </h4>
+      <p style="color:#8b949e;font-size:0.78rem;margin:0">
+        In the top-right corner of the TradingView chart, the script renders a live 12-row telemetry table:
+      </p>
+
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;font-size:0.76rem">
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 0</div>
+          <div style="font-weight:700;color:#e6edf3">SIGNAL</div>
+          <div style="color:#8b949e;font-size:0.72rem"><span style="color:#3fb950">BUY (Green)</span> or <span style="color:#f85149">SELL (Red)</span></div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 1</div>
+          <div style="font-weight:700;color:#e6edf3">MACD</div>
+          <div style="color:#8b949e;font-size:0.72rem">🟢 Green Dot or 🔴 Red Dot</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 2</div>
+          <div style="font-weight:700;color:#e6edf3">QQQ 1m</div>
+          <div style="color:#8b949e;font-size:0.72rem">&uarr; / &darr; along with live QQQ price</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 3</div>
+          <div style="font-weight:700;color:#e6edf3">ADD 1m</div>
+          <div style="color:#8b949e;font-size:0.72rem">&uarr; / &darr; with live $ADD breadth</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 4</div>
+          <div style="font-weight:700;color:#e6edf3">SPY 5m</div>
+          <div style="color:#8b949e;font-size:0.72rem">&uarr; / &darr; (5-min trend agreement)</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 5</div>
+          <div style="font-weight:700;color:#e6edf3">SPY 1m</div>
+          <div style="color:#8b949e;font-size:0.72rem">&uarr; / &darr; (1-min trend agreement)</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 6</div>
+          <div style="font-weight:700;color:#e6edf3">CONF</div>
+          <div style="color:#8b949e;font-size:0.72rem">Consensus fraction: 5/5, 4/5, 3/5</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 7</div>
+          <div style="font-weight:700;color:#e6edf3">STATUS</div>
+          <div style="color:#8b949e;font-size:0.72rem"><span style="color:#3fb950">READY (5/5)</span> or <span style="color:#d29922">WAIT (&lt;5/5)</span></div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 8</div>
+          <div style="font-weight:700;color:#e6edf3">ALIGN</div>
+          <div style="color:#8b949e;font-size:0.72rem">Quality: 5/5 &check;, 4/5, LOW</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 9</div>
+          <div style="font-weight:700;color:#e6edf3">PRICE / RESIST</div>
+          <div style="color:#8b949e;font-size:0.72rem">SPY close vs 20-bar highest high</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 10</div>
+          <div style="font-weight:700;color:#e6edf3">SUPPORT / ST LVL</div>
+          <div style="color:#8b949e;font-size:0.72rem">20-bar lowest low vs Supertrend</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:8px 12px;border-radius:6px">
+          <div style="color:#8b949e;font-size:0.68rem">ROW 11</div>
+          <div style="font-weight:700;color:#e6edf3">TIME (Countdown)</div>
+          <div style="color:#8b949e;font-size:0.72rem"><span style="color:#3fb950">&gt;33s Green</span> | <span style="color:#d29922">15-33s Orange</span> | <span style="color:#f85149">&lt;15s Red</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 5: Integration into SPYTrade Python Dashboard -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h4 style="color:#58a6ff;font-size:0.95rem;margin:0;display:flex;align-items:center;gap:6px">
+        <span>5.</span> Integration into the SPYTrade Python Ecosystem
+      </h4>
+      <p style="color:#8b949e;font-size:0.78rem;margin:0">
+        The Python desktop application (<code style="color:#c9d1d9">app.py</code>) connects directly to Chrome running TradingView via Chrome DevTools Protocol (<code style="color:#c9d1d9">tv_scraper.py</code>):
+      </p>
+
+      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;font-size:0.78rem">
+        <div style="background:#0d1117;border:1px solid #21262d;padding:12px;border-radius:8px">
+          <div style="color:#58a6ff;font-weight:700;margin-bottom:4px">📡 DOM Scraping (<code style="color:#c9d1d9">tv_scraper.py</code>)</div>
+          <div style="color:#8b949e;line-height:1.45">Continuously extracts <code style="color:#c9d1d9">signal_tv</code>, <code style="color:#c9d1d9">conf_tv</code>, and <code style="color:#c9d1d9">status_tv</code> directly from the rendered on-chart table element in real-time.</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:12px;border-radius:8px">
+          <div style="color:#3fb950;font-weight:700;margin-bottom:4px">✅ Checklist Confluence (15 pts)</div>
+          <div style="color:#8b949e;line-height:1.45">In <code style="color:#c9d1d9">signals.py</code> &amp; <code style="color:#c9d1d9">checklist_tab.py</code>, Hiranya Signal Monitor is weighted as <b>15 points</b> toward trade qualification when signal matches direction.</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:12px;border-radius:8px">
+          <div style="color:#d29922;font-weight:700;margin-bottom:4px">⚡ Signal Confidence Override</div>
+          <div style="color:#8b949e;line-height:1.45">If the 1m candle is neutral, but the Signal Monitor reads 4/5 or 5/5, <code style="color:#c9d1d9">signals.py</code> boosts confidence or overrides the candle direction.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 6: Standard Execution Parameters -->
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <h4 style="color:#58a6ff;font-size:0.95rem;margin:0;display:flex;align-items:center;gap:6px">
+        <span>6.</span> Standard Execution Parameters
+      </h4>
+      <p style="color:#8b949e;font-size:0.78rem;margin:0">
+        Empirically calibrated from the automated backtesting suite (<code style="color:#c9d1d9">backtest_ak_macd_v119.py</code>):
+      </p>
+
+      <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;text-align:center">
+        <div style="background:#0d1117;border:1px solid #21262d;padding:10px;border-radius:8px">
+          <div style="color:#8b949e;font-size:0.68rem;text-transform:uppercase">Trading Window</div>
+          <div style="font-size:1.0rem;font-weight:800;color:#58a6ff;margin-top:2px">06:30 – 08:15 AM PT</div>
+          <div style="font-size:0.68rem;color:#8b949e">Los Angeles morning open</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:10px;border-radius:8px">
+          <div style="color:#8b949e;font-size:0.68rem;text-transform:uppercase">Take-Profit (TP)</div>
+          <div style="font-size:1.0rem;font-weight:800;color:#3fb950;margin-top:2px">+0.12%</div>
+          <div style="font-size:0.68rem;color:#8b949e">~$0.60–$0.90 move on SPY</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:10px;border-radius:8px">
+          <div style="color:#8b949e;font-size:0.68rem;text-transform:uppercase">Stop-Loss (SL)</div>
+          <div style="font-size:1.0rem;font-weight:800;color:#f85149;margin-top:2px">-0.09%</div>
+          <div style="font-size:0.68rem;color:#8b949e">~$0.45–$0.70 move on SPY</div>
+        </div>
+        <div style="background:#0d1117;border:1px solid #21262d;padding:10px;border-radius:8px">
+          <div style="color:#8b949e;font-size:0.68rem;text-transform:uppercase">Time Exit</div>
+          <div style="font-size:1.0rem;font-weight:800;color:#d29922;margin-top:2px">Max 5 Bars (5 min)</div>
+          <div style="font-size:0.68rem;color:#8b949e">Close if neither TP/SL hit</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 </div><!-- /tab-hsm -->
 
