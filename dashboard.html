@@ -307,6 +307,7 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
 <div class="tabs">
   <div class="tab on" data-tab="live" onclick="sw('live')">Live Signal</div>
   <div class="tab"    data-tab="hsm" onclick="sw('hsm')">🎯 Signal Monitor 1.9</div>
+  <div class="tab"    data-tab="flowchart" onclick="sw('flowchart')" style="font-weight:700;color:#58a6ff">⚡ Trade Flowchart</div>
   <div class="tab"    data-tab="guide" onclick="sw('guide')">Symbol Guide</div>
   <div class="tab"    data-tab="paper" onclick="sw('paper')">Paper Trading</div>
   <div class="tab"    data-tab="tl" onclick="sw('tl')">📊 Trendline Breaks</div>
@@ -2503,6 +2504,272 @@ Only B Trades with FULL confirmation."></textarea>
 </div>
 </div><!-- /tab-checklist -->
 
+
+<!-- ══ TAB: TRADE FLOWCHART & EXECUTION CHECKLIST ══ -->
+<div class="tc" id="tab-flowchart">
+<div style="padding:22px;max-width:1300px;margin:0 auto;display:flex;flex-direction:column;gap:20px;font-family:'Segoe UI',system-ui,-apple-system,sans-serif">
+
+  <!-- Top Hero Header -->
+  <div style="background:linear-gradient(135deg,#161b22 0%,#0d1117 100%);border:1.5px solid #30363d;border-radius:14px;padding:22px 28px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;box-shadow:0 8px 24px rgba(0,0,0,0.4)">
+    <div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:2.2rem">⚡</span>
+        <div>
+          <h1 style="font-size:1.85rem;font-weight:900;color:#58a6ff;margin:0;letter-spacing:0.5px">SPY Day Trade Flowchart &amp; Execution Checklist</h1>
+          <div style="font-size:0.95rem;color:#8b949e;margin-top:4px">
+            Step-by-step entry rules &bull; 9/21 EMA candle close &bull; Confluence checks &bull; Pre-planned exit strategy
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALLS / PUTS Direction Selector (Large Buttons) -->
+    <div style="display:flex;align-items:center;gap:12px;background:#0d1117;padding:6px;border-radius:12px;border:1px solid #30363d">
+      <button id="fc-btn-calls" onclick="fcSetType('CALLS')" style="padding:12px 26px;font-size:1.15rem;font-weight:900;border-radius:9px;border:2px solid transparent;cursor:pointer;background:#21262d;color:#8b949e;transition:all 0.2s;display:flex;align-items:center;gap:8px">
+        <span>📈</span> CALLS (LONG)
+      </button>
+      <button id="fc-btn-puts" onclick="fcSetType('PUTS')" style="padding:12px 26px;font-size:1.15rem;font-weight:900;border-radius:9px;border:2px solid #f85149;cursor:pointer;background:#3d1515;color:#ff7b72;transition:all 0.2s;display:flex;align-items:center;gap:8px;box-shadow:0 0 16px rgba(248,81,73,0.3)">
+        <span>📉</span> PUTS (SHORT)
+      </button>
+    </div>
+  </div>
+
+  <!-- Giant Live Readiness Banner -->
+  <div id="fc-status-banner" style="background:#161b22;border:2px solid #f85149;border-radius:14px;padding:20px 26px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;transition:all 0.3s">
+    <div style="display:flex;align-items:center;gap:18px">
+      <div id="fc-status-icon" style="font-size:3rem">🛑</div>
+      <div>
+        <div id="fc-status-title" style="font-size:1.6rem;font-weight:900;color:#f85149;letter-spacing:0.5px">DO NOT ENTER &mdash; CONDITIONS NOT MET</div>
+        <div id="fc-status-desc" style="font-size:1rem;color:#c9d1d9;margin-top:4px">Verify all conditions below. If market is in RANGE or Score &lt; 65, STAY IN CASH!</div>
+      </div>
+    </div>
+    <div style="text-align:right;min-width:200px">
+      <div style="font-size:1.85rem;font-weight:900;color:#e6edf3" id="fc-score-display">0 / 8 Met</div>
+      <div style="width:200px;background:#21262d;height:12px;border-radius:6px;overflow:hidden;margin-top:6px;border:1px solid #30363d">
+        <div id="fc-score-bar" style="width:0%;height:100%;background:#f85149;border-radius:6px;transition:width 0.3s,background 0.3s"></div>
+      </div>
+      <div style="font-size:0.8rem;color:#8b949e;margin-top:4px" id="fc-score-pct">0% Ready</div>
+    </div>
+  </div>
+
+  <!-- Fast Controls Bar -->
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="font-size:1.15rem;font-weight:800;color:#e6edf3;display:flex;align-items:center;gap:8px">
+      <span>📋</span> Trade Execution Steps (Big Font Checklist)
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onclick="fcCheckAll()" style="background:#21262d;border:1px solid #3fb950;color:#3fb950;font-size:0.95rem;font-weight:800;padding:8px 18px;border-radius:8px;cursor:pointer;transition:all 0.15s">
+        ✓ Check All Met
+      </button>
+      <button onclick="fcClearAll()" style="background:#21262d;border:1px solid #30363d;color:#8b949e;font-size:0.95rem;font-weight:700;padding:8px 18px;border-radius:8px;cursor:pointer;transition:all 0.15s">
+        ✕ Clear All
+      </button>
+    </div>
+  </div>
+
+  <!-- 4 Big Flowchart Step Cards with Large Checkmarks -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <!-- STEP 1: MARKET REGIME -->
+    <div style="background:#161b22;border:1.5px solid #30363d;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid #21262d;padding-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="background:#1f6feb;color:#fff;font-size:0.9rem;font-weight:900;padding:4px 10px;border-radius:6px">STEP 1</span>
+          <span style="font-size:1.25rem;font-weight:800;color:#e6edf3">MARKET REGIME FILTER (Filter Out Chop)</span>
+        </div>
+        <span style="background:rgba(248,81,73,0.15);color:#ff7b72;border:1px solid rgba(248,81,73,0.3);border-radius:6px;font-size:0.85rem;font-weight:700;padding:4px 10px">
+          Rule: Never trade when State = RANGE or Score &lt; 65
+        </span>
+      </div>
+
+      <!-- Checklist Item 1 -->
+      <div class="fc-check-row" id="fc-row-1" onclick="fcToggle(1)" style="display:flex;align-items:center;gap:18px;background:#0d1117;border:1.5px solid #30363d;border-radius:10px;padding:16px 20px;cursor:pointer;transition:all 0.2s">
+        <div class="fc-box" id="fc-box-1" style="width:32px;height:32px;border-radius:8px;border:2px solid #8b949e;background:#161b22;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:transparent;flex-shrink:0;transition:all 0.2s">✓</div>
+        <div style="flex:1">
+          <div style="font-size:1.2rem;font-weight:800;color:#e6edf3" id="fc-title-1">1. Hiranya Signal Monitor is NOT in "RANGE" and Score &ge; 70</div>
+          <div style="font-size:0.95rem;color:#8b949e;margin-top:4px" id="fc-sub-1">
+            Check the Monitor HUD: State must be <b>TRENDING</b> or <b>BREAKOUT</b> with Score &ge; 70. If in RANGE or NO TRADE, stay in cash!
+          </div>
+        </div>
+        <div style="font-size:1.1rem;font-weight:800;color:#58a6ff" id="fc-badge-1">HUD CHECK</div>
+      </div>
+    </div>
+
+    <!-- STEP 2: 9/21 CROSS & CANDLE CLOSE -->
+    <div style="background:#161b22;border:1.5px solid #30363d;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid #21262d;padding-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="background:#238636;color:#fff;font-size:0.9rem;font-weight:900;padding:4px 10px;border-radius:6px">STEP 2</span>
+          <span style="font-size:1.25rem;font-weight:800;color:#e6edf3">9 / 21 CROSS &amp; 1-MINUTE CANDLE CLOSE (The Trigger)</span>
+        </div>
+        <span style="background:rgba(210,153,34,0.15);color:#d29922;border:1px solid rgba(210,153,34,0.3);border-radius:6px;font-size:0.85rem;font-weight:700;padding:4px 10px">
+          Rule: Never enter mid-candle &mdash; Wait for 0:00 close!
+        </span>
+      </div>
+
+      <!-- Checklist Item 2 -->
+      <div class="fc-check-row" id="fc-row-2" onclick="fcToggle(2)" style="display:flex;align-items:center;gap:18px;background:#0d1117;border:1.5px solid #30363d;border-radius:10px;padding:16px 20px;cursor:pointer;transition:all 0.2s">
+        <div class="fc-box" id="fc-box-2" style="width:32px;height:32px;border-radius:8px;border:2px solid #8b949e;background:#161b22;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:transparent;flex-shrink:0;transition:all 0.2s">✓</div>
+        <div style="flex:1">
+          <div style="font-size:1.2rem;font-weight:800;color:#e6edf3" id="fc-title-2">2. 9 EMA crossed below 21 EMA (Down-slope active)</div>
+          <div style="font-size:0.95rem;color:#8b949e;margin-top:4px" id="fc-sub-2">
+            9 EMA must be under 21 EMA for PUTS (or 9 EMA above 21 EMA for CALLS). Both lines should angle with momentum.
+          </div>
+        </div>
+        <div style="font-size:1.1rem;font-weight:800;color:#ff7b72" id="fc-badge-2">9 &lt; 21 EMA</div>
+      </div>
+
+      <!-- Checklist Item 3 -->
+      <div class="fc-check-row" id="fc-row-3" onclick="fcToggle(3)" style="display:flex;align-items:center;gap:18px;background:#0d1117;border:1.5px solid #30363d;border-radius:10px;padding:16px 20px;cursor:pointer;transition:all 0.2s">
+        <div class="fc-box" id="fc-box-3" style="width:32px;height:32px;border-radius:8px;border:2px solid #8b949e;background:#161b22;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:transparent;flex-shrink:0;transition:all 0.2s">✓</div>
+        <div style="flex:1">
+          <div style="font-size:1.2rem;font-weight:800;color:#e6edf3" id="fc-title-3">3. 1-Minute Candle Decisively CLOSED Across 9 EMA &amp; VWAP</div>
+          <div style="font-size:0.95rem;color:#8b949e;margin-top:4px" id="fc-sub-3">
+            Wait for candle countdown to reach <b>0:00</b>. Body must be &ge; 50% of range (not a wick/doji) closing below 9 EMA &amp; VWAP.
+          </div>
+        </div>
+        <div style="font-size:1.1rem;font-weight:800;color:#e6edf3" id="fc-badge-3">0:00 CLOSE</div>
+      </div>
+
+      <!-- Checklist Item 4 -->
+      <div class="fc-check-row" id="fc-row-4" onclick="fcToggle(4)" style="display:flex;align-items:center;gap:18px;background:#0d1117;border:1.5px solid #30363d;border-radius:10px;padding:16px 20px;cursor:pointer;transition:all 0.2s">
+        <div class="fc-box" id="fc-box-4" style="width:32px;height:32px;border-radius:8px;border:2px solid #8b949e;background:#161b22;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:transparent;flex-shrink:0;transition:all 0.2s">✓</div>
+        <div style="flex:1">
+          <div style="font-size:1.2rem;font-weight:800;color:#e6edf3" id="fc-title-4">4. Pullback / "B-Trade" Setup Confirmed (No Chasing)</div>
+          <div style="font-size:0.95rem;color:#8b949e;margin-top:4px" id="fc-sub-4">
+            If 9/21 cross was &gt;10 bars ago, DO NOT buy extended lows/highs! Wait for pullback into 9/21 ribbon &amp; rejection ("B" setup badge).
+          </div>
+        </div>
+        <div style="font-size:1.1rem;font-weight:800;color:#d29922" id="fc-badge-4">B-TRADE</div>
+      </div>
+    </div>
+
+    <!-- STEP 3: CONFLUENCES -->
+    <div style="background:#161b22;border:1.5px solid #30363d;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid #21262d;padding-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="background:#8957e5;color:#fff;font-size:0.9rem;font-weight:900;padding:4px 10px;border-radius:6px">STEP 3</span>
+          <span style="font-size:1.25rem;font-weight:800;color:#e6edf3">CONFLUENCE CONFIRMATION (Momentum &amp; Breadth)</span>
+        </div>
+        <span style="background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);border-radius:6px;font-size:0.85rem;font-weight:700;padding:4px 10px">
+          Rule: Trade with momentum, never fight market flow
+        </span>
+      </div>
+
+      <!-- Checklist Item 5 -->
+      <div class="fc-check-row" id="fc-row-5" onclick="fcToggle(5)" style="display:flex;align-items:center;gap:18px;background:#0d1117;border:1.5px solid #30363d;border-radius:10px;padding:16px 20px;cursor:pointer;transition:all 0.2s">
+        <div class="fc-box" id="fc-box-5" style="width:32px;height:32px;border-radius:8px;border:2px solid #8b949e;background:#161b22;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:transparent;flex-shrink:0;transition:all 0.2s">✓</div>
+        <div style="flex:1">
+          <div style="font-size:1.2rem;font-weight:800;color:#e6edf3" id="fc-title-5">5. AA MACD Squeeze is RED (Bearish Momentum)</div>
+          <div style="font-size:0.95rem;color:#8b949e;margin-top:4px" id="fc-sub-5">
+            Histogram/dots below chart must be RED (downward expansion). For CALLS, must be GREEN.
+          </div>
+        </div>
+        <div style="font-size:1.1rem;font-weight:800;color:#ff7b72" id="fc-badge-5">AA MACD</div>
+      </div>
+
+      <!-- Checklist Item 6 -->
+      <div class="fc-check-row" id="fc-row-6" onclick="fcToggle(6)" style="display:flex;align-items:center;gap:18px;background:#0d1117;border:1.5px solid #30363d;border-radius:10px;padding:16px 20px;cursor:pointer;transition:all 0.2s">
+        <div class="fc-box" id="fc-box-6" style="width:32px;height:32px;border-radius:8px;border:2px solid #8b949e;background:#161b22;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:transparent;flex-shrink:0;transition:all 0.2s">✓</div>
+        <div style="flex:1">
+          <div style="font-size:1.2rem;font-weight:800;color:#e6edf3" id="fc-title-6">6. RSI Trendline Breakdown Confirmed (Lower Panel)</div>
+          <div style="font-size:0.95rem;color:#8b949e;margin-top:4px" id="fc-sub-6">
+            RSI crossed/broke down below its trendline or printed Bear divergence. For CALLS, broke above ascending trendline.
+          </div>
+        </div>
+        <div style="font-size:1.1rem;font-weight:800;color:#58a6ff" id="fc-badge-6">RSI BREAK</div>
+      </div>
+
+      <!-- Checklist Item 7 -->
+      <div class="fc-check-row" id="fc-row-7" onclick="fcToggle(7)" style="display:flex;align-items:center;gap:18px;background:#0d1117;border:1.5px solid #30363d;border-radius:10px;padding:16px 20px;cursor:pointer;transition:all 0.2s">
+        <div class="fc-box" id="fc-box-7" style="width:32px;height:32px;border-radius:8px;border:2px solid #8b949e;background:#161b22;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:transparent;flex-shrink:0;transition:all 0.2s">✓</div>
+        <div style="flex:1">
+          <div style="font-size:1.2rem;font-weight:800;color:#e6edf3" id="fc-title-7">7. QQQ Direction &amp; NYSE $ADD Breadth Aligned</div>
+          <div style="font-size:0.95rem;color:#8b949e;margin-top:4px" id="fc-sub-7">
+            QQQ is falling with SPY; NYSE $ADD breadth is declining (&lt; 0 or dropping). Both markets confirm the move.
+          </div>
+        </div>
+        <div style="font-size:1.1rem;font-weight:800;color:#3fb950" id="fc-badge-7">QQQ + $ADD</div>
+      </div>
+    </div>
+
+    <!-- STEP 4: EXIT & STOP LOSS PLAN -->
+    <div style="background:#161b22;border:1.5px solid #30363d;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-bottom:1px solid #21262d;padding-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="background:#da3633;color:#fff;font-size:0.9rem;font-weight:900;padding:4px 10px;border-radius:6px">STEP 4</span>
+          <span style="font-size:1.25rem;font-weight:800;color:#e6edf3">EXIT STRATEGY &amp; STOP LOSS (Pre-Execution Plan)</span>
+        </div>
+        <span style="background:rgba(238,108,77,0.15);color:#ff7b72;border:1px solid rgba(238,108,77,0.3);border-radius:6px;font-size:0.85rem;font-weight:700;padding:4px 10px">
+          Rule: Know where you are getting out BEFORE you get in!
+        </span>
+      </div>
+
+      <!-- Checklist Item 8 -->
+      <div class="fc-check-row" id="fc-row-8" onclick="fcToggle(8)" style="display:flex;align-items:center;gap:18px;background:#0d1117;border:1.5px solid #30363d;border-radius:10px;padding:16px 20px;cursor:pointer;transition:all 0.2s">
+        <div class="fc-box" id="fc-box-8" style="width:32px;height:32px;border-radius:8px;border:2px solid #8b949e;background:#161b22;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:transparent;flex-shrink:0;transition:all 0.2s">✓</div>
+        <div style="flex:1">
+          <div style="font-size:1.2rem;font-weight:800;color:#e6edf3" id="fc-title-8">8. Stop Loss &amp; Profit Targets Pre-Defined</div>
+          <div style="font-size:0.95rem;color:#8b949e;margin-top:4px" id="fc-sub-8">
+            • <b>HARD STOP:</b> 1m candle closes across 21 EMA / VWAP (or max -12% on options).<br>
+            • <b>TARGET 1 (+15% to +25%):</b> Sell 50%–70% of contracts &amp; move stop to Breakeven.<br>
+            • <b>RUNNERS:</b> Trail with 9 EMA candle close. Full exit on opposite MACD color flip.
+          </div>
+        </div>
+        <div style="font-size:1.1rem;font-weight:800;color:#bc8cff" id="fc-badge-8">EXIT PLAN</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Big Save Trade Execution Panel -->
+  <div style="background:linear-gradient(135deg,#161b22 0%,#1c2128 100%);border:2px solid #30363d;border-radius:14px;padding:24px 28px;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 30px rgba(0,0,0,0.5)">
+    <div style="font-size:1.3rem;font-weight:800;color:#e6edf3;display:flex;align-items:center;gap:10px">
+      <span>💾</span> Log &amp; Save This Trade
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px">
+      <div>
+        <label style="display:block;font-size:0.85rem;font-weight:700;color:#8b949e;margin-bottom:6px">CONTRACT / STRIKE (optional)</label>
+        <input type="text" id="fc-contract-input" placeholder="e.g. SPY 590P 0DTE" style="width:100%;background:#0d1117;border:1.5px solid #30363d;border-radius:8px;padding:12px 14px;font-size:1rem;font-weight:600;color:#e6edf3;outline:none;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.85rem;font-weight:700;color:#8b949e;margin-bottom:6px">TRADE NOTES / EXECUTION REASON</label>
+        <input type="text" id="fc-notes-input" placeholder="e.g. Clean 9/21 cross, 1m closed below VWAP, B-trade rejection off 9 EMA" style="width:100%;background:#0d1117;border:1.5px solid #30363d;border-radius:8px;padding:12px 14px;font-size:1rem;color:#e6edf3;outline:none;box-sizing:border-box">
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:6px">
+      <button id="fc-save-btn" onclick="fcSaveTrade()" style="flex:1;min-width:280px;padding:16px 28px;background:linear-gradient(135deg,#238636 0%,#2ea44f 100%);border:2px solid #3fb950;border-radius:10px;color:#fff;font-size:1.25rem;font-weight:900;letter-spacing:0.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 0 20px rgba(46,164,79,0.3)">
+        <span>💾</span> SAVE THIS TRADE (Record to History)
+      </button>
+      <button onclick="fcResetForNextTrade()" style="padding:16px 24px;background:#21262d;border:1.5px solid #30363d;border-radius:10px;color:#c9d1d9;font-size:1.1rem;font-weight:700;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px">
+        <span>🔄</span> Reset For Next Trade
+      </button>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="fc-toast" style="display:none;padding:14px 20px;border-radius:10px;font-size:1.05rem;font-weight:800;text-align:center;transition:all 0.3s"></div>
+  </div>
+
+  <!-- Saved Trades History Section -->
+  <div style="background:#161b22;border:1.5px solid #30363d;border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div style="font-size:1.25rem;font-weight:800;color:#e6edf3;display:flex;align-items:center;gap:8px">
+        <span>📜</span> Recently Saved Trades
+      </div>
+      <button onclick="fcLoadHistory()" style="background:#21262d;border:1px solid #30363d;color:#8b949e;padding:6px 12px;border-radius:6px;font-size:0.85rem;cursor:pointer">
+        ↻ Refresh History
+      </button>
+    </div>
+    <div id="fc-history-list" style="display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto;padding-right:4px">
+      <div style="color:#8b949e;text-align:center;padding:24px">Loading saved trades...</div>
+    </div>
+  </div>
+
+</div>
+</div><!-- /tab-flowchart -->
+
+
 <!-- ══ TAB: HIRANYA SIGNAL MONITOR 1.9 ══ -->
 <div class="tc" id="tab-hsm">
 <div style="padding:20px;max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:18px">
@@ -3294,6 +3561,7 @@ function sw(n){
   if(n==='journal') loadJournal();
   if(n==='analysis') initAnalysis();
   if(n==='checklist') initChecklist();
+  if(n==='flowchart') initFlowchart();
   if(n==='hsm') initHSM();
   if(n==='live') {
     if (liveChart) {
@@ -8778,6 +9046,317 @@ function updateHSM(d) {
   updateFactor('hsm-f-spy5', 'hsm-fv-spy5-dir', 'hsm-fv-spy5-icon', det.spy5_dir);
   updateFactor('hsm-f-spy1', 'hsm-fv-spy1-dir', 'hsm-fv-spy1-icon', det.spy1_dir);
 }
+
+
+// ═════════════════════════════════════════════════════════════════════════
+// ⚡ SPY TRADE FLOWCHART & EXECUTION CHECKLIST SCRIPT
+// ═════════════════════════════════════════════════════════════════════════
+let fcCurrentType = 'PUTS';
+let fcChecks = { 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false };
+
+function fcSetType(type) {
+  fcCurrentType = type;
+  const btnCalls = document.getElementById('fc-btn-calls');
+  const btnPuts = document.getElementById('fc-btn-puts');
+
+  if (type === 'CALLS') {
+    btnCalls.style.background = '#0d3320';
+    btnCalls.style.borderColor = '#3fb950';
+    btnCalls.style.color = '#3fb950';
+    btnCalls.style.boxShadow = '0 0 16px rgba(63,185,80,0.3)';
+
+    btnPuts.style.background = '#21262d';
+    btnPuts.style.borderColor = 'transparent';
+    btnPuts.style.color = '#8b949e';
+    btnPuts.style.boxShadow = 'none';
+
+    // Update Step 2 texts for CALLS
+    document.getElementById('fc-title-2').textContent = '2. 9 EMA crossed above 21 EMA (Up-slope active)';
+    document.getElementById('fc-sub-2').innerHTML = '9 EMA must be <b>above</b> 21 EMA with clean upward separation. Price trending above ribbon.';
+    document.getElementById('fc-badge-2').textContent = '9 > 21 EMA';
+    document.getElementById('fc-badge-2').style.color = '#3fb950';
+
+    document.getElementById('fc-title-3').textContent = '3. 1-Minute Candle Decisively CLOSED Above 9 EMA & VWAP';
+    document.getElementById('fc-sub-3').innerHTML = 'Wait for 0:00 close. Decisive green candle body (&ge; 50%) closed <b>above</b> 9 EMA &amp; VWAP. No weak wicks.';
+
+    document.getElementById('fc-title-4').textContent = '4. Pullback / "B-Trade" Bounce Confirmed (No Chasing)';
+    document.getElementById('fc-sub-4').innerHTML = 'If cross was &gt;10 bars ago, wait for price to dip into 9/21 ribbon or VWAP and print a confirmed bounce ("B" badge).';
+
+    // Step 3
+    document.getElementById('fc-title-5').textContent = '5. AA MACD Squeeze is GREEN (Bullish Momentum)';
+    document.getElementById('fc-sub-5').innerHTML = 'Histogram/dots below chart must be <b>GREEN</b> (upward expansion).';
+    document.getElementById('fc-badge-5').textContent = 'MACD GREEN';
+    document.getElementById('fc-badge-5').style.color = '#3fb950';
+
+    document.getElementById('fc-title-6').textContent = '6. RSI Trendline Breakout / Bull Divergence Active';
+    document.getElementById('fc-sub-6').innerHTML = 'RSI broke <b>above</b> descending trendline or confirmed "Bull" divergence mark.';
+
+    document.getElementById('fc-title-7').textContent = '7. QQQ Pushing UP & NYSE $ADD Advancing';
+    document.getElementById('fc-sub-7').innerHTML = 'QQQ rising in confluence with SPY; NYSE $ADD breadth is positive (&gt; +500 or rising).';
+
+  } else {
+    btnPuts.style.background = '#3d1515';
+    btnPuts.style.borderColor = '#f85149';
+    btnPuts.style.color = '#ff7b72';
+    btnPuts.style.boxShadow = '0 0 16px rgba(248,81,73,0.3)';
+
+    btnCalls.style.background = '#21262d';
+    btnCalls.style.borderColor = 'transparent';
+    btnCalls.style.color = '#8b949e';
+    btnCalls.style.boxShadow = 'none';
+
+    // Update Step 2 texts for PUTS
+    document.getElementById('fc-title-2').textContent = '2. 9 EMA crossed below 21 EMA (Down-slope active)';
+    document.getElementById('fc-sub-2').innerHTML = '9 EMA must be <b>below</b> 21 EMA with clean downward separation. Price trending under ribbon.';
+    document.getElementById('fc-badge-2').textContent = '9 < 21 EMA';
+    document.getElementById('fc-badge-2').style.color = '#ff7b72';
+
+    document.getElementById('fc-title-3').textContent = '3. 1-Minute Candle Decisively CLOSED Below 9 EMA & VWAP';
+    document.getElementById('fc-sub-3').innerHTML = 'Wait for 0:00 close. Decisive red candle body (&ge; 50%) closed <b>below</b> 9 EMA &amp; VWAP. No weak wicks.';
+
+    document.getElementById('fc-title-4').textContent = '4. Pullback / "B-Trade" Rejection Confirmed (No Chasing)';
+    document.getElementById('fc-sub-4').innerHTML = 'If cross was &gt;10 bars ago, wait for price to rally into 9/21 ribbon or VWAP and print a confirmed rejection ("B" badge).';
+
+    // Step 3
+    document.getElementById('fc-title-5').textContent = '5. AA MACD Squeeze is RED (Bearish Momentum)';
+    document.getElementById('fc-sub-5').innerHTML = 'Histogram/dots below chart must be <b>RED</b> (downward expansion).';
+    document.getElementById('fc-badge-5').textContent = 'MACD RED';
+    document.getElementById('fc-badge-5').style.color = '#ff7b72';
+
+    document.getElementById('fc-title-6').textContent = '6. RSI Trendline Breakdown / Bear Divergence Active';
+    document.getElementById('fc-sub-6').innerHTML = 'RSI broke <b>below</b> ascending trendline or confirmed "Bear" divergence mark.';
+
+    document.getElementById('fc-title-7').textContent = '7. QQQ Dropping DOWN & NYSE $ADD Declining';
+    document.getElementById('fc-sub-7').innerHTML = 'QQQ falling in confluence with SPY; NYSE $ADD breadth is negative (&lt; -500 or falling).';
+  }
+
+  fcUpdateStatus();
+}
+
+function fcToggle(num) {
+  fcChecks[num] = !fcChecks[num];
+  const row = document.getElementById('fc-row-' + num);
+  const box = document.getElementById('fc-box-' + num);
+
+  if (fcChecks[num]) {
+    row.style.borderColor = fcCurrentType === 'CALLS' ? '#3fb950' : '#f85149';
+    row.style.background = fcCurrentType === 'CALLS' ? 'rgba(63,185,80,0.08)' : 'rgba(248,81,73,0.08)';
+    box.style.background = fcCurrentType === 'CALLS' ? '#238636' : '#da3633';
+    box.style.borderColor = fcCurrentType === 'CALLS' ? '#3fb950' : '#f85149';
+    box.style.color = '#fff';
+  } else {
+    row.style.borderColor = '#30363d';
+    row.style.background = '#0d1117';
+    box.style.background = '#161b22';
+    box.style.borderColor = '#8b949e';
+    box.style.color = 'transparent';
+  }
+
+  fcUpdateStatus();
+}
+
+function fcCheckAll() {
+  for (let i = 1; i <= 8; i++) {
+    fcChecks[i] = true;
+    const row = document.getElementById('fc-row-' + i);
+    const box = document.getElementById('fc-box-' + i);
+    if (row && box) {
+      row.style.borderColor = fcCurrentType === 'CALLS' ? '#3fb950' : '#f85149';
+      row.style.background = fcCurrentType === 'CALLS' ? 'rgba(63,185,80,0.08)' : 'rgba(248,81,73,0.08)';
+      box.style.background = fcCurrentType === 'CALLS' ? '#238636' : '#da3633';
+      box.style.borderColor = fcCurrentType === 'CALLS' ? '#3fb950' : '#f85149';
+      box.style.color = '#fff';
+    }
+  }
+  fcUpdateStatus();
+}
+
+function fcClearAll() {
+  for (let i = 1; i <= 8; i++) {
+    fcChecks[i] = false;
+    const row = document.getElementById('fc-row-' + i);
+    const box = document.getElementById('fc-box-' + i);
+    if (row && box) {
+      row.style.borderColor = '#30363d';
+      row.style.background = '#0d1117';
+      box.style.background = '#161b22';
+      box.style.borderColor = '#8b949e';
+      box.style.color = 'transparent';
+    }
+  }
+  fcUpdateStatus();
+}
+
+function fcUpdateStatus() {
+  let count = 0;
+  for (let i = 1; i <= 8; i++) {
+    if (fcChecks[i]) count++;
+  }
+
+  const pct = Math.round((count / 8) * 100);
+  const banner = document.getElementById('fc-status-banner');
+  const icon = document.getElementById('fc-status-icon');
+  const title = document.getElementById('fc-status-title');
+  const desc = document.getElementById('fc-status-desc');
+  const scoreDisp = document.getElementById('fc-score-display');
+  const bar = document.getElementById('fc-score-bar');
+  const scorePct = document.getElementById('fc-score-pct');
+
+  if (scoreDisp) scoreDisp.textContent = `${count} / 8 Met`;
+  if (bar) bar.style.width = pct + '%';
+  if (scorePct) scorePct.textContent = `${pct}% Ready`;
+
+  if (count <= 3) {
+    banner.style.borderColor = '#f85149';
+    banner.style.background = 'linear-gradient(135deg,#200e0e 0%,#161b22 100%)';
+    icon.textContent = '🛑';
+    title.textContent = 'DO NOT ENTER — CONDITIONS NOT MET';
+    title.style.color = '#f85149';
+    desc.textContent = 'Insufficient rules met. If market is in RANGE or Score < 65, STAY IN CASH!';
+    if (bar) bar.style.background = '#f85149';
+  } else if (count <= 6) {
+    banner.style.borderColor = '#d29922';
+    banner.style.background = 'linear-gradient(135deg,#241c0a 0%,#161b22 100%)';
+    icon.textContent = '⏳';
+    title.textContent = 'CAUTION — WAITING FOR 1M CANDLE CLOSE & CONFLUENCE';
+    title.style.color = '#d29922';
+    desc.textContent = `${count} of 8 conditions confirmed. Do not enter until the 1m candle fully closes and all confluences align!`;
+    if (bar) bar.style.background = '#d29922';
+  } else {
+    banner.style.borderColor = '#3fb950';
+    banner.style.background = 'linear-gradient(135deg,#0c2c1a 0%,#161b22 100%)';
+    icon.textContent = '🚀';
+    title.textContent = `ALL SYSTEMS GO — ENTER ${fcCurrentType} ON CANDLE CLOSE!`;
+    title.style.color = '#3fb950';
+    desc.textContent = `All major conditions confirmed! Execute trade on the 0:00 close with predefined stop loss and +20% target.`;
+    if (bar) bar.style.background = '#3fb950';
+  }
+}
+
+async function fcSaveTrade() {
+  const contract = (document.getElementById('fc-contract-input').value || '').trim();
+  const notes = (document.getElementById('fc-notes-input').value || '').trim();
+  const toast = document.getElementById('fc-toast');
+
+  let count = 0;
+  for (let i = 1; i <= 8; i++) {
+    if (fcChecks[i]) count++;
+  }
+
+  const combinedNote = [contract ? `Contract: ${contract}` : '', notes].filter(Boolean).join(' | ');
+
+  const payload = {
+    trade_type: fcCurrentType,
+    checks: fcChecks,
+    note: combinedNote || `${fcCurrentType} execution via Flowchart (${count}/8 rules met)`,
+    score: count,
+    total: 8,
+    earned_points: Math.round((count / 8) * 100),
+    total_points: 100
+  };
+
+  try {
+    const res = await fetch('/api/checklist/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      toast.style.display = 'block';
+      toast.style.background = 'rgba(63,185,80,0.18)';
+      toast.style.border = '1.5px solid #3fb950';
+      toast.style.color = '#3fb950';
+      toast.innerHTML = `✅ <b>Trade Saved!</b> ${fcCurrentType} (${count}/8 conditions met) recorded to history database.`;
+
+      // Play audio confirmation tone via Web Audio API
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+      } catch(e) {}
+
+      setTimeout(() => { toast.style.display = 'none'; }, 4000);
+      fcLoadHistory();
+    } else {
+      alert('Error saving trade: ' + (data.error || 'Server error'));
+    }
+  } catch (err) {
+    console.error('fcSaveTrade error:', err);
+    alert('Failed to connect to server: ' + err.message);
+  }
+}
+
+function fcResetForNextTrade() {
+  fcClearAll();
+  document.getElementById('fc-contract-input').value = '';
+  document.getElementById('fc-notes-input').value = '';
+  fcUpdateStatus();
+}
+
+async function fcLoadHistory() {
+  const container = document.getElementById('fc-history-list');
+  try {
+    const res = await fetch('/api/checklist/history');
+    const data = await res.json();
+    if (!data.ok || !data.records || !data.records.length) {
+      container.innerHTML = '<div style="color:#8b949e;text-align:center;padding:20px;font-size:0.95rem">No saved trades yet. Fill in your checklist above and click Save!</div>';
+      return;
+    }
+
+    const recent = data.records.slice(0, 10);
+    container.innerHTML = recent.map(r => {
+      const isCall = r.trade_type === 'CALLS';
+      const badgeBg = isCall ? '#0d3320' : '#3d1515';
+      const badgeBorder = isCall ? '#3fb950' : '#f85149';
+      const badgeColor = isCall ? '#3fb950' : '#ff7b72';
+      const scoreColor = r.score >= 7 ? '#3fb950' : r.score >= 4 ? '#d29922' : '#f85149';
+
+      return `
+      <div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="background:${badgeBg};border:1px solid ${badgeBorder};color:${badgeColor};font-weight:900;font-size:0.85rem;padding:4px 10px;border-radius:6px">
+            ${r.trade_type}
+          </span>
+          <div>
+            <div style="font-size:1.05rem;font-weight:700;color:#e6edf3">
+              ${r.note || 'Flowchart Trade Execution'}
+            </div>
+            <div style="font-size:0.8rem;color:#8b949e;margin-top:2px">
+              ${r.date || ''} at ${r.time || ''} PT &bull; ID #${r.id}
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="text-align:right">
+            <div style="font-size:1.15rem;font-weight:900;color:${scoreColor}">${r.score}/${r.total || 8} Met</div>
+            <div style="font-size:0.75rem;color:#8b949e">${r.earned_points || 0}% Score</div>
+          </div>
+        </div>
+      </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('fcLoadHistory error:', err);
+    container.innerHTML = '<div style="color:#f85149;text-align:center;padding:14px">Failed to load history</div>';
+  }
+}
+
+function initFlowchart() {
+  fcSetType(fcCurrentType);
+  fcLoadHistory();
+}
+
 </script>
 
 <!-- Diagnostics Modal -->
