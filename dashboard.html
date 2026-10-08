@@ -6194,8 +6194,8 @@ async function uploadTOSFile(input) {
   formData.append('file', file);
   
   const select = document.getElementById('ana-file-select');
-  const originalHtml = select.innerHTML;
-  select.innerHTML = '<option>Uploading file...</option>';
+  const originalHtml = select ? select.innerHTML : '';
+  if (select) select.innerHTML = '<option>Uploading file...</option>';
   
   try {
     const res = await (await fetch('/api/analysis/upload', {
@@ -6205,17 +6205,17 @@ async function uploadTOSFile(input) {
     
     if (res.ok) {
       input.value = '';
-      await loadAnaFiles();
-      if (res.filename) {
-        select.value = res.filename;
-        loadAnaTrades();
+      // Ensure user is on Daily Review view to see imported trades immediately
+      if (typeof switchAnaSubTab === 'function') {
+        switchAnaSubTab('daily');
       }
+      await loadAnaFiles(res.filename);
     } else {
-      select.innerHTML = originalHtml;
+      if (select) select.innerHTML = originalHtml;
       alert("Upload failed: " + (res.error || "Unknown error"));
     }
   } catch (err) {
-    select.innerHTML = originalHtml;
+    if (select) select.innerHTML = originalHtml;
     console.error("Upload error:", err);
     alert("Error uploading file: " + err.message);
   }
@@ -6232,21 +6232,26 @@ function formatTo12Hour(timeStr) {
   return `${hour}:${minute} ${ampm}`;
 }
 
-async function loadAnaFiles() {
+async function loadAnaFiles(targetFilename) {
   try {
     const res = await (await fetch('/api/analysis/files')).json();
     const select = document.getElementById('ana-file-select');
     const countBadge = document.getElementById('ana-file-count');
-    select.innerHTML = '';
+    if (select) select.innerHTML = '';
 
     if (res.ok && res.files && res.files.length > 0) {
       if (countBadge) countBadge.textContent = `(${res.files.length} saved)`;
-      res.files.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f;
-        opt.textContent = f;
-        select.appendChild(opt);
-      });
+      if (select) {
+        res.files.forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = f;
+          opt.textContent = f;
+          select.appendChild(opt);
+        });
+        if (targetFilename && res.files.includes(targetFilename)) {
+          select.value = targetFilename;
+        }
+      }
       loadAnaTrades();
     } else {
       if (countBadge) countBadge.textContent = '';
