@@ -297,6 +297,9 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
       </select>
       <span id="countdown-badge" style="background:#1f2937;color:#58a6ff;border:1px solid #30363d;border-radius:12px;padding:2px 8px;font-size:11px;font-weight:700;font-family:monospace;margin-left:2px;display:none">--s</span>
     </div>
+    <button onclick="triggerAnaUpload()" style="background:linear-gradient(135deg,#1f6feb,#094fa5);border:1px solid #388bfd;border-radius:6px;padding:3px 12px;font-size:11px;font-weight:700;color:#ffffff;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all 0.2s;outline:none;margin-left:6px;box-shadow:0 1px 4px rgba(0,0,0,0.3)">
+      <span>📤</span> Import Trades
+    </button>
     <button onclick="runDiagnostics()" style="background:#21262d;border:1px solid #30363d;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:600;color:#c9d1d9;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all 0.2s;outline:none;margin-left:6px;hover:background:#30363d">
       <span>🔧</span> Run Diagnostics
     </button>
@@ -344,6 +347,9 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
         <span id="main-timeline-date-badge" style="background:#21262d;color:#79c0ff;border:1px solid #30363d;padding:4px 10px;border-radius:6px;font-size:0.78rem;font-weight:700">📅 --</span>
         <span id="main-timeline-trades-badge" style="background:#21262d;color:#e6edf3;border:1px solid #30363d;padding:4px 10px;border-radius:6px;font-size:0.78rem;font-weight:700">0 Trades</span>
         <span id="main-timeline-pnl-badge" style="background:rgba(63,185,80,0.15);color:#3fb950;border:1px solid rgba(63,185,80,0.35);padding:4px 10px;border-radius:6px;font-size:0.85rem;font-weight:800">$0.00</span>
+        <button onclick="triggerAnaUpload()" style="background:linear-gradient(135deg,#1f6feb,#094fa5);color:#ffffff;border:1px solid #388bfd;border-radius:6px;padding:5px 13px;font-size:0.78rem;cursor:pointer;font-weight:700;display:flex;align-items:center;gap:5px;box-shadow:0 1px 4px rgba(0,0,0,0.3)">
+          <span>📤</span> Import Trades
+        </button>
         <button onclick="sw('analysis')" style="background:#238636;color:#ffffff;border:none;border-radius:6px;padding:5px 12px;font-size:0.78rem;cursor:pointer;font-weight:700">
           🔍 Full Daily Review &rarr;
         </button>
@@ -6184,6 +6190,20 @@ async function initAnalysis() {
   } else {
     loadAnaFiles();
   }
+}
+
+function triggerAnaUpload() {
+  let fileInput = document.getElementById('ana-file-upload');
+  if (!fileInput) {
+    fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.id = 'ana-file-upload';
+    fileInput.accept = '.csv';
+    fileInput.style.display = 'none';
+    fileInput.onchange = function() { uploadTOSFile(this); };
+    document.body.appendChild(fileInput);
+  }
+  fileInput.click();
 }
 
 async function uploadTOSFile(input) {
