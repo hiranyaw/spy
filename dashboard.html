@@ -3707,12 +3707,10 @@ function sw(n){
   if(n==='ctrl') refreshStatus();
   if(n==='journal') loadJournal();
   if(n==='analysis') {
-    initAnalysis();
-    switchAnaSubTab('daily');
+    initAnalysis('daily');
   }
   if(n==='monthly') {
-    initAnalysis();
-    switchAnaSubTab('monthly');
+    initAnalysis('monthly');
   }
   if(n==='checklist') initChecklist();
   if(n==='flowchart') initFlowchart();
@@ -6172,8 +6170,8 @@ function openDailyReviewForDate(dateStr) {
   loadAnaDailyNote();
 }
 
-async function initAnalysis() {
-  switchAnaSubTab('daily');
+async function initAnalysis(targetSubTab) {
+  switchAnaSubTab(targetSubTab || 'daily');
   if (typeof LightweightCharts === 'undefined') {
     console.log("Loading TradingView Lightweight Charts library...");
     const script = document.createElement('script');
@@ -7211,17 +7209,26 @@ function renderUnifiedTimeline(opts) {
   canvas.innerHTML = `
     <div style="position:relative;width:100%;min-width:760px;height:${canvasHeight}px;background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:10px 14px;box-sizing:border-box;overflow:visible">
       
-      <!-- Top Legend & Controls -->
-      <div style="position:absolute;top:8px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;color:#8b949e;z-index:2">
-        <div style="display:flex;align-items:center;gap:12px">
-          <span><strong style="color:#3fb950">📥 BOUGHT:</strong> Time &amp; Entry Price</span>
-          <span><strong style="color:#f85149">📤 SOLD:</strong> Time &amp; Exit Price</span>
-          <span><strong style="color:#58a6ff">— STRAIGHT LINE:</strong> Trade Duration</span>
-          <span style="background:rgba(63,185,80,0.15);color:#3fb950;padding:1px 5px;border-radius:3px">🟢 CALL</span>
-          <span style="background:rgba(248,81,73,0.15);color:#f85149;padding:1px 5px;border-radius:3px">🔴 PUT</span>
+      <!-- Top Legend & Visual Guide Banner -->
+      <div style="position:absolute;top:8px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:center;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:6px 14px;font-size:0.75rem;z-index:2;box-shadow:0 1px 6px rgba(0,0,0,0.4);flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(63,185,80,0.12);border:1px solid rgba(63,185,80,0.35);padding:3px 9px;border-radius:6px;color:#e6edf3">
+            <span style="color:#3fb950;font-weight:800;font-size:0.8rem">📥 BOUGHT:</span>
+            <span>Time &amp; Entry Price</span>
+          </span>
+          <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(248,81,73,0.12);border:1px solid rgba(248,81,73,0.35);padding:3px 9px;border-radius:6px;color:#e6edf3">
+            <span style="color:#f85149;font-weight:800;font-size:0.8rem">📤 SOLD:</span>
+            <span>Time &amp; Exit Price</span>
+          </span>
+          <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.35);padding:3px 9px;border-radius:6px;color:#e6edf3">
+            <span style="color:#58a6ff;font-weight:800;font-size:0.8rem">— STRAIGHT LINE:</span>
+            <span>Trade Duration</span>
+          </span>
+          <span style="background:rgba(63,185,80,0.22);border:1.5px solid #3fb950;color:#3fb950;font-weight:800;padding:2px 8px;border-radius:5px;font-size:0.75rem">🟢 CALL</span>
+          <span style="background:rgba(248,81,73,0.22);border:1.5px solid #f85149;color:#f85149;font-weight:800;padding:2px 8px;border-radius:5px;font-size:0.75rem">🔴 PUT</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
-          <span style="color:#58a6ff;background:rgba(88,166,255,0.15);padding:1px 6px;border-radius:4px">Click any trade straight line to inspect</span>
+          <span style="color:#8b949e;font-size:0.72rem">💡 Click any trade straight line to inspect on chart</span>
         </div>
       </div>
 
