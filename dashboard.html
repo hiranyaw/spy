@@ -6171,14 +6171,15 @@ function openDailyReviewForDate(dateStr) {
 }
 
 async function initAnalysis(targetSubTab) {
-  switchAnaSubTab(targetSubTab || 'daily');
+  const activeTab = targetSubTab || 'daily';
+  switchAnaSubTab(activeTab);
   if (typeof LightweightCharts === 'undefined') {
     console.log("Loading TradingView Lightweight Charts library...");
     const script = document.createElement('script');
     script.src = "/lightweight-charts.js";
     script.onload = () => {
       console.log("Lightweight Charts loaded successfully.");
-      loadAnaFiles();
+      loadAnaFiles(null, activeTab);
     };
     script.onerror = () => {
       console.error("Error: Failed to load local Lightweight Charts library.");
@@ -6186,7 +6187,7 @@ async function initAnalysis(targetSubTab) {
     };
     document.head.appendChild(script);
   } else {
-    loadAnaFiles();
+    loadAnaFiles(null, activeTab);
   }
 }
 
@@ -6227,7 +6228,7 @@ async function uploadTOSFile(input) {
       if (typeof switchAnaSubTab === 'function') {
         switchAnaSubTab('daily');
       }
-      await loadAnaFiles(res.filename);
+      await loadAnaFiles(res.filename, 'daily');
     } else {
       if (select) select.innerHTML = originalHtml;
       alert("Upload failed: " + (res.error || "Unknown error"));
@@ -6250,7 +6251,7 @@ function formatTo12Hour(timeStr) {
   return `${hour}:${minute} ${ampm}`;
 }
 
-async function loadAnaFiles(targetFilename) {
+async function loadAnaFiles(targetFilename, activeTab) {
   try {
     const res = await (await fetch('/api/analysis/files')).json();
     const select = document.getElementById('ana-file-select');
@@ -6270,7 +6271,9 @@ async function loadAnaFiles(targetFilename) {
           select.value = targetFilename;
         }
       }
-      loadAnaTrades();
+      if (activeTab !== 'monthly') {
+        loadAnaTrades();
+      }
     } else {
       if (countBadge) countBadge.textContent = '';
       const opt = document.createElement('option');
