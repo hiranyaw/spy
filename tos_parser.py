@@ -443,7 +443,7 @@ def pair_trades(executions):
             current_trade["win"] = None
             trades.append(current_trade)
             
-    trades.sort(key=lambda x: x["entry_time"], reverse=True)
+    trades.sort(key=lambda x: x["entry_time"])
     return trades
 
 def load_and_parse_trades(filepath):

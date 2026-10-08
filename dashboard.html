@@ -6341,6 +6341,13 @@ async function loadAnaTrades() {
     const res = await (await fetch(`/api/analysis/trades?filename=${encodeURIComponent(filename)}`)).json();
     if (res.ok && res.trades) {
       anaTrades = res.trades;
+      if (anaTrades && anaTrades.length > 0) {
+        anaTrades.sort((a, b) => {
+          const tA = new Date((a.entry_time || '').replace(/-/g, '/')).getTime() || 0;
+          const tB = new Date((b.entry_time || '').replace(/-/g, '/')).getTime() || 0;
+          return tA - tB;
+        });
+      }
       if (anaTrades.length) {
         const firstTrade = anaTrades[0];
         const dateStr = firstTrade.entry_time ? firstTrade.entry_time.split(' ')[0] : '';
@@ -6647,6 +6654,13 @@ function renderAnaTradeList(trades) {
     return;
   }
 
+  // Sort trades chronologically by entry_time ascending so earliest trade of day is #1
+  trades.sort((a, b) => {
+    const tA = new Date((a.entry_time || '').replace(/-/g, '/')).getTime() || 0;
+    const tB = new Date((b.entry_time || '').replace(/-/g, '/')).getTime() || 0;
+    return tA - tB;
+  });
+
   const tradeDate = trades[0].entry_time ? trades[0].entry_time.split(' ')[0] : 'Today';
   const _getTradeCost = (t) => t.trade_cost !== undefined ? Number(t.trade_cost) : ((Number(t.qty) || 1.0) * 1.0);
   const closedTrades = trades.filter(t => t.pnl !== null);
@@ -6929,6 +6943,13 @@ function renderUnifiedTimeline(opts) {
     return;
   }
 
+  // Sort trades chronologically by entry_time ascending so Trade #1 is earliest trade of day
+  trades.sort((a, b) => {
+    const tA = new Date((a.entry_time || '').replace(/-/g, '/')).getTime() || 0;
+    const tB = new Date((b.entry_time || '').replace(/-/g, '/')).getTime() || 0;
+    return tA - tB;
+  });
+
   // Timezone helper
   const tzVal = (document.getElementById('ana-tz-select') ? document.getElementById('ana-tz-select').value : 'US/Eastern');
   const ianaTz = tzVal === 'US/Eastern' ? 'America/New_York' : 
@@ -7136,8 +7157,8 @@ function renderUnifiedTimeline(opts) {
 
   // ── Straight Trade Execution Lines (Swimlane per Trade) ──
   // Spacious row height and top offset so boxes NEVER overlap
-  const rowHeight = 88;
-  const topOffset = 56;
+  const rowHeight = 106;
+  const topOffset = 58;
   const bottomAxisHeight = 44;
   const canvasHeight = topOffset + (tradeData.length * rowHeight) + bottomAxisHeight;
 
@@ -7179,22 +7200,25 @@ function renderUnifiedTimeline(opts) {
       <div class="ut-trade-row" data-id="${td.idx}" style="position:absolute;left:14px;right:14px;top:${rowTop}px;height:${rowHeight - 8}px;${rowBorder}background:${rowBg};cursor:pointer;transition:all 0.15s ease;z-index:3;padding:0 8px;box-sizing:border-box">
         
         <!-- Background guide track across full session -->
-        <div style="position:absolute;left:0;right:0;top:40px;height:1px;background:#21262d;pointer-events:none"></div>
+        <div style="position:absolute;left:0;right:0;top:60px;height:1px;background:#21262d;pointer-events:none"></div>
 
-        <!-- Left trade header tag (docked neatly in top-left) -->
-        <div style="position:absolute;left:8px;top:6px;display:flex;align-items:center;gap:6px;font-size:0.72rem;z-index:7;background:rgba(13,17,23,0.92);padding:2px 8px;border-radius:5px;border:1px solid #30363d">
+        <!-- Left trade header tag (with BOTH Bought & Sold times prominently stated) -->
+        <div style="position:absolute;left:8px;top:6px;display:flex;align-items:center;gap:7px;font-size:0.73rem;z-index:7;background:rgba(13,17,23,0.96);padding:3px 10px;border-radius:6px;border:1px solid #30363d;box-shadow:0 1px 4px rgba(0,0,0,0.5)">
           <span style="font-weight:800;color:#79c0ff;background:#162238;border:1px solid #1f6feb;border-radius:4px;padding:1px 6px">#${td.idx + 1}</span>
           ${typeBadge}
           <span style="font-weight:700;color:#e6edf3;font-size:0.75rem">${td.trade.symbol || 'SPY'}</span>
+          <span style="color:#3fb950;font-weight:800;font-size:0.72rem;background:rgba(63,185,80,0.12);padding:1px 6px;border-radius:4px;border:1px solid rgba(63,185,80,0.3)">📥 BOUGHT: ${td.entryFormatted}</span>
+          <span style="color:#8b949e;font-size:0.7rem">➔</span>
+          <span style="color:#f85149;font-weight:800;font-size:0.72rem;background:rgba(248,81,73,0.12);padding:1px 6px;border-radius:4px;border:1px solid rgba(248,81,73,0.3)">📤 SOLD: ${td.exitFormatted}</span>
           <span style="font-weight:800;color:${td.netPnlColor};font-family:monospace;padding-left:4px">${td.netPnlStr}</span>
           <span style="color:#8b949e;font-size:0.68rem">(${td.durationStr})</span>
         </div>
 
         <!-- ═════════ THE STRAIGHT LINE CONNECTING BOUGHT TO SOLD ═════════ -->
-        <div class="ut-straight-line-bar" data-id="${td.idx}" style="position:absolute;left:${td.entryPct.toFixed(2)}%;width:${segWidth.toFixed(2)}%;top:36px;height:9px;border-radius:5px;background:${barGradient};${glowStyle};z-index:4" title="Trade #${td.idx + 1}: Bought ${td.entryFormatted} @ ${entryPriceStr} -> Sold ${td.exitFormatted} @ ${exitPriceStr}"></div>
+        <div class="ut-straight-line-bar" data-id="${td.idx}" style="position:absolute;left:${td.entryPct.toFixed(2)}%;width:${segWidth.toFixed(2)}%;top:56px;height:9px;border-radius:5px;background:${barGradient};${glowStyle};z-index:4" title="Trade #${td.idx + 1}: Bought ${td.entryFormatted} @ ${entryPriceStr} -> Sold ${td.exitFormatted} @ ${exitPriceStr}"></div>
 
         <!-- 📥 BOUGHT Node (Pin & Price Box ABOVE the line) -->
-        <div style="position:absolute;left:${td.entryPct.toFixed(2)}%;top:33px;z-index:6;pointer-events:none">
+        <div style="position:absolute;left:${td.entryPct.toFixed(2)}%;top:53px;z-index:6;pointer-events:none">
           <div style="width:14px;height:14px;border-radius:50%;background:#3fb950;border:2.5px solid #0d1117;box-shadow:0 0 8px rgba(63,185,80,0.9);transform:translateX(-50%)"></div>
           <div style="position:absolute;bottom:16px;${boughtLabelAlign}background:#0d1117;border:1px solid #238636;border-radius:5px;padding:2px 8px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.85);z-index:8">
             <span style="color:#3fb950;font-weight:800;font-size:0.68rem">📥 BOUGHT ${td.entryFormatted}</span>
@@ -7204,7 +7228,7 @@ function renderUnifiedTimeline(opts) {
         </div>
 
         <!-- 📤 SOLD Node (Pin & Price Box BELOW the line - zero overlap with Bought!) -->
-        <div style="position:absolute;left:${td.exitPct.toFixed(2)}%;top:33px;z-index:6;pointer-events:none">
+        <div style="position:absolute;left:${td.exitPct.toFixed(2)}%;top:53px;z-index:6;pointer-events:none">
           <div style="width:14px;height:14px;border-radius:50%;background:#f85149;border:2.5px solid #0d1117;box-shadow:0 0 8px rgba(248,81,73,0.9);transform:translateX(-50%)"></div>
           <div style="position:absolute;top:18px;${soldLabelAlign}background:#0d1117;border:1px solid #da3633;border-radius:5px;padding:2px 8px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.85);z-index:8">
             <span style="color:#f85149;font-weight:800;font-size:0.68rem">📤 SOLD ${td.exitFormatted}</span>
@@ -7415,6 +7439,13 @@ async function loadMainTimelineForFile(filename) {
     const tradesRes = await (await fetch(`/api/analysis/trades?filename=${encodeURIComponent(filename)}`)).json();
     if (tradesRes.ok && tradesRes.trades && tradesRes.trades.length) {
       mainTimelineTrades = tradesRes.trades;
+      if (mainTimelineTrades && mainTimelineTrades.length > 0) {
+        mainTimelineTrades.sort((a, b) => {
+          const tA = new Date((a.entry_time || '').replace(/-/g, '/')).getTime() || 0;
+          const tB = new Date((b.entry_time || '').replace(/-/g, '/')).getTime() || 0;
+          return tA - tB;
+        });
+      }
       const firstTrade = mainTimelineTrades[0];
       const dateStr = firstTrade.entry_time ? firstTrade.entry_time.split(' ')[0] : '';
       
