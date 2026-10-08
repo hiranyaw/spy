@@ -314,6 +314,7 @@ td{padding:5px 7px;border-bottom:1px solid #21262d}
   <div class="tab"    data-tab="journal" onclick="sw('journal')">📔 Trade Journal</div>
   <div class="tab"    data-tab="ctrl" onclick="sw('ctrl')">Controls</div>
   <div class="tab"    data-tab="analysis" onclick="sw('analysis')">🔍 Trade Analysis</div>
+  <div class="tab"    data-tab="monthly" onclick="sw('monthly')" style="font-weight:700;color:#79c0ff">📅 Monthly Summary</div>
   <div class="tab"    data-tab="checklist" onclick="sw('checklist')">✅ Trade Checklist</div>
 </div>
 </div>
@@ -1453,13 +1454,20 @@ Only B Trades with FULL confirmation."></textarea>
 <!-- ══ TAB: TRADE ANALYSIS ══ -->
 <div class="tc" id="tab-analysis">
 <div style="padding:20px">
-  <!-- Analysis Sub-Tabs -->
-  <div style="display:flex;gap:10px;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:10px">
-    <div id="ana-subtab-daily" onclick="switchAnaSubTab('daily')" style="padding:6px 12px;background:#1f6feb;color:#ffffff;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
-      <span>📅</span> Daily Review
+  <!-- Analysis Sub-Tabs & Direct Import Button -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:12px;flex-wrap:wrap;gap:12px">
+    <div style="display:flex;gap:10px">
+      <div id="ana-subtab-daily" onclick="switchAnaSubTab('daily')" style="padding:8px 18px;background:#1f6feb;color:#ffffff;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">
+        <span>📅</span> Daily Review
+      </div>
+      <div id="ana-subtab-monthly" onclick="switchAnaSubTab('monthly')" style="padding:8px 18px;background:#21262d;color:#c9d1d9;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:background 0.2s">
+        <span>📈</span> Monthly Summary &amp; Analytics
+      </div>
     </div>
-    <div id="ana-subtab-monthly" onclick="switchAnaSubTab('monthly')" style="padding:6px 12px;background:#21262d;color:#c9d1d9;border-radius:6px;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:background 0.2s">
-      <span>📈</span> Monthly Analytics
+    <div>
+      <button onclick="document.getElementById('ana-file-upload').click()" style="padding:8px 18px;background:linear-gradient(135deg,#1f6feb,#094fa5);border:1.5px solid #388bfd;color:#ffffff;border-radius:6px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;box-shadow:0 2px 6px rgba(0,0,0,0.3)">
+        <span>📤</span> Import TOS CSV Trades
+      </button>
     </div>
   </div>
 
@@ -3683,13 +3691,23 @@ function parseLocalISO(s) {
 function sw(n){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on', t.getAttribute('data-tab')===n));
   document.querySelectorAll('.tc').forEach(c=>c.classList.remove('on'));
-  const target = document.getElementById('tab-'+n);
+  let target = document.getElementById('tab-'+n);
+  if (n === 'monthly') {
+    target = document.getElementById('tab-analysis');
+  }
   if (target) target.classList.add('on');
   // Clear any existing live interval when switching tabs
   if (window.liveIntervalId) { clearInterval(window.liveIntervalId); window.liveIntervalId = null; }
   if(n==='ctrl') refreshStatus();
   if(n==='journal') loadJournal();
-  if(n==='analysis') initAnalysis();
+  if(n==='analysis') {
+    initAnalysis();
+    switchAnaSubTab('daily');
+  }
+  if(n==='monthly') {
+    initAnalysis();
+    switchAnaSubTab('monthly');
+  }
   if(n==='checklist') initChecklist();
   if(n==='flowchart') initFlowchart();
   if(n==='hsm') initHSM();
@@ -5742,6 +5760,12 @@ function switchAnaSubTab(tab) {
       
       loadAnaMonthly();
     }
+
+    document.querySelectorAll('.tab').forEach(t => {
+      const d = t.getAttribute('data-tab');
+      if (d === 'analysis') t.classList.toggle('on', tab === 'daily');
+      if (d === 'monthly') t.classList.toggle('on', tab === 'monthly');
+    });
   } catch(e) {
     alert("Error in switchAnaSubTab: " + e.message);
   }
