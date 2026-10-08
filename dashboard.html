@@ -7116,8 +7116,9 @@ function renderUnifiedTimeline(opts) {
   }
 
   // ── Straight Trade Execution Lines (Swimlane per Trade) ──
-  const rowHeight = 64;
-  const topOffset = 42;
+  // Spacious row height and top offset so boxes NEVER overlap
+  const rowHeight = 88;
+  const topOffset = 56;
   const bottomAxisHeight = 44;
   const canvasHeight = topOffset + (tradeData.length * rowHeight) + bottomAxisHeight;
 
@@ -7125,12 +7126,12 @@ function renderUnifiedTimeline(opts) {
   tradeData.forEach((td, i) => {
     const isSelected = activeTradeIndex === td.idx;
     const rowTop = topOffset + (i * rowHeight);
-    const segWidth = Math.max(3, td.exitPct - td.entryPct);
+    const segWidth = Math.max(3.5, td.exitPct - td.entryPct);
     const isCall = td.optLabel === 'CALL' || (!td.optLabel && td.isMarketLong);
     
     const typeBadge = isCall
-      ? '<span style="background:rgba(63,185,80,0.18);border:1px solid #3fb950;color:#3fb950;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.72rem">🟢 CALL</span>'
-      : '<span style="background:rgba(248,81,73,0.18);border:1px solid #f85149;color:#f85149;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.72rem">🔴 PUT</span>';
+      ? '<span style="background:rgba(63,185,80,0.22);border:1.5px solid #3fb950;color:#3fb950;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.72rem">🟢 CALL</span>'
+      : '<span style="background:rgba(248,81,73,0.22);border:1.5px solid #f85149;color:#f85149;font-weight:800;padding:2px 7px;border-radius:4px;font-size:0.72rem">🔴 PUT</span>';
     
     const barGradient = isCall
       ? 'linear-gradient(90deg, #1f6feb, #3fb950)'
@@ -7148,22 +7149,21 @@ function renderUnifiedTimeline(opts) {
     const spyEntryStr = td.spyEntryPrice !== null ? ` | SPY: $${td.spyEntryPrice.toFixed(2)}` : '';
     const spyExitStr = td.spyExitPrice !== null ? ` | SPY: $${td.spyExitPrice.toFixed(2)}` : '';
 
-    const isShortTrade = segWidth < 18;
     const centerPct = td.entryPct + (segWidth / 2);
 
-    // Smart label alignment near edges
-    const boughtLabelAlign = td.entryPct < 14 ? 'left:0;transform:none;' : 'left:0;transform:translateX(-50%);';
-    const soldLabelAlign = td.exitPct > 86 ? 'right:0;transform:none;' : 'left:0;transform:translateX(-50%);';
+    // Smart label horizontal alignment near canvas edges
+    const boughtLabelAlign = td.entryPct < 15 ? 'left:0;transform:none;' : (td.entryPct > 85 ? 'right:0;transform:none;' : 'left:0;transform:translateX(-50%);');
+    const soldLabelAlign = td.exitPct > 85 ? 'right:0;transform:none;' : (td.exitPct < 15 ? 'left:0;transform:none;' : 'left:0;transform:translateX(-50%);');
 
     tradeRowsHtml += `
       <!-- Row for Trade #${td.idx + 1} -->
-      <div class="ut-trade-row" data-id="${td.idx}" style="position:absolute;left:14px;right:14px;top:${rowTop}px;height:${rowHeight - 6}px;${rowBorder}background:${rowBg};cursor:pointer;transition:all 0.15s ease;z-index:3;padding:0 8px;box-sizing:border-box">
+      <div class="ut-trade-row" data-id="${td.idx}" style="position:absolute;left:14px;right:14px;top:${rowTop}px;height:${rowHeight - 8}px;${rowBorder}background:${rowBg};cursor:pointer;transition:all 0.15s ease;z-index:3;padding:0 8px;box-sizing:border-box">
         
         <!-- Background guide track across full session -->
-        <div style="position:absolute;left:0;right:0;top:32px;height:1px;background:#21262d;pointer-events:none"></div>
+        <div style="position:absolute;left:0;right:0;top:40px;height:1px;background:#21262d;pointer-events:none"></div>
 
-        <!-- Left trade header tag -->
-        <div style="position:absolute;left:8px;top:4px;display:flex;align-items:center;gap:6px;font-size:0.72rem;z-index:5">
+        <!-- Left trade header tag (docked neatly in top-left) -->
+        <div style="position:absolute;left:8px;top:6px;display:flex;align-items:center;gap:6px;font-size:0.72rem;z-index:7;background:rgba(13,17,23,0.92);padding:2px 8px;border-radius:5px;border:1px solid #30363d">
           <span style="font-weight:800;color:#79c0ff;background:#162238;border:1px solid #1f6feb;border-radius:4px;padding:1px 6px">#${td.idx + 1}</span>
           ${typeBadge}
           <span style="font-weight:700;color:#e6edf3;font-size:0.75rem">${td.trade.symbol || 'SPY'}</span>
@@ -7172,35 +7172,27 @@ function renderUnifiedTimeline(opts) {
         </div>
 
         <!-- ═════════ THE STRAIGHT LINE CONNECTING BOUGHT TO SOLD ═════════ -->
-        <div class="ut-straight-line-bar" data-id="${td.idx}" style="position:absolute;left:${td.entryPct.toFixed(2)}%;width:${segWidth.toFixed(2)}%;top:28px;height:9px;border-radius:5px;background:${barGradient};${glowStyle};z-index:4" title="Trade #${td.idx + 1}: Bought ${td.entryFormatted} @ ${entryPriceStr} -> Sold ${td.exitFormatted} @ ${exitPriceStr}"></div>
+        <div class="ut-straight-line-bar" data-id="${td.idx}" style="position:absolute;left:${td.entryPct.toFixed(2)}%;width:${segWidth.toFixed(2)}%;top:36px;height:9px;border-radius:5px;background:${barGradient};${glowStyle};z-index:4" title="Trade #${td.idx + 1}: Bought ${td.entryFormatted} @ ${entryPriceStr} -> Sold ${td.exitFormatted} @ ${exitPriceStr}"></div>
 
-        <!-- 📥 BOUGHT Node (Pin & Price Box) -->
-        <div style="position:absolute;left:${td.entryPct.toFixed(2)}%;top:25px;z-index:6;pointer-events:none">
+        <!-- 📥 BOUGHT Node (Pin & Price Box ABOVE the line) -->
+        <div style="position:absolute;left:${td.entryPct.toFixed(2)}%;top:33px;z-index:6;pointer-events:none">
           <div style="width:14px;height:14px;border-radius:50%;background:#3fb950;border:2.5px solid #0d1117;box-shadow:0 0 8px rgba(63,185,80,0.9);transform:translateX(-50%)"></div>
-          <div style="position:absolute;top:-25px;${boughtLabelAlign}background:#0d1117;border:1px solid #238636;border-radius:4px;padding:2px 7px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.8)">
+          <div style="position:absolute;bottom:16px;${boughtLabelAlign}background:#0d1117;border:1px solid #238636;border-radius:5px;padding:2px 8px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.85);z-index:8">
             <span style="color:#3fb950;font-weight:800;font-size:0.68rem">📥 BOUGHT ${td.entryFormatted}</span>
             <span style="color:#e6edf3;font-weight:700;font-size:0.66rem;font-family:monospace;margin-left:4px">${entryPriceStr}</span>
             <span style="color:#8b949e;font-size:0.60rem">${spyEntryStr}</span>
           </div>
         </div>
 
-        <!-- 📤 SOLD Node (Pin & Price Box) -->
-        <div style="position:absolute;left:${td.exitPct.toFixed(2)}%;top:25px;z-index:6;pointer-events:none">
+        <!-- 📤 SOLD Node (Pin & Price Box BELOW the line - zero overlap with Bought!) -->
+        <div style="position:absolute;left:${td.exitPct.toFixed(2)}%;top:33px;z-index:6;pointer-events:none">
           <div style="width:14px;height:14px;border-radius:50%;background:#f85149;border:2.5px solid #0d1117;box-shadow:0 0 8px rgba(248,81,73,0.9);transform:translateX(-50%)"></div>
-          <div style="position:absolute;top:-25px;${soldLabelAlign}background:#0d1117;border:1px solid #da3633;border-radius:4px;padding:2px 7px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.8)">
+          <div style="position:absolute;top:18px;${soldLabelAlign}background:#0d1117;border:1px solid #da3633;border-radius:5px;padding:2px 8px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.85);z-index:8">
             <span style="color:#f85149;font-weight:800;font-size:0.68rem">📤 SOLD ${td.exitFormatted}</span>
             <span style="color:#e6edf3;font-weight:700;font-size:0.66rem;font-family:monospace;margin-left:4px">${exitPriceStr}</span>
             <span style="color:#8b949e;font-size:0.60rem">${spyExitStr}</span>
           </div>
         </div>
-
-        <!-- Center Line Detail Pill (Only for wider trades to avoid clutter) -->
-        ${!isShortTrade ? `
-        <div style="position:absolute;left:${centerPct.toFixed(2)}%;top:2px;transform:translateX(-50%);background:#161b22;border:1px solid #30363d;border-radius:4px;padding:1px 8px;font-size:0.68rem;white-space:nowrap;z-index:5;display:flex;align-items:center;gap:6px">
-          ${typeBadge}
-          <span style="color:${td.netPnlColor};font-weight:800">${td.netPnlStr}</span>
-        </div>
-        ` : ''}
 
       </div>
     `;
