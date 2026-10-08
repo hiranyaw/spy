@@ -1,0 +1,113 @@
+# Final 9/21 EMA cross study - SPY 1-min, 6:35-8:00 PT, 7 years
+
+TRAIN = Sep 2019 - Dec 2023, TEST = Jan 2024 - Oct 2026 (never used to pick filters). R_D = your exits (1.5xATR stop, half at 1.5R, BE, 2.5R / 9 EMA trail). R_B = 1.5xATR stop, 2.5R target.
+
+## Baselines
+| entry | trades train | avg R_D train | trades test | avg R_D test | avg R_B test |
+|---|---|---|---|---|---|
+| enter on cross close | 4005 | -0.021 | 2541 | -0.019 | -0.023 |
+| wait for pullback to 9 EMA | 2829 | +0.005 | 1823 | -0.026 | -0.020 |
+
+## cross entry, your exits (R_D): top 15 filter combos ranked on TRAIN only
+Of the top 50 by train, **27 / 50** stayed positive on test; median test avg R of top 50 = +0.018.
+
+| filters | n train | R train | n test | R test |
+|---|---|---|---|---|
+| range>=0.40ATR + 5m RSI pullback + before 7:30 | 343 | +0.246 | 212 | -0.002 |
+| range>=0.40ATR + 5m ST not yet + before 7:30 | 360 | +0.181 | 218 | +0.015 |
+| range>=0.40ATR + 1m ST agrees + before 7:30 | 306 | +0.172 | 199 | +0.126 |
+| QQQ 9/21 + range>=0.40ATR + before 7:30 | 290 | +0.164 | 196 | +0.044 |
+| range>=0.40ATR + MACD dot + before 7:30 | 453 | +0.164 | 284 | +0.050 |
+| range>=0.40ATR + 5m RSI pullback + above/below day open | 154 | +0.155 | 80 | +0.037 |
+| cross1-2 + 5m RSI pullback + fast tape (ATR ratio>5) | 480 | +0.151 | 340 | +0.080 |
+| 5m RSI pullback + outside 5m OR + fast tape (ATR ratio>5) | 174 | +0.150 | 131 | -0.130 |
+| cross1 + 5m RSI pullback + fast tape (ATR ratio>5) | 299 | +0.148 | 209 | +0.069 |
+| range>=0.40ATR + 5m RSI pullback + gap dir | 400 | +0.147 | 255 | -0.036 |
+| range>=0.40ATR + 5m RSI pullback + 1m ST agrees | 450 | +0.142 | 291 | +0.029 |
+| cross1-2 + 5m ST not yet + fast tape (ATR ratio>5) | 497 | +0.141 | 352 | +0.029 |
+| VWAP + range>=0.40ATR + 5m RSI pullback | 316 | +0.140 | 178 | +0.025 |
+| range>=0.40ATR + 5m RSI pullback + fast tape (ATR ratio>5) | 530 | +0.133 | 377 | -0.037 |
+| 5m RSI pullback + gap dir + fast tape (ATR ratio>5) | 436 | +0.130 | 325 | -0.056 |
+
+## cross entry, 2.5R target (R_B): top 15 filter combos ranked on TRAIN only
+Of the top 50 by train, **19 / 50** stayed positive on test; median test avg R of top 50 = -0.031.
+
+| filters | n train | R train | n test | R test |
+|---|---|---|---|---|
+| 5m RSI pullback + outside 5m OR + fast tape (ATR ratio>5) | 174 | +0.328 | 131 | -0.074 |
+| range>=0.40ATR + 5m RSI pullback + above/below day open | 154 | +0.313 | 80 | +0.106 |
+| range>=0.40ATR + 5m RSI pullback + before 7:30 | 343 | +0.302 | 212 | -0.011 |
+| range>=0.40ATR + 1m ST agrees + before 7:30 | 306 | +0.233 | 199 | +0.182 |
+| range>=0.40ATR + 5m RSI pullback + 1m ST agrees | 450 | +0.214 | 291 | +0.000 |
+| range>=0.40ATR + 5m ST not yet + before 7:30 | 360 | +0.205 | 218 | +0.009 |
+| VWAP + range>=0.40ATR + 5m RSI pullback | 316 | +0.204 | 178 | +0.117 |
+| MACD dot + outside 5m OR + fast tape (ATR ratio>5) | 454 | +0.196 | 340 | -0.079 |
+| 5m ST not yet + outside 5m OR + fast tape (ATR ratio>5) | 157 | +0.182 | 141 | -0.081 |
+| range>=0.40ATR + 5m ST not yet + 1m ST agrees | 462 | +0.181 | 295 | +0.046 |
+| QQQ 9/21 + range>=0.40ATR + 5m RSI pullback | 479 | +0.173 | 304 | -0.111 |
+| range>=0.40ATR + MACD dot + before 7:30 | 453 | +0.173 | 284 | +0.079 |
+| range>=0.40ATR + 5m RSI pullback + fast tape (ATR ratio>5) | 530 | +0.173 | 377 | -0.057 |
+| QQQ 9/21 + range>=0.40ATR + 1m ST agrees | 415 | +0.169 | 271 | -0.121 |
+| QQQ 9/21 + 5m ST not yet + outside 5m OR | 223 | +0.162 | 160 | -0.134 |
+
+## pullback entry, your exits: top 15 filter combos ranked on TRAIN only
+Of the top 50 by train, **28 / 50** stayed positive on test; median test avg R of top 50 = +0.007.
+
+| filters | n train | R train | n test | R test |
+|---|---|---|---|---|
+| range>=0.40ATR + gap dir + before 7:30 | 196 | +0.175 | 119 | -0.052 |
+| range>=0.40ATR + MACD dot + before 7:30 | 330 | +0.167 | 206 | -0.013 |
+| range>=0.40ATR + 5m ST not yet + before 7:30 | 267 | +0.165 | 156 | -0.042 |
+| range>=0.40ATR + 5m RSI pullback + before 7:30 | 255 | +0.164 | 150 | -0.081 |
+| range>=0.40ATR + 1m ST agrees + before 7:30 | 228 | +0.141 | 140 | +0.088 |
+| VWAP + range>=0.40ATR + before 7:30 | 263 | +0.133 | 164 | +0.110 |
+| range>=0.40ATR + before 7:30 | 369 | +0.133 | 232 | -0.017 |
+| range>=0.25ATR + range>=0.40ATR + before 7:30 | 369 | +0.133 | 232 | -0.017 |
+| range>=0.40ATR + 5m RSI pullback + gap dir | 283 | +0.125 | 178 | -0.106 |
+| range>=0.25ATR + outside 5m OR + fast tape (ATR ratio>5) | 319 | +0.124 | 266 | +0.030 |
+| cross1-2 + 5m ST not yet + fast tape (ATR ratio>5) | 349 | +0.123 | 251 | -0.033 |
+| outside 5m OR + before 7:30 + fast tape (ATR ratio>5) | 232 | +0.120 | 191 | +0.029 |
+| range>=0.40ATR + before 7:30 + fast tape (ATR ratio>5) | 304 | +0.119 | 212 | +0.014 |
+| MACD dot + outside 5m OR + fast tape (ATR ratio>5) | 320 | +0.117 | 257 | -0.016 |
+| QQQ 9/21 + outside 5m OR + before 7:30 | 304 | +0.116 | 207 | +0.064 |
+
+## pullback entry, 2.5R target: top 15 filter combos ranked on TRAIN only
+Of the top 50 by train, **28 / 50** stayed positive on test; median test avg R of top 50 = +0.018.
+
+| filters | n train | R train | n test | R test |
+|---|---|---|---|---|
+| range>=0.40ATR + 5m RSI pullback + before 7:30 | 255 | +0.236 | 150 | -0.059 |
+| range>=0.40ATR + outside 5m OR + fast tape (ATR ratio>5) | 194 | +0.235 | 174 | -0.042 |
+| range>=0.40ATR + 1m ST agrees + before 7:30 | 228 | +0.226 | 140 | +0.105 |
+| range>=0.25ATR + outside 5m OR + fast tape (ATR ratio>5) | 319 | +0.225 | 266 | +0.015 |
+| range>=0.25ATR + outside 5m OR + before 7:30 | 275 | +0.214 | 189 | +0.132 |
+| gap dir + outside 5m OR + fast tape (ATR ratio>5) | 164 | +0.209 | 133 | +0.126 |
+| range>=0.40ATR + 5m ST not yet + before 7:30 | 267 | +0.208 | 156 | -0.037 |
+| range>=0.40ATR + MACD dot + before 7:30 | 330 | +0.206 | 206 | +0.025 |
+| outside 5m OR + before 7:30 + fast tape (ATR ratio>5) | 232 | +0.199 | 191 | +0.040 |
+| MACD dot + outside 5m OR + fast tape (ATR ratio>5) | 320 | +0.191 | 257 | -0.040 |
+| 5m RSI pullback + above/below day open + fast tape (ATR ratio>5) | 272 | +0.187 | 196 | -0.022 |
+| VWAP + outside 5m OR + fast tape (ATR ratio>5) | 354 | +0.172 | 298 | -0.012 |
+| outside 5m OR + fast tape (ATR ratio>5) | 361 | +0.168 | 302 | -0.002 |
+| above/below day open + outside 5m OR + fast tape (ATR ratio>5) | 361 | +0.168 | 302 | -0.002 |
+| range>=0.25ATR + range>=0.40ATR + before 7:30 | 369 | +0.168 | 232 | +0.025 |
+
+## Most robust combos (cross entry, R_D): best worst-of(train, test), n_train >= 150
+Note: this ranking looks at test too, so it is a robustness view, not out-of-sample.
+| filters | n train | R train | n test | R test |
+|---|---|---|---|---|
+| range>=0.40ATR + 1m ST agrees + before 7:30 | 306 | +0.172 | 199 | +0.126 |
+| cross1 + range>=0.40ATR + 5m RSI pullback | 197 | +0.105 | 121 | +0.261 |
+| cross1-2 + range>=0.40ATR + gap dir | 268 | +0.096 | 155 | +0.114 |
+| cross1-2 + range>=0.40ATR + 5m RSI pullback | 363 | +0.095 | 222 | +0.119 |
+| cross1 + range>=0.40ATR + 5m ST not yet | 209 | +0.094 | 123 | +0.249 |
+| cross1 + 1m ST agrees + fast tape (ATR ratio>5) | 268 | +0.117 | 182 | +0.092 |
+| VWAP + range>=0.40ATR + before 7:30 | 368 | +0.089 | 227 | +0.112 |
+| cross1 + range>=0.40ATR + MACD dot | 203 | +0.083 | 115 | +0.245 |
+| cross1-2 + MACD dot + fast tape (ATR ratio>5) | 723 | +0.084 | 506 | +0.083 |
+| cross1-2 + 5m RSI pullback + fast tape (ATR ratio>5) | 480 | +0.151 | 340 | +0.080 |
+| cross1-2 + beyond prev-day H/L + fast tape (ATR ratio>5) | 176 | +0.078 | 122 | +0.195 |
+| above/below day open + beyond prev-day H/L + before 7:30 | 392 | +0.074 | 249 | +0.078 |
+| cross1-2 + cross1 + range>=0.40ATR | 215 | +0.073 | 127 | +0.225 |
+| cross1 + range>=0.25ATR + range>=0.40ATR | 215 | +0.073 | 127 | +0.225 |
+| cross1 + range>=0.40ATR | 215 | +0.073 | 127 | +0.225 |

@@ -1,0 +1,32 @@
+# Hiranya Signal Monitor v1.9 - 7-year backtest (SPY 1-min, signals 6:35-8:00 PT, no $ADD)
+
+1759 trading days. R_D = your exits. Train = 2019-23, Test = 2024-26. 'stopped' = full 1R loss.
+
+| signal | trades | days/yr | stopped | R_D 2019-23 | R_D 2024-26 | R_B all | yrs R_D>0 |
+|---|---|---|---|---|---|---|---|
+| All BUY/SELL flips | 9482 | 248 | 60% | +0.000 | +0.020 | +0.010 | 5/7 |
+| BUY | 4903 | 222 | 59% | +0.004 | +0.048 | +0.030 | 4/7 |
+| SELL | 4579 | 216 | 60% | -0.004 | -0.009 | -0.012 | 2/7 |
+| 1st score signal of day | 1734 | 248 | 59% | +0.043 | +0.005 | +0.055 | 4/7 |
+| 2nd+ score signal | 7748 | 239 | 60% | -0.009 | +0.023 | -0.001 | 4/7 |
+| All BRK (range break) | 1395 | 154 | 59% | -0.012 | +0.073 | +0.029 | 5/7 |
+| BRK UP | 701 | 87 | 59% | -0.007 | +0.042 | +0.032 | 5/7 |
+| BRK DN | 694 | 88 | 59% | -0.016 | +0.103 | +0.026 | 4/7 |
+
+## Score signals + playbook filters
+| signal | trades | days/yr | stopped | R_D 2019-23 | R_D 2024-26 | R_B all | yrs R_D>0 |
+|---|---|---|---|---|---|---|---|
+| flip + range used >= 0.25 ATR | 7341 | 226 | 59% | +0.000 | +0.036 | +0.012 | 5/7 |
+| flip + range used >= 0.40 ATR | 4178 | 148 | 60% | -0.017 | +0.031 | -0.011 | 2/7 |
+| flip + range used < 0.25 ATR | 2141 | 127 | 60% | +0.002 | -0.032 | +0.001 | 3/7 |
+| 1st flip + range >= 0.25 | 847 | 121 | 58% | +0.061 | +0.020 | +0.086 | 3/7 |
+| 1st flip + range >= 0.40 | 288 | 41 | 55% | +0.192 | +0.129 | +0.214 | 5/7 |
+| flip before 7:00 | 2665 | 197 | 59% | +0.028 | +0.019 | +0.032 | 3/7 |
+| flip 7:00-8:00 | 6817 | 240 | 60% | -0.010 | +0.021 | +0.001 | 4/7 |
+| 1st flip before 7:00 + range >= 0.40 | 156 | 22 | 52% | +0.109 | +0.403 | +0.253 | 4/7 |
+
+## Signals per day
+Score flips per day (window): mean 5.39; days with >=1 flip: 1734 of 1759
+Range breaks per day: mean 0.79; days with >=1 break: 1076
+Share of window bars blocked as RANGE: 41%
+saved sm19_bars.csv 149473

@@ -1,0 +1,83 @@
+Downloading SPY 1-min bars 2019-09-25 -> 2026-10-03 ...
+  SPY: 100,000 bars so far
+  SPY: 200,000 bars so far
+  SPY: 300,000 bars so far
+  SPY: 400,000 bars so far
+  SPY: 500,000 bars so far
+  SPY: 600,000 bars so far
+  SPY: 700,000 bars so far
+  SPY: 800,000 bars so far
+  SPY: 900,000 bars so far
+  SPY: 1,000,000 bars so far
+  SPY: 1,100,000 bars so far
+  SPY: 1,200,000 bars so far
+  SPY: 1,300,000 bars so far
+  SPY: 1,400,000 bars so far
+  saved 1,461,173 bars -> SPY_1m_7y.csv
+Downloading QQQ 1-min bars 2019-09-25 -> 2026-10-03 ...
+  QQQ: 100,000 bars so far
+  QQQ: 200,000 bars so far
+  QQQ: 300,000 bars so far
+  QQQ: 400,000 bars so far
+  QQQ: 500,000 bars so far
+  QQQ: 600,000 bars so far
+  QQQ: 700,000 bars so far
+  QQQ: 800,000 bars so far
+  QQQ: 900,000 bars so far
+  QQQ: 1,000,000 bars so far
+  QQQ: 1,100,000 bars so far
+  QQQ: 1,200,000 bars so far
+  QQQ: 1,300,000 bars so far
+  QQQ: 1,400,000 bars so far
+  saved 1,489,238 bars -> QQQ_1m_7y.csv
+# SPY 1-min 9/21 EMA cross - 6:35-8:00 AM PT, last 7 years
+
+Rules: entry at close of cross bar; target +$1.00, stop -$0.50 (stop checked first if both hit in one bar), max hold 30 min. Whipsaw = opposite cross within 5 bars. EMAs on EXT session bars. Break-even target-hit rate ~33% (before option costs).
+
+## Days
+Trading days: **1759**  |  days with >=1 cross: **1687** (96%)  |  total crosses: **6546**  |  avg crosses/day: 3.72
+
+| crosses in window | days | % |
+|---|---|---|
+| 0 crosses | 72 | 4% |
+| 1 cross | 177 | 10% |
+| 2 crosses | 308 | 18% |
+| 3 crosses | 321 | 18% |
+| 4+ crosses | 881 | 50% |
+
+## Follow-through
+| group | crosses | target_hit% | stopped% | avg_pnl_pts | avg_R | avg_MFE | avg_MAE | avg_move_15m | avg_move_30m | whipsaw% |
+|---|---|---|---|---|---|---|---|---|---|---|
+| ALL crosses | 6546 | 21.1 | 52.3 | -0.007 | -0.014 | 0.84 | 0.85 | -0.01 | -0.02 | 25.4 |
+| LONG | 3266 | 19.3 | 52.2 | -0.007 | -0.013 | 0.8 | 0.88 | -0.01 | -0.02 | 24.8 |
+| SHORT | 3280 | 22.8 | 52.5 | -0.007 | -0.014 | 0.88 | 0.83 | -0.0 | -0.03 | 26.1 |
+| First cross of day | 1687 | 23.4 | 56.0 | -0.011 | -0.022 | 0.89 | 0.94 | -0.03 | -0.07 | 23.2 |
+| 2nd+ cross of day | 4859 | 20.2 | 51.1 | -0.005 | -0.011 | 0.82 | 0.82 | 0.0 | -0.0 | 26.2 |
+| Day had only 1 cross | 177 | 45.8 | 15.8 | 0.501 | 1.001 | 1.21 | 0.29 | 0.51 | 0.82 | 2.3 |
+| Day had 3+ crosses | 5753 | 18.5 | 55.2 | -0.052 | -0.105 | 0.8 | 0.89 | -0.06 | -0.08 | 28.2 |
+| VWAP aligned | 4970 | 21.5 | 53.5 | -0.009 | -0.018 | 0.86 | 0.88 | -0.01 | -0.02 | 24.1 |
+| VWAP against | 1576 | 19.7 | 48.7 | -0.001 | -0.001 | 0.77 | 0.76 | 0.01 | -0.02 | 29.6 |
+| QQQ aligned | 3764 | 21.8 | 52.5 | -0.0 | -0.0 | 0.86 | 0.87 | -0.0 | -0.02 | 24.2 |
+| VWAP + QQQ aligned | 2876 | 22.4 | 54.0 | -0.002 | -0.004 | 0.89 | 0.9 | -0.0 | -0.02 | 22.9 |
+| First + VWAP + QQQ | 803 | 25.0 | 56.8 | 0.004 | 0.008 | 0.99 | 0.98 | -0.0 | -0.02 | 21.7 |
+
+## By time of cross
+| group | crosses | target_hit% | stopped% | avg_pnl_pts | avg_R | avg_MFE | avg_MAE | avg_move_15m | avg_move_30m | whipsaw% |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 6:35-7:00 | 1983 | 24.3 | 59.2 | -0.02 | -0.039 | 0.96 | 1.01 | -0.03 | -0.05 | 27.0 |
+| 7:00-7:30 | 2263 | 21.9 | 50.3 | 0.016 | 0.031 | 0.84 | 0.83 | 0.01 | 0.0 | 24.0 |
+| 7:30-8:00 | 2300 | 17.5 | 48.5 | -0.018 | -0.036 | 0.73 | 0.75 | -0.01 | -0.02 | 25.5 |
+
+## By year
+| group | crosses | target_hit% | stopped% | avg_pnl_pts | avg_R | avg_MFE | avg_MAE | avg_move_15m | avg_move_30m | whipsaw% |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2019 | 227 | 2.2 | 15.4 | -0.016 | -0.033 | 0.26 | 0.27 | -0.01 | -0.02 | 30.8 |
+| 2020 | 950 | 17.3 | 44.6 | 0.009 | 0.018 | 0.73 | 0.72 | 0.0 | -0.01 | 25.2 |
+| 2021 | 903 | 12.7 | 41.7 | -0.02 | -0.04 | 0.57 | 0.59 | -0.01 | -0.01 | 23.6 |
+| 2022 | 977 | 28.2 | 63.8 | -0.021 | -0.041 | 1.05 | 1.1 | -0.0 | -0.05 | 26.6 |
+| 2023 | 948 | 19.2 | 52.7 | -0.015 | -0.031 | 0.68 | 0.72 | -0.02 | -0.03 | 24.6 |
+| 2024 | 927 | 20.1 | 51.9 | 0.004 | 0.008 | 0.75 | 0.76 | -0.01 | -0.02 | 26.3 |
+| 2025 | 887 | 26.9 | 58.3 | 0.017 | 0.034 | 1.12 | 1.08 | 0.01 | 0.02 | 23.6 |
+| 2026 | 727 | 29.0 | 64.5 | -0.02 | -0.041 | 1.18 | 1.22 | -0.01 | -0.04 | 27.1 |
+
+Saved: ema_cross_trades_7y.csv, ema_cross_days_7y.csv, ema_cross_report_7y.md
