@@ -1613,7 +1613,9 @@ def analysis_files():
             except Exception as db_err:
                 print(f"[files] DB fallback error: {db_err}")
 
-        all_files = sorted(local_files | db_files, reverse=True)
+        def _file_sort_key(f):
+            return (1 if (f and f[0].isdigit()) else 0, f)
+        all_files = sorted(local_files | db_files, key=_file_sort_key, reverse=True)
         return jsonify({"ok": True, "files": all_files})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
